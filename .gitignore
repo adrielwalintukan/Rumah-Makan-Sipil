@@ -1,0 +1,20 @@
+# dependencies & build
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+
+# env (jangan pernah di-commit)
+.env
+.env*.local
+
+# supabase lokal
+supabase/.temp/
+supabase/.branches/
+
+# os/editor
+.DS_Store
+Thumbs.db
+*.log

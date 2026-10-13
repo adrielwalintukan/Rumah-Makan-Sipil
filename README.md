@@ -37,6 +37,10 @@ Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Supabase (Pos
 | [Roadmap](docs/roadmap.md) | Milestone pengerjaan v1 & fase berikutnya |
 | [Data Menu Awal](docs/menu-seed.md) | Menu & harga dari banner |
 
+## Alur kerja
+
+`main` = production, `development` = tempat kerja. Setiap task dikerjakan di branch baru dari `development`, lalu dibuka PR ke `development` dengan body lengkap dan CI hijau. Panduan lengkap untuk manusia maupun AI agent ada di [AGENTS.md](AGENTS.md).
+
 ## Menjalankan secara lokal
 
 Akan dilengkapi setelah milestone M0 ([roadmap](docs/roadmap.md)). Rencananya:
