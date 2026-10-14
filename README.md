@@ -4,7 +4,7 @@
 
 Web pemesanan makanan mobile-first untuk Rumah Makan Sipil. Pelanggan scan QR atau membuka link, memesan dari HP, lalu membayar dengan **QRIS (DANA Bisnis)** atau **cash**. Pesanan langsung masuk ke dashboard penjual secara realtime.
 
-> Status: **tahap perencanaan**. Dokumen sudah lengkap, kode belum dibuat.
+> Status: **M0 (fondasi)**. Kerangka aplikasi, skema database, dan CI sudah ada. Fitur pemesanan mulai dibangun di M1.
 
 ## Fitur v1
 
@@ -43,12 +43,40 @@ Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Supabase (Pos
 
 ## Menjalankan secara lokal
 
-Akan dilengkapi setelah milestone M0 ([roadmap](docs/roadmap.md)). Rencananya:
+Butuh Node.js 22+.
 
 ```bash
 npm install
-cp .env.example .env.local   # isi kredensial Supabase
+```
+
+```bash
+cp .env.example .env.local
+```
+
+Isi `.env.local` dengan kredensial Supabase (lihat [Arsitektur §9](docs/architecture.md)), lalu:
+
+```bash
 npm run dev
+```
+
+| Perintah | Fungsi |
+|---|---|
+| `npm run lint` | ESLint |
+| `npm run typecheck` | Cek tipe TypeScript |
+| `npm test` | Unit test (Vitest) |
+| `npm run build` | Build produksi |
+| `npm run test:e2e` | E2E Playwright di viewport HP (butuh `npm run build` dulu dan `npx playwright install chromium`) |
+
+Tes database (pgTAP) butuh Docker: `npx supabase db start` lalu `npx supabase test db`. Tanpa Docker, tes ini tetap berjalan otomatis di CI.
+
+Migrasi ke project Supabase hosted:
+
+```bash
+npx supabase link --project-ref <ref-project>
+```
+
+```bash
+npx supabase db push --include-seed
 ```
 
 ## Kontak

@@ -14,7 +14,6 @@ permissions:
   contents: read
 
 jobs:
-  # shortcut: hanya cek dokumen karena belum ada kode; M0 menambah job "App Quality Gate & Build" dan "Database pgTAP & RLS Tests"
   docs:
     name: Docs Check
     runs-on: ubuntu-latest
@@ -26,3 +25,42 @@ jobs:
         with:
           args: --offline --no-progress './**/*.md'
           fail: true
+
+  app:
+    name: App Quality Gate & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Pasang Chromium untuk Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E (viewport HP)
+        run: npm run test:e2e
+
+  database:
+    name: Database pgTAP & RLS Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+
+      - name: Jalankan Postgres lokal (migrasi + seed)
+        run: supabase db start
+
+      - name: Tes pgTAP
+        run: supabase test db

@@ -9,10 +9,11 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 ## v1 (MVP)
 
 ### M0 — Fondasi
-- [ ] Init Next.js + TypeScript + Tailwind + shadcn/ui, token warna & font dari [Design System](design-system.md)
-- [ ] Proyek Supabase: migrasi skema, RLS, `seed.sql` dari [Data Menu Awal](menu-seed.md)
-- [ ] Hubungkan repo GitHub ke Vercel, isi environment variables
-- [ ] Setup Vitest, Playwright, dan pgTAP
+- [x] Init Next.js + TypeScript + Tailwind + shadcn/ui, token warna & font dari [Design System](design-system.md)
+- [x] Migrasi skema, RLS, `seed.sql` dari [Data Menu Awal](menu-seed.md) (diuji pgTAP di CI)
+- [ ] Buat project Supabase hosted, lalu jalankan migrasi + seed di sana (langkah pengguna)
+- [ ] Hubungkan repo GitHub ke Vercel, isi environment variables (langkah pengguna)
+- [x] Setup Vitest, Playwright, dan pgTAP + job CI `App Quality Gate & Build` dan `Database pgTAP & RLS Tests`
 
 **Selesai jika**: halaman kosong bermerek tampil di URL Vercel dan `supabase test db` berjalan.
 

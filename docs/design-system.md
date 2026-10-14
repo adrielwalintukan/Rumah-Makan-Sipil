@@ -97,9 +97,11 @@ Format harga: **`Rp15.000`** (titik ribuan, tanpa desimal). Pada daftar menu yan
 |---|---|---|
 | Primary | Latar `green-700`, teks putih | Aksi utama (Tambah, Pesan Sekarang, Mulai masak) |
 | Secondary | Border `green-700`, teks `green-700`, latar putih | Aksi kedua (Lihat QRIS, Riwayat) |
-| Accent | Latar `brown-500`, teks putih | **Lunas**, Pesan via WhatsApp |
+| Accent | Latar `brown-700`, teks putih | **Lunas**, Pesan via WhatsApp |
 | Ghost | Tanpa latar, teks `ink-600` | Batal kecil, tutup |
 | Danger | Teks/border `danger` | Batal pesanan, hapus |
+
+Teks putih di atas `brown-500` hanya ±4,4:1 (gagal AA), jadi tombol Accent memakai `brown-700` (±7:1); `brown-500` tetap untuk ikon & dekorasi.
 
 Tinggi minimal **48 px** (mobile) dan target sentuh ≥ **44×44 px**. State: hover, pressed (sedikit lebih gelap + `scale(0.98)`), disabled (opacity 40%), loading (spinner + label tetap).
 
@@ -208,6 +210,7 @@ Bentuk *pill* (radius full), ikon kecil + teks `caption`, dengan warna sesuai §
 
 ## 11. Implementasi (Tailwind + shadcn/ui)
 
-- Token warna dimasukkan ke `tailwind.config` / CSS variable shadcn (`--primary`, `--accent`, `--background`, dst.) sehingga komponen shadcn otomatis memakai warna brand.
+- Token warna ada di `app/globals.css` (Tailwind v4 `@theme`, tanpa `tailwind.config`): kelas memakai nama token dokumen ini (`bg-green-700`, `text-brown-700`, `bg-cream-50`, `bg-danger-bg`, …), dan palet `green` bawaan Tailwind dinonaktifkan agar tidak tercampur.
+- Variabel shadcn dipetakan ke token brand: `--primary` = `green-700`, `--background` = `cream-50`, `--border` = `line`. `--accent` shadcn adalah latar *hover* (`green-100`), **bukan** warna aksen coklat. Untuk coklat, pakai kelas `brown-*` atau varian tombol `accent`.
 - Font dimuat via `next/font/google` (Fraunces, Plus Jakarta Sans) dengan `display: swap`.
 - v1 hanya memakai **tema terang** (warung, layar di bawah cahaya). Tema gelap bisa ditambahkan nanti lewat token yang sama.
