@@ -12,7 +12,8 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 - [x] Init Next.js + TypeScript + Tailwind + shadcn/ui, token warna & font dari [Design System](design-system.md)
 - [x] Migrasi skema, RLS, `seed.sql` dari [Data Menu Awal](menu-seed.md) (diuji pgTAP di CI)
 - [x] Buat project Supabase hosted (`bvpeysmhfsqliapebivp`), lalu jalankan migrasi + seed di sana
-- [ ] Hubungkan repo GitHub ke Vercel, isi environment variables (langkah pengguna)
+- [x] Hubungkan repo GitHub ke Vercel (project `rumah-makan-sipil`, production = `main`, branch lain = Preview)
+- [ ] Isi env var rahasia (`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `IP_HASH_SALT`, `NEXT_PUBLIC_SITE_URL`) di `.env.local` dan Vercel (langkah pengguna)
 - [x] Setup Vitest, Playwright, dan pgTAP + job CI `App Quality Gate & Build` dan `Database pgTAP & RLS Tests`
 
 **Selesai jika**: halaman kosong bermerek tampil di URL Vercel dan `supabase test db` berjalan.
