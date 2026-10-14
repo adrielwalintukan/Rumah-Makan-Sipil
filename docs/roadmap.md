@@ -11,7 +11,7 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 ### M0 — Fondasi
 - [x] Init Next.js + TypeScript + Tailwind + shadcn/ui, token warna & font dari [Design System](design-system.md)
 - [x] Migrasi skema, RLS, `seed.sql` dari [Data Menu Awal](menu-seed.md) (diuji pgTAP di CI)
-- [ ] Buat project Supabase hosted, lalu jalankan migrasi + seed di sana (langkah pengguna)
+- [x] Buat project Supabase hosted (`bvpeysmhfsqliapebivp`), lalu jalankan migrasi + seed di sana
 - [ ] Hubungkan repo GitHub ke Vercel, isi environment variables (langkah pengguna)
 - [x] Setup Vitest, Playwright, dan pgTAP + job CI `App Quality Gate & Build` dan `Database pgTAP & RLS Tests`
 
