@@ -83,12 +83,13 @@ rumah-makan-sipil/
 ├─ lib/
 │  ├─ supabase/                    # client browser, server, service (server-only)
 │  ├─ cart.ts                      # keranjang di localStorage
-│  ├─ format.ts                    # formatRupiah, formatWaktu (WITA)
+│  ├─ format.ts                    # formatRupiah, formatWaktu (WITA) + format.test.ts (Vitest, di samping file)
 │  └─ schemas.ts                   # skema Zod
 ├─ supabase/
 │  ├─ migrations/                  # skema, RLS, fungsi SQL
 │  ├─ seed.sql                     # data dari menu-seed.md
 │  └─ tests/                       # pgTAP untuk fungsi SQL
+├─ e2e/                            # tes Playwright (viewport HP)
 ├─ public/                         # logo, ikon, suara notifikasi
 └─ docs/
 ```
@@ -259,8 +260,10 @@ $$ select exists (select 1 from admins where user_id = auth.uid()) $$;
 
 | Tabel | anon (pelanggan) | pemilik (`is_owner()`) |
 |---|---|---|
-| `categories`, `menu_items`, `option_groups`, `options` | `select` jika `is_active` | semua |
-| `settings` | `select` kolom publik (lewat view `public_settings`) | semua |
+| `categories` | `select` semua | semua |
+| `menu_items` | `select` jika `is_active` | semua |
+| `option_groups`, `options` | `select` jika menu induknya `is_active` | semua |
+| `settings` | `select` (semua kolomnya memang data publik toko) | `update` |
 | `orders`, `order_items` | **tidak ada** (hanya via fungsi di server) | semua |
 | `expenses`, `daily_counters`, `admins` | tidak ada | semua (`admins`: select) |
 

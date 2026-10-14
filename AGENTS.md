@@ -245,7 +245,7 @@ feat/… fix/… docs/… chore/… refactor/… test/… ci/…  ← branch ker
 
 ### Database & layanan eksternal
 
-- Project Supabase hosted **belum dibuat**. Setelah dibuat, catat project ref-nya di sini. **Jangan menjalankan SQL yang mengubah data/skema di project hosted** tanpa izin pengguna.
+- Project Supabase hosted: `bvpeysmhfsqliapebivp`. **Jangan menjalankan SQL yang mengubah data/skema di project hosted** tanpa izin pengguna.
 - Tes database berjalan di Supabase **lokal** (CI: `supabase start` + `supabase test db`). Fixture hanya data sintetis.
 - Jangan pernah mencetak nilai key. Laporkan nama variabel dan status saja.
 
@@ -384,3 +384,13 @@ TASK → BACA DOKUMEN → BRANCH BARU → IMPLEMENTASI → VERIFIKASI → SINKRO
 ```
 
 `AGENTS.md` mengatur **cara kerja agent**. `docs/` mengatur **requirement, arsitektur, domain, desain, dan urutan kerja**. Ikuti source of truth, dan jangan mengklaim completion melebihi evidence.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
