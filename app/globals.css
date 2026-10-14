@@ -1,0 +1,111 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* dark: hanya aktif lewat kelas .dark (tidak dipakai di v1), bukan dari setelan OS. */
+@custom-variant dark (&:is(.dark *));
+
+/* Token brand dari docs/design-system.md §2–4. v1 hanya tema terang (§11). */
+@theme {
+  --color-green-*: initial;
+  --color-green-900: #1f3d2b;
+  --color-green-700: #2e5a3f;
+  --color-green-600: #3a6e4e;
+  --color-green-100: #e3ede5;
+  --color-brown-700: #7a4e24;
+  --color-brown-500: #a86a32;
+  --color-brown-100: #f1e3d3;
+  --color-cream-50: #fbf8f2;
+  --color-cream-100: #f4eee3;
+  --color-ink-900: #1c1b18;
+  --color-ink-600: #5c5a54;
+  --color-ink-400: #9a978f;
+  --color-line: #e7e1d6;
+
+  --color-info: #1e5aa8;
+  --color-info-bg: #e4eefb;
+  --color-warning: #a15c00;
+  --color-warning-bg: #fdf0d9;
+  --color-success: #1f7a45;
+  --color-success-bg: #e2f3e8;
+  --color-danger: #b42318;
+  --color-danger-bg: #fde7e5;
+  --color-muted-status: #5c5a54;
+  --color-muted-status-bg: #eeebe5;
+
+  --shadow-card: 0 1px 2px rgb(31 61 43 / 0.06), 0 2px 8px rgb(31 61 43 / 0.06);
+  --shadow-sheet: 0 -8px 24px rgb(31 61 43 / 0.12);
+}
+
+@theme inline {
+  --font-sans: var(--font-jakarta);
+  --font-display: var(--font-fraunces);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+}
+
+/* Variabel shadcn dipetakan ke token brand. `accent` shadcn = latar hover, bukan coklat brand. */
+:root {
+  --background: var(--color-cream-50);
+  --foreground: var(--color-ink-900);
+  --card: #ffffff;
+  --card-foreground: var(--color-ink-900);
+  --popover: #ffffff;
+  --popover-foreground: var(--color-ink-900);
+  --primary: var(--color-green-700);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-cream-100);
+  --secondary-foreground: var(--color-green-900);
+  --muted: var(--color-cream-100);
+  --muted-foreground: var(--color-ink-600);
+  --accent: var(--color-green-100);
+  --accent-foreground: var(--color-green-900);
+  --destructive: var(--color-danger);
+  --border: var(--color-line);
+  --input: var(--color-line);
+  --ring: var(--color-green-700);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
