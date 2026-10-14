@@ -245,7 +245,7 @@ feat/… fix/… docs/… chore/… refactor/… test/… ci/…  ← branch ker
 
 ### Database & layanan eksternal
 
-- Project Supabase hosted **belum dibuat**. Setelah dibuat, catat project ref-nya di sini. **Jangan menjalankan SQL yang mengubah data/skema di project hosted** tanpa izin pengguna.
+- Project Supabase hosted: `bvpeysmhfsqliapebivp`. **Jangan menjalankan SQL yang mengubah data/skema di project hosted** tanpa izin pengguna.
 - Tes database berjalan di Supabase **lokal** (CI: `supabase start` + `supabase test db`). Fixture hanya data sintetis.
 - Jangan pernah mencetak nilai key. Laporkan nama variabel dan status saja.
 
