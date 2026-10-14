@@ -248,6 +248,7 @@ feat/… fix/… docs/… chore/… refactor/… test/… ci/…  ← branch ker
 - Project Supabase hosted: `bvpeysmhfsqliapebivp`. Project Vercel: `rumah-makan-sipil` (production = `main`, branch lain = Preview). **Jangan menjalankan SQL yang mengubah data/skema di project hosted** tanpa izin pengguna.
 - Tes database berjalan di Supabase **lokal** (CI: `supabase start` + `supabase test db`). Fixture hanya data sintetis.
 - Jangan pernah mencetak nilai key. Laporkan nama variabel dan status saja.
+- **Supabase CLI untuk project hosted:** login global CLI di laptop pengguna dipakai akun project lain. **Jangan pernah menjalankan `supabase login`**, jangan meminta/menampilkan/menyimpan access token, dan jangan menjalankan perintah yang butuh akun (`link`, `db push`, `db query --linked`, `projects list`, …) dari shell agent, karena shell agent tidak membaca token pengguna dan bisa jatuh ke akun yang salah. Berikan perintahnya kepada pengguna untuk dijalankan di terminal yang sudah menjalankan `. .\scripts\use-supabase-token.ps1` (lihat README), lalu baca hasilnya dari terminal pengguna. Sebelum perintah yang mengubah data, pastikan `npx supabase projects list` menampilkan **Rumah Makan Sipil Project**.
 
 ### Secret
 
