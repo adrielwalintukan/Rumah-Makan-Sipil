@@ -69,13 +69,31 @@ npm run dev
 
 Tes database (pgTAP) butuh Docker: `npx supabase db start` lalu `npx supabase test db`. Tanpa Docker, tes ini tetap berjalan otomatis di CI.
 
-Migrasi ke project Supabase hosted:
+### Supabase CLI dengan token per terminal
 
-```bash
-npx supabase link --project-ref <ref-project>
+Supabase CLI sudah terpasang di proyek (`npx supabase` = versi 2.120.0). Di laptop pengembang, login global CLI (`supabase login`) dipakai untuk akun **project lain**, jadi **jangan jalankan `supabase login`** untuk proyek ini. Pakai *personal access token* akun Rumah Makan Sipil yang hanya berlaku di satu terminal:
+
+1. Buat token di dashboard Supabase (akun Rumah Makan Sipil): ikon profil → **Account preferences → Access Tokens → Generate new token**. Simpan di password manager.
+2. Di terminal PowerShell, dari root proyek, jalankan script dengan **titik di depan** (dot-source). Tanpa titik, variabelnya hilang begitu script selesai:
+
+   ```powershell
+   . .\scripts\use-supabase-token.ps1
+   ```
+
+   Tempel token saat diminta (input disembunyikan). Token tidak disimpan ke file dan bukan environment variable Windows permanen. Begitu terminal ditutup, token hilang.
+3. Pastikan akunnya benar. Yang muncul harus **Rumah Makan Sipil Project**:
+
+   ```powershell
+   npx supabase projects list
+   ```
+
+Migrasi ke project hosted (di terminal yang sama):
+
+```powershell
+npx supabase link --project-ref bvpeysmhfsqliapebivp
 ```
 
-```bash
+```powershell
 npx supabase db push --include-seed
 ```
 
