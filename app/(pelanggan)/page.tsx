@@ -1,32 +1,45 @@
-import { MessageCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Suspense } from "react";
+import { MenuView } from "@/components/pelanggan/menu-view";
+import { PaketDosCard } from "@/components/pelanggan/paket-dos-card";
+import { StoreHeader } from "@/components/pelanggan/store-header";
+import { getMenu } from "@/lib/menu";
 
-// shortcut: halaman placeholder M0, diganti halaman menu di M1 (docs/roadmap.md)
-const WHATSAPP_URL = "https://wa.me/62895806567230";
-
-export default function Home() {
+export default function MenuPage() {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-8 px-4 py-12 text-center">
-      <header className="flex flex-col items-center gap-1">
-        <p className="text-sm font-semibold tracking-[0.3em] text-green-900">RUMAH MAKAN</p>
-        <h1 className="font-display text-6xl font-extrabold tracking-wide text-green-900">SIPIL</h1>
-        <p className="text-xs font-medium tracking-[0.2em] text-ink-600">MAKAN ENAK, SETIAP HARI</p>
-        <span aria-hidden className="mt-3 h-0.5 w-12 rounded-full bg-brown-500" />
-      </header>
-
-      <section className="w-full rounded-lg border bg-card p-6 shadow-card">
-        <h2 className="text-lg font-semibold text-green-900">Pesan dari HP segera hadir</h2>
-        <p className="mt-2 text-ink-600">
-          Sebentar lagi kamu bisa pesan dan bayar langsung dari sini. Untuk sekarang, hubungi kami lewat
-          WhatsApp.
-        </p>
-        <Button asChild variant="accent" className="mt-5 w-full">
-          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
-            <MessageCircle aria-hidden />
-            Hubungi via WhatsApp
-          </a>
-        </Button>
-      </section>
+    <main className="mx-auto w-full max-w-3xl px-4 pb-28">
+      <Suspense fallback={<MenuSkeleton />}>
+        <Menu />
+      </Suspense>
     </main>
+  );
+}
+
+async function Menu() {
+  const { categories, settings } = await getMenu();
+  return (
+    <>
+      <StoreHeader settings={settings} />
+      <MenuView categories={categories} isOpen={settings.is_open} />
+      <div className="mt-8">
+        <PaketDosCard settings={settings} />
+      </div>
+    </>
+  );
+}
+
+function MenuSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Memuat menu" className="animate-pulse pt-8">
+      <div className="mx-auto h-28 w-48 rounded-lg bg-cream-100" />
+      <div className="mt-8 flex gap-2">
+        <div className="h-11 w-28 rounded-full bg-cream-100" />
+        <div className="h-11 w-28 rounded-full bg-cream-100" />
+      </div>
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="h-24 rounded-lg bg-cream-100" />
+        ))}
+      </div>
+    </div>
   );
 }
