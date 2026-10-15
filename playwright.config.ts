@@ -5,6 +5,8 @@ const PORT = 3100;
 export default defineConfig({
   testDir: "e2e",
   forbidOnly: !!process.env.CI,
+  // Tes mengubah data bersama (buka/tutup toko, Habis), jadi dijalankan berurutan.
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure" },
