@@ -69,7 +69,7 @@ test("menu tanpa pilihan: + menambah, lalu berubah jadi stepper", async ({ page 
 
 test("menu berpilihan: grup wajib, harga ikut tambahan, pilihan beda = baris terpisah", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Tambah Mie" }).click();
+  await page.getByRole("button", { name: "Tambah Mie", exact: true }).click();
   const sheet = page.getByRole("dialog");
   const add = sheet.getByRole("button", { name: /^Tambah · / });
   await expect(add).toHaveText("Tambah · Rp7.000");
@@ -85,7 +85,7 @@ test("menu berpilihan: grup wajib, harga ikut tambahan, pilihan beda = baris ter
   await expect(sheet).toBeHidden();
   await expect(cartBar(page)).toContainText("1 item · Rp10.000");
 
-  await page.getByRole("button", { name: "Tambah Mie" }).click();
+  await page.getByRole("button", { name: "Tambah Mie", exact: true }).click();
   await page.getByRole("dialog").getByLabel("Kuah").check();
   await page.getByRole("dialog").getByRole("button", { name: /^Tambah · / }).click();
   await expect(cartBar(page)).toContainText("2 item · Rp17.000");
