@@ -41,6 +41,24 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+
+      # E2E butuh API Supabase sungguhan (migrasi + seed). Layanan yang tidak dipakai dimatikan agar cepat.
+      - name: Jalankan Supabase lokal
+        run: npx supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Env Supabase lokal
+        run: |
+          eval "$(npx supabase status -o env)"
+          anon="${ANON_KEY:-$PUBLISHABLE_KEY}"
+          service="${SERVICE_ROLE_KEY:-$SECRET_KEY}"
+          test -n "$API_URL" && test -n "$anon" && test -n "$service"
+          echo "::add-mask::$service"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$anon"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$service"
+          } >> "$GITHUB_ENV"
+
       - run: npm run build
 
       - name: Pasang Chromium untuk Playwright
@@ -48,6 +66,14 @@ jobs:
 
       - name: E2E (viewport HP)
         run: npm run test:e2e
+
+      - name: Simpan screenshot & trace E2E
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-layar
+          path: test-results/
+          if-no-files-found: ignore
 
   database:
     name: Database pgTAP & RLS Tests
