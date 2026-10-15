@@ -81,8 +81,10 @@ rumah-makan-sipil/
 │  ├─ pelanggan/                   # MenuCard, OptionSheet, CartBar, …
 │  └─ admin/                       # OrderCard, StatusBadge, StatCard, …
 ├─ lib/
-│  ├─ supabase/                    # client browser, server, service (server-only)
-│  ├─ cart.ts                      # keranjang di localStorage
+│  ├─ supabase/                    # public.ts (anon, server-only); browser/service menyusul di M2–M3
+│  ├─ menu.ts                      # getMenu(): menu aktif + pengaturan, per request (server-only)
+│  ├─ cart.ts                      # logika keranjang murni (gabung baris, harga, validasi pilihan)
+│  ├─ use-cart.ts                  # store keranjang di localStorage (useSyncExternalStore)
 │  ├─ format.ts                    # formatRupiah, formatWaktu (WITA) + format.test.ts (Vitest, di samping file)
 │  └─ schemas.ts                   # skema Zod
 ├─ supabase/
@@ -314,4 +316,4 @@ Alur deploy: push ke `main` di GitHub → Vercel build otomatis. Migrasi DB dija
 |---|---|---|
 | SQL | pgTAP (`supabase test db`) | `create_order`: harga dihitung server, nomor harian berurutan & reset, menu habis ditolak, toko tutup ditolak, rate limit, idempotensi. RLS: anon tidak bisa baca `orders` |
 | Unit | Vitest | `formatRupiah`, hitung total keranjang, skema Zod |
-| E2E | Playwright (viewport HP) | Pesan → QRIS → "Sudah bayar" → pemilik Lunas → Siap → pelanggan melihat "Siap" |
+| E2E | Playwright (viewport HP) | Pesan → QRIS → "Sudah bayar" → pemilik Lunas → Siap → pelanggan melihat "Siap". Berjalan di CI terhadap Supabase **lokal** (`supabase start`); tes yang mengubah data otomatis di-skip bila URL bukan localhost |

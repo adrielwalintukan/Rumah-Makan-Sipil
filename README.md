@@ -65,7 +65,7 @@ npm run dev
 | `npm run typecheck` | Cek tipe TypeScript |
 | `npm test` | Unit test (Vitest) |
 | `npm run build` | Build produksi |
-| `npm run test:e2e` | E2E Playwright di viewport HP (butuh `npm run build` dulu dan `npx playwright install chromium`) |
+| `npm run test:e2e` | E2E Playwright di viewport HP (butuh `npm run build`, `npx playwright install chromium`, dan Supabase **lokal** via Docker; tanpa itu tes di-skip dan tetap berjalan di CI) |
 
 Tes database (pgTAP) butuh Docker: `npx supabase db start` lalu `npx supabase test db`. Tanpa Docker, tes ini tetap berjalan otomatis di CI.
 
