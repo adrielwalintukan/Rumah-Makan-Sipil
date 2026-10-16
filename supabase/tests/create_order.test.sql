@@ -466,17 +466,17 @@ select is(
 -- ------------------------------------------------------------
 -- 8. Rate Limiting (Maks 3 pesanan per device_id / ip_hash per 10 menit)
 -- ------------------------------------------------------------
--- device-rate-test membuat pesanan 1, 2, 3
+-- device-rate-test membuat 3 pesanan berturut-turut (IP berbeda)
 select public.create_order(
   jsonb_build_object(
     'customer_name', 'User Rate 1',
     'order_type', 'dine_in',
     'payment_method', 'cash',
-    'idempotency_key', 'idem-rate-1',
+    'idempotency_key', 'idem-rate-dev-1',
     'items', jsonb_build_array(jsonb_build_object('menu_item_id', (select nasi_id from _test_ids), 'quantity', 1))
   ),
   'device-rate-test',
-  'ip-rate-1'
+  'ip-rate-a'
 );
 
 select public.create_order(
@@ -484,11 +484,11 @@ select public.create_order(
     'customer_name', 'User Rate 2',
     'order_type', 'dine_in',
     'payment_method', 'cash',
-    'idempotency_key', 'idem-rate-2',
+    'idempotency_key', 'idem-rate-dev-2',
     'items', jsonb_build_array(jsonb_build_object('menu_item_id', (select nasi_id from _test_ids), 'quantity', 1))
   ),
   'device-rate-test',
-  'ip-rate-2'
+  'ip-rate-b'
 );
 
 select public.create_order(
@@ -496,45 +496,83 @@ select public.create_order(
     'customer_name', 'User Rate 3',
     'order_type', 'dine_in',
     'payment_method', 'cash',
-    'idempotency_key', 'idem-rate-3',
+    'idempotency_key', 'idem-rate-dev-3',
     'items', jsonb_build_array(jsonb_build_object('menu_item_id', (select nasi_id from _test_ids), 'quantity', 1))
   ),
   'device-rate-test',
-  'ip-rate-3'
+  'ip-rate-c'
 );
 
--- Pesanan ke-4 dari device yang sama harus ditolak
+-- Pesanan ke-4 dari device_id yang sama harus ditolak
 select throws_matching(
   $$select public.create_order(
     jsonb_build_object(
       'customer_name', 'User Rate 4',
       'order_type', 'dine_in',
       'payment_method', 'cash',
-      'idempotency_key', 'idem-rate-4',
+      'idempotency_key', 'idem-rate-dev-4',
       'items', jsonb_build_array(jsonb_build_object('menu_item_id', (select nasi_id from _test_ids), 'quantity', 1))
     ),
     'device-rate-test',
-    'ip-rate-4'
+    'ip-rate-d'
   )$$,
   'RATE_LIMITED',
   'pesanan ke-4 dari device yang sama dalam 10 menit ditolak RATE_LIMITED'
 );
 
--- Pesanan dengan ip_hash yang sama meski beda device_id juga harus ditolak
+-- Uji rate limit berdasarkan ip_hash:
+-- ip-shared membuat 3 pesanan dari 3 device_id berbeda
+select public.create_order(
+  jsonb_build_object(
+    'customer_name', 'IP Rate 1',
+    'order_type', 'dine_in',
+    'payment_method', 'cash',
+    'idempotency_key', 'idem-rate-ip-1',
+    'items', jsonb_build_array(jsonb_build_object('menu_item_id', (select nasi_id from _test_ids), 'quantity', 1))
+  ),
+  'dev-ip-1',
+  'ip-shared'
+);
+
+select public.create_order(
+  jsonb_build_object(
+    'customer_name', 'IP Rate 2',
+    'order_type', 'dine_in',
+    'payment_method', 'cash',
+    'idempotency_key', 'idem-rate-ip-2',
+    'items', jsonb_build_array(jsonb_build_object('menu_item_id', (select nasi_id from _test_ids), 'quantity', 1))
+  ),
+  'dev-ip-2',
+  'ip-shared'
+);
+
+select public.create_order(
+  jsonb_build_object(
+    'customer_name', 'IP Rate 3',
+    'order_type', 'dine_in',
+    'payment_method', 'cash',
+    'idempotency_key', 'idem-rate-ip-3',
+    'items', jsonb_build_array(jsonb_build_object('menu_item_id', (select nasi_id from _test_ids), 'quantity', 1))
+  ),
+  'dev-ip-3',
+  'ip-shared'
+);
+
+-- Pesanan ke-4 dari ip_hash yang sama (dengan device baru) harus ditolak
 select throws_matching(
   $$select public.create_order(
     jsonb_build_object(
-      'customer_name', 'User Rate 5',
+      'customer_name', 'IP Rate 4',
       'order_type', 'dine_in',
       'payment_method', 'cash',
-      'idempotency_key', 'idem-rate-5',
+      'idempotency_key', 'idem-rate-ip-4',
       'items', jsonb_build_array(jsonb_build_object('menu_item_id', (select nasi_id from _test_ids), 'quantity', 1))
     ),
-    'device-lain',
-    'ip-rate-1'
+    'dev-ip-4',
+    'ip-shared'
   )$$,
   'RATE_LIMITED',
-  'pesanan dengan ip_hash yang sudah >= 3 juga ditolak RATE_LIMITED'
+  'pesanan ke-4 dari ip_hash yang sama dalam 10 menit ditolak RATE_LIMITED'
 );
 
 -- ------------------------------------------------------------
