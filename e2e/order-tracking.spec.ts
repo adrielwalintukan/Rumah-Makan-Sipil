@@ -72,9 +72,11 @@ test("halaman lacak memperbarui status masak secara otomatis tanpa reload (polli
   expect(errReady).toBeNull();
 
   // Verifikasi banner status Siap muncul dengan teks pengumuman
+  const readyBanner = page.getByTestId("order-ready-banner");
+  await expect(readyBanner).toBeVisible({ timeout: 10000 });
   await expect(
-    page.getByText("Pesanan kamu siap! Silakan ambil di kasir."),
-  ).toBeVisible({ timeout: 10000 });
+    readyBanner.getByText("Pesanan kamu siap! Silakan ambil di kasir."),
+  ).toBeVisible();
 });
 
 test("halaman lacak menampilkan status pesanan dibatalkan beserta alasannya", async ({
@@ -103,8 +105,10 @@ test("halaman lacak menampilkan status pesanan dibatalkan beserta alasannya", as
   expect(error).toBeNull();
 
   // 3. Verifikasi halaman lacak menampilkan informasi pembatalan
-  await expect(page.getByText("Pesanan dibatalkan", { exact: true })).toBeVisible({ timeout: 10000 });
-  await expect(page.getByText(/Stok bahan habis mendadak/)).toBeVisible();
+  const cancelBanner = page.getByTestId("order-cancelled-banner");
+  await expect(cancelBanner).toBeVisible({ timeout: 10000 });
+  await expect(cancelBanner.getByText("Pesanan dibatalkan")).toBeVisible();
+  await expect(cancelBanner.getByText(/Stok bahan habis mendadak/)).toBeVisible();
 });
 
 test("banner pesanan aktif tampil di halaman menu dan mengarah ke link lacak", async ({

@@ -137,7 +137,7 @@ export function OrderTracker({ initialOrder, qrisImageUrl }: OrderTrackerProps) 
       label: "Pesanan Siap!",
       icon: CheckCircle2,
       className: "border-success/30 bg-success-bg text-success font-semibold",
-      description: "Pesanan kamu siap! Silakan ambil di kasir.",
+      description: "Makanan sudah selesai dimasak dan siap diambil.",
     },
     selesai: {
       label: "Selesai",
@@ -149,9 +149,7 @@ export function OrderTracker({ initialOrder, qrisImageUrl }: OrderTrackerProps) 
       label: "Pesanan Dibatalkan",
       icon: XCircle,
       className: "border-danger/30 bg-danger-bg text-danger",
-      description: order.cancel_reason
-        ? `Pesanan dibatalkan. Alasan: ${order.cancel_reason}`
-        : "Pesanan dibatalkan oleh pihak warung.",
+      description: "Pesanan ini telah dibatalkan oleh pihak warung.",
     },
   }[order.status] || {
     label: "Diproses",
@@ -185,7 +183,10 @@ export function OrderTracker({ initialOrder, qrisImageUrl }: OrderTrackerProps) 
       >
         {/* Banner Khusus saat Status Siap */}
         {order.status === "siap" && (
-          <div className="flex items-center gap-3 rounded-lg border border-success bg-success-bg p-4 text-ink-900 shadow-xs animate-in fade-in slide-in-from-top-1 duration-300">
+          <div
+            data-testid="order-ready-banner"
+            className="flex items-center gap-3 rounded-lg border border-success bg-success-bg p-4 text-ink-900 shadow-xs animate-in fade-in slide-in-from-top-1 duration-300"
+          >
             <CheckCircle2 className="size-6 shrink-0 text-success" aria-hidden />
             <div>
               <p className="font-bold text-green-900 text-base">Pesanan kamu siap! Silakan ambil di kasir.</p>
@@ -198,7 +199,10 @@ export function OrderTracker({ initialOrder, qrisImageUrl }: OrderTrackerProps) 
 
         {/* Banner Khusus saat Status Batal */}
         {order.status === "batal" && (
-          <div className="flex items-start gap-3 rounded-lg border border-danger bg-danger-bg p-4 text-ink-900 shadow-xs">
+          <div
+            data-testid="order-cancelled-banner"
+            className="flex items-start gap-3 rounded-lg border border-danger bg-danger-bg p-4 text-ink-900 shadow-xs"
+          >
             <AlertCircle className="size-5 shrink-0 text-danger mt-0.5" aria-hidden />
             <div>
               <p className="font-bold text-danger text-base">Pesanan dibatalkan</p>
