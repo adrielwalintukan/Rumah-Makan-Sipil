@@ -226,6 +226,7 @@ feat/… fix/… docs/… chore/… refactor/… test/… ci/…  ← branch ker
 ```
 
 - **Wajib branch baru** untuk setiap task, dibuat dari `development` terbaru. Dilarang commit langsung ke `development` atau `main`.
+- **Aturan siklus kerja:** Setiap task terikat issue dengan pola **1 issue = 1 branch = 1 PR**. Sertakan referensi issue (misal `Closes #N`) di body PR. Karena default branch repositori saat ini masih `main`, kata kunci `Closes #N` pada PR ke `development` tidak menutup issue secara otomatis di GitHub; penutupan issue dilakukan secara manual oleh pengguna setelah PR di-merge.
 - **Wajib PR** dari branch kerja ke `development`. PR dari `development` ke `main` hanya dibuat saat pengguna menyatakan rilis siap.
 - **Setiap PR wajib menjalankan CI** (`.github/workflows/ci.yml`) dan harus hijau sebelum merge. Kalau PR menambah kode baru yang belum tercakup CI, tambahkan job/tes CI-nya di PR yang sama.
 - Merge branch kerja → `development` memakai **squash**. Merge `development` → `main` memakai **merge commit**.
@@ -315,7 +316,7 @@ Jangan menyatakan "CI hijau" kalau CI yang diperiksa bukan untuk HEAD saat ini.
 Body PR mengikuti template `.github/pull_request_template.md`. **Jangan** menulis body singkat satu-dua baris. Setiap bagian diisi; bagian yang tidak relevan diisi "Tidak ada" beserta alasannya. Bagian wajib:
 
 1. **Ringkasan**: apa yang berubah dan mengapa, 2–4 kalimat.
-2. **Konteks**: milestone, User Story (`US-*`) / fitur (`P*`, `D*`), ADR, dan dokumen acuan.
+2. **Konteks**: milestone, Issue terkait (`#N`), User Story (`US-*`) / fitur (`P*`, `D*`), ADR, dan dokumen acuan.
 3. **Perubahan**: per area (UI, server/API, database, CI, dokumen), dengan path file kunci.
 4. **Keputusan & trade-off**: pilihan yang diambil, alternatif, dan alasannya.
 5. **Di luar scope / ditunda**: apa yang sengaja tidak dikerjakan dan kapan dikerjakan.
