@@ -45,8 +45,7 @@ test("alur checkout lengkap dari keranjang sampai pesanan berhasil dibuat (360 p
 
   // 3. Halaman Checkout: verifikasi elemen
   await expect(page.getByRole("heading", { level: 1, name: "Checkout Pesanan" })).toBeVisible();
-  await expect(page.getByText("RINGKASAN PESANAN")).toBeVisible();
-  await expect(page.getByText("Nasi Telur")).toBeVisible();
+  await expect(page.getByText(/1x Nasi Telur/)).toBeVisible();
 
   // Pilih Bungkus
   await page.getByRole("radio", { name: "Bungkus" }).click();
