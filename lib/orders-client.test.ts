@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   addActiveOrder,
+  clearActiveOrders,
   createIdempotencyKey,
   getActiveOrders,
   getDeviceId,
   isValidIndonesianPhone,
+  removeActiveOrder,
 } from "./orders-client";
 
 describe("orders-client helpers", () => {
   beforeEach(() => {
-    // bersihkan storage jika ada
+    clearActiveOrders();
     try {
       window.localStorage.clear();
     } catch {
@@ -44,6 +46,21 @@ describe("orders-client helpers", () => {
     // Duplikat akan dipindahkan ke paling depan
     addActiveOrder("tok-1");
     expect(getActiveOrders()).toEqual(["tok-1", "tok-2"]);
+  });
+
+  it("removeActiveOrder menghapus token tertentu dari active_orders", () => {
+    addActiveOrder("tok-a");
+    addActiveOrder("tok-b");
+    expect(getActiveOrders()).toEqual(["tok-b", "tok-a"]);
+
+    removeActiveOrder("tok-b");
+    expect(getActiveOrders()).toEqual(["tok-a"]);
+
+    removeActiveOrder("tok-nonexistent");
+    expect(getActiveOrders()).toEqual(["tok-a"]);
+
+    removeActiveOrder("tok-a");
+    expect(getActiveOrders()).toEqual([]);
   });
 
   it("isValidIndonesianPhone memvalidasi format nomor HP Indonesia", () => {
