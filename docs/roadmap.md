@@ -27,7 +27,7 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 **Selesai jika**: pelanggan bisa memilih Cotto Ayam (Mie) dan Mie Goreng + Telur, lalu total keranjang benar.
 
 ### M2 — Checkout, pembayaran, lacak (P5–P8)
-- [ ] Fungsi SQL `create_order` (validasi, harga server, nomor harian, rate limit, idempotensi) + tes pgTAP
+- [x] Fungsi SQL `create_order` (validasi, harga server, nomor harian, rate limit, idempotensi) + tes pgTAP
 - [ ] `POST /api/orders`, `GET /api/orders/[token]`, `POST …/claim-paid`
 - [ ] Halaman checkout, layar QRIS (total besar), instruksi cash
 - [ ] Halaman lacak dengan polling 5 detik, getar saat Siap, banner "Pesanan aktif"
