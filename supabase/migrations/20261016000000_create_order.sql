@@ -14,6 +14,8 @@ security definer
 set search_path = ''
 as $$
 declare
+  v_device_id text;
+  v_ip_hash text;
   v_idempotency_key text;
   v_existing_token text;
   v_existing_daily_number integer;
@@ -48,6 +50,9 @@ declare
   v_validated_items jsonb := '[]'::jsonb;
   v_idx integer;
 begin
+  v_device_id := trim(device_id);
+  v_ip_hash := trim(ip_hash);
+
   -- 1. Idempotensi: jika idempotency_key sudah ada, kembalikan pesanan yang sama
   v_idempotency_key := trim(payload->>'idempotency_key');
   if v_idempotency_key is null or v_idempotency_key = '' then
@@ -74,14 +79,14 @@ begin
   end if;
 
   -- 3. Rate limit: tolak jika sudah ada >= 3 pesanan dari device_id atau ip_hash dalam 10 menit terakhir
-  if device_id is null or trim(device_id) = '' or ip_hash is null or trim(ip_hash) = '' then
+  if v_device_id is null or v_device_id = '' or v_ip_hash is null or v_ip_hash = '' then
     raise exception '{"code": "INVALID_ITEM", "message": "device_id dan ip_hash wajib diisi"}';
   end if;
 
   select count(*)
   into v_recent_orders_count
   from public.orders o
-  where (o.device_id = device_id or o.ip_hash = ip_hash)
+  where (o.device_id = v_device_id or o.ip_hash = v_ip_hash)
     and o.created_at > (now() - interval '10 minutes');
 
   if v_recent_orders_count >= 3 then
@@ -188,7 +193,7 @@ begin
     end if;
 
     if coalesce(array_length(v_opt_ids, 1), 0) > 0 then
-      if (select count(distinct id) from unnest(v_opt_ids) as id) <> array_length(v_opt_ids, 1) then
+      if (select count(distinct id) from unnest(v_opt_ids) as u(id)) <> array_length(v_opt_ids, 1) then
         raise exception '{"code": "INVALID_ITEM", "message": "opsi duplikat dalam satu item"}';
       end if;
     end if;
@@ -196,8 +201,8 @@ begin
     -- Cek semua opsi terdaftar dan milik menu_item ini
     for v_opt_record in
       select o.id, o.name, o.price_delta, o.is_available, g.id as group_id, g.name as group_name
-      from unnest(v_opt_ids) as opt_id
-      left join public.options o on o.id = opt_id
+      from unnest(v_opt_ids) as u(opt_id)
+      left join public.options o on o.id = u.opt_id
       left join public.option_groups g on g.id = o.group_id and g.menu_item_id = v_menu_id
     loop
       if v_opt_record.id is null or v_opt_record.group_id is null then
@@ -316,8 +321,8 @@ begin
     'belum_bayar',
     'baru',
     v_total,
-    device_id,
-    ip_hash,
+    v_device_id,
+    v_ip_hash,
     v_idempotency_key
   );
 
