@@ -21,7 +21,8 @@ insert into public.orders (
   total,
   device_id,
   ip_hash,
-  idempotency_key
+  idempotency_key,
+  paid_at
 ) values
 (
   '11111111-1111-1111-1111-111111111111'::uuid,
@@ -37,7 +38,8 @@ insert into public.orders (
   15000,
   'device-secret-1',
   'ip-secret-hash-1',
-  'idem-qris-fixture'
+  'idem-qris-fixture',
+  null
 ),
 (
   '22222222-2222-2222-2222-222222222222'::uuid,
@@ -53,7 +55,8 @@ insert into public.orders (
   20000,
   'device-secret-2',
   'ip-secret-hash-2',
-  'idem-cash-fixture'
+  'idem-cash-fixture',
+  null
 ),
 (
   '33333333-3333-3333-3333-333333333333'::uuid,
@@ -69,11 +72,9 @@ insert into public.orders (
   25000,
   'device-secret-3',
   'ip-secret-hash-3',
-  'idem-lunas-fixture'
+  'idem-lunas-fixture',
+  now()
 );
-
--- Note: orders dengan status lunas wajib paid_at is not null
-update public.orders set paid_at = now() where id = '33333333-3333-3333-3333-333333333333'::uuid;
 
 insert into public.order_items (
   order_id,
