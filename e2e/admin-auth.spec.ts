@@ -100,14 +100,14 @@ test("pemilik resmi berhasil login, melihat navigasi dashboard, dan bisa logout"
   await expect(page).toHaveURL(/\/admin/);
   await expect(page.getByRole("heading", { level: 1, name: "Pesanan Live" })).toBeVisible();
 
-  // Verifikasi navigasi bottom tab di HP (360 px) atau navigasi sidebar
-  const navElement = page.getByRole("navigation").first();
-  await expect(navElement).toBeVisible();
-  await expect(page.getByText("Pesanan").first()).toBeVisible();
-  await expect(page.getByText("Menu").first()).toBeVisible();
+  // Verifikasi navigasi bottom tab di HP (360 px)
+  const mobileNav = page.getByRole("navigation", { name: "Navigasi mobile admin" });
+  await expect(mobileNav).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "Pesanan" })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "Menu" })).toBeVisible();
 
   // Navigasi ke menu lain berfungsi
-  await page.getByText("Menu").first().click();
+  await mobileNav.getByRole("link", { name: "Menu" }).click();
   await expect(page).toHaveURL(/\/admin\/menu/);
   await expect(page.getByRole("heading", { level: 1, name: "Kelola Menu" })).toBeVisible();
 
