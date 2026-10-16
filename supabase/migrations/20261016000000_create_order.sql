@@ -49,7 +49,7 @@ declare
   v_idx integer;
 begin
   -- 1. Idempotensi: jika idempotency_key sudah ada, kembalikan pesanan yang sama
-  v_idempotency_key := pg_catalog.trim(payload->>'idempotency_key');
+  v_idempotency_key := trim(payload->>'idempotency_key');
   if v_idempotency_key is null or v_idempotency_key = '' then
     raise exception '{"code": "INVALID_ITEM", "message": "idempotency_key wajib diisi"}';
   end if;
@@ -60,7 +60,7 @@ begin
   where o.idempotency_key = v_idempotency_key;
 
   if found then
-    return pg_catalog.jsonb_build_object(
+    return jsonb_build_object(
       'public_token', v_existing_token,
       'daily_number', v_existing_daily_number,
       'total', v_existing_total
@@ -74,7 +74,7 @@ begin
   end if;
 
   -- 3. Rate limit: tolak jika sudah ada >= 3 pesanan dari device_id atau ip_hash dalam 10 menit terakhir
-  if device_id is null or pg_catalog.trim(device_id) = '' or ip_hash is null or pg_catalog.trim(ip_hash) = '' then
+  if device_id is null or trim(device_id) = '' or ip_hash is null or trim(ip_hash) = '' then
     raise exception '{"code": "INVALID_ITEM", "message": "device_id dan ip_hash wajib diisi"}';
   end if;
 
@@ -82,19 +82,19 @@ begin
   into v_recent_orders_count
   from public.orders o
   where (o.device_id = device_id or o.ip_hash = ip_hash)
-    and o.created_at > (pg_catalog.now() - interval '10 minutes');
+    and o.created_at > (now() - interval '10 minutes');
 
   if v_recent_orders_count >= 3 then
     raise exception '{"code": "RATE_LIMITED"}';
   end if;
 
   -- 4. Validasi payload dasar
-  v_customer_name := pg_catalog.trim(payload->>'customer_name');
-  if v_customer_name is null or pg_catalog.length(v_customer_name) < 2 or pg_catalog.length(v_customer_name) > 30 then
+  v_customer_name := trim(payload->>'customer_name');
+  if v_customer_name is null or length(v_customer_name) < 2 or length(v_customer_name) > 30 then
     raise exception '{"code": "INVALID_ITEM", "message": "customer_name harus antara 2 dan 30 karakter"}';
   end if;
 
-  v_customer_phone := pg_catalog.trim(payload->>'customer_phone');
+  v_customer_phone := trim(payload->>'customer_phone');
   if v_customer_phone is not null and v_customer_phone <> '' then
     if v_customer_phone !~ '^(\+62|62|0)8[0-9]{7,12}$' then
       raise exception '{"code": "INVALID_ITEM", "message": "customer_phone tidak valid"}';
@@ -114,11 +114,11 @@ begin
   end if;
 
   v_items := payload->'items';
-  if v_items is null or pg_catalog.jsonb_typeof(v_items) <> 'array' then
+  if v_items is null or jsonb_typeof(v_items) <> 'array' then
     raise exception '{"code": "INVALID_ITEM", "message": "items wajib berupa array"}';
   end if;
 
-  v_item_count := pg_catalog.jsonb_array_length(v_items);
+  v_item_count := jsonb_array_length(v_items);
   if v_item_count < 1 or v_item_count > 30 then
     raise exception '{"code": "INVALID_ITEM", "message": "jumlah baris item harus antara 1 dan 30"}';
   end if;
@@ -148,7 +148,7 @@ begin
     end if;
 
     if not v_menu_record.is_available then
-      v_unavailable_ids := v_unavailable_ids || pg_catalog.jsonb_build_array(v_menu_id::text);
+      v_unavailable_ids := v_unavailable_ids || jsonb_build_array(v_menu_id::text);
     end if;
 
     -- Validasi quantity (1–20)
@@ -158,14 +158,14 @@ begin
     end if;
 
     -- Validasi note (maks 100 karakter)
-    v_note := pg_catalog.nullif(pg_catalog.trim(v_item->>'note'), '');
-    if v_note is not null and pg_catalog.length(v_note) > 100 then
+    v_note := nullif(trim(v_item->>'note'), '');
+    if v_note is not null and length(v_note) > 100 then
       raise exception '{"code": "INVALID_ITEM", "message": "catatan maksimal 100 karakter"}';
     end if;
 
     -- Validasi opsi
     v_opt_ids_json := v_item->'option_ids';
-    if v_opt_ids_json is not null and pg_catalog.jsonb_typeof(v_opt_ids_json) <> 'array' then
+    if v_opt_ids_json is not null and jsonb_typeof(v_opt_ids_json) <> 'array' then
       raise exception '{"code": "INVALID_ITEM", "message": "option_ids harus berupa array"}';
     end if;
 
@@ -175,20 +175,20 @@ begin
 
     -- Parse UUID array
     begin
-      select coalesce(pg_catalog.array_agg(x::uuid), array[]::uuid[])
+      select coalesce(array_agg(x::uuid), array[]::uuid[])
       into v_opt_ids
-      from pg_catalog.jsonb_array_elements_text(v_opt_ids_json) as x;
+      from jsonb_array_elements_text(v_opt_ids_json) as x;
     exception when others then
       raise exception '{"code": "INVALID_ITEM", "message": "format id opsi tidak valid"}';
     end;
 
     -- Cek duplikat opsi dalam satu item
-    if pg_catalog.coalesce(pg_catalog.array_length(v_opt_ids, 1), 0) <> pg_catalog.jsonb_array_length(v_opt_ids_json) then
+    if coalesce(array_length(v_opt_ids, 1), 0) <> jsonb_array_length(v_opt_ids_json) then
       raise exception '{"code": "INVALID_ITEM", "message": "opsi duplikat dalam satu item"}';
     end if;
 
-    if pg_catalog.coalesce(pg_catalog.array_length(v_opt_ids, 1), 0) > 0 then
-      if (select count(distinct id) from unnest(v_opt_ids) as id) <> pg_catalog.array_length(v_opt_ids, 1) then
+    if coalesce(array_length(v_opt_ids, 1), 0) > 0 then
+      if (select count(distinct id) from unnest(v_opt_ids) as id) <> array_length(v_opt_ids, 1) then
         raise exception '{"code": "INVALID_ITEM", "message": "opsi duplikat dalam satu item"}';
       end if;
     end if;
@@ -205,7 +205,7 @@ begin
       end if;
 
       if not v_opt_record.is_available then
-        v_unavailable_ids := v_unavailable_ids || pg_catalog.jsonb_build_array(v_opt_record.id::text);
+        v_unavailable_ids := v_unavailable_ids || jsonb_build_array(v_opt_record.id::text);
       end if;
     end loop;
 
@@ -234,8 +234,8 @@ begin
     select
       coalesce(v_menu_record.price + sum(o.price_delta), v_menu_record.price),
       coalesce(
-        pg_catalog.jsonb_agg(
-          pg_catalog.jsonb_build_object(
+        jsonb_agg(
+          jsonb_build_object(
             'group', g.name,
             'name', o.name,
             'price_delta', o.price_delta
@@ -257,8 +257,8 @@ begin
     v_subtotal := v_unit_price * v_qty;
     v_total := v_total + v_subtotal;
 
-    v_validated_items := v_validated_items || pg_catalog.jsonb_build_array(
-      pg_catalog.jsonb_build_object(
+    v_validated_items := v_validated_items || jsonb_build_array(
+      jsonb_build_object(
         'menu_item_id', v_menu_id,
         'name', v_menu_record.name,
         'unit_price', v_unit_price,
@@ -271,12 +271,12 @@ begin
   end loop;
 
   -- Jika ada item/opsi yang habis (is_available = false), tolak dengan ITEM_UNAVAILABLE
-  if pg_catalog.jsonb_array_length(v_unavailable_ids) > 0 then
+  if jsonb_array_length(v_unavailable_ids) > 0 then
     raise exception '{"code": "ITEM_UNAVAILABLE", "item_ids": %}', v_unavailable_ids;
   end if;
 
   -- 6. Ambil nomor antrean harian (WITA: Asia/Makassar)
-  v_order_date := (pg_catalog.now() at time zone 'Asia/Makassar')::date;
+  v_order_date := (now() at time zone 'Asia/Makassar')::date;
 
   insert into public.daily_counters (day, last_number)
   values (v_order_date, 1)
@@ -285,8 +285,8 @@ begin
   returning last_number into v_daily_number;
 
   -- 7. Generate public_token (32 karakter hex acak, unik, aman untuk URL)
-  v_public_token := pg_catalog.encode(extensions.gen_random_bytes(16), 'hex');
-  v_order_id := pg_catalog.gen_random_uuid();
+  v_public_token := encode(extensions.gen_random_bytes(16), 'hex');
+  v_order_id := gen_random_uuid();
 
   -- Insert orders
   insert into public.orders (
@@ -341,10 +341,10 @@ begin
     elem->'options',
     elem->>'note',
     (elem->>'subtotal')::integer
-  from pg_catalog.jsonb_array_elements(v_validated_items) as elem;
+  from jsonb_array_elements(v_validated_items) as elem;
 
   -- Kembalikan token, nomor harian, dan total
-  return pg_catalog.jsonb_build_object(
+  return jsonb_build_object(
     'public_token', v_public_token,
     'daily_number', v_daily_number,
     'total', v_total
