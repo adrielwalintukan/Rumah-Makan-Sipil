@@ -73,6 +73,9 @@ async function OrderTrackContent({
 
       {/* Header Nomor Antrean Besar */}
       <div className="flex flex-col items-center gap-2 rounded-lg border border-line bg-card p-6 text-center">
+        <span className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-800">
+          Pesanan Berhasil Dibuat!
+        </span>
         <span className="text-xs font-bold tracking-wider text-ink-600 uppercase">Nomor Antrean</span>
         <span className="font-display text-5xl font-bold text-green-900 tabular-nums">#{dailyNum}</span>
         <p className="text-sm font-semibold text-ink-900">

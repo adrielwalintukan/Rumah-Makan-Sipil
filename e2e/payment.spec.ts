@@ -71,7 +71,7 @@ test("layar pembayaran QRIS: total besar, tombol 'Saya sudah bayar' mengubah sta
   await claimBtn.click();
 
   // 4. Verifikasi status bayar berubah jadi "Menunggu Verifikasi"
-  await expect(page.getByText("Menunggu Verifikasi")).toBeVisible();
+  await expect(page.getByText("Menunggu Verifikasi", { exact: true })).toBeVisible();
   await expect(page.getByText("Menunggu Verifikasi Kasir")).toBeVisible();
 
   // Tombol "Saya sudah bayar" tidak lagi tampil
@@ -97,7 +97,7 @@ test("layar pembayaran Cash: menampilkan instruksi kasir dan nomor antrean", asy
   // Verifikasi instruksi bayar di kasir
   await expect(page.getByText("Bayar di Kasir")).toBeVisible();
   await expect(page.getByText(/Sebutkan nama/)).toBeVisible();
-  await expect(page.getByText("Siti Cash")).toBeVisible();
+  await expect(page.getByRole("strong").filter({ hasText: "Siti Cash" })).toBeVisible();
 });
 
 test("fallback QRIS: jika gambar QRIS belum diupload, tampil pesan alternatif", async ({ page }) => {
