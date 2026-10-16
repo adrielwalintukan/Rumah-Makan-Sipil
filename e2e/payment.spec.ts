@@ -19,13 +19,20 @@ async function setQrisImagePath(path: string | null) {
   expect(error).toBeNull();
 }
 
+async function clearOrders() {
+  const { error } = await db!.from("orders").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  expect(error).toBeNull();
+}
+
 test.beforeEach(async () => {
   await setStoreOpen(true);
+  await clearOrders();
 });
 
 test.afterAll(async () => {
   await setStoreOpen(false);
   await setQrisImagePath(null);
+  await clearOrders();
 });
 
 test("layar pembayaran QRIS: total besar, tombol 'Saya sudah bayar' mengubah status ke Menunggu Verifikasi", async ({
