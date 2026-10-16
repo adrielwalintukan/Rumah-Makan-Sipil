@@ -68,7 +68,12 @@ export function PaymentCard({ order, qrisImageUrl }: PaymentCardProps) {
     <div className="flex flex-col gap-4 rounded-lg border border-line bg-card p-5">
       {/* Header status bayar */}
       <div className="flex items-center justify-between border-b border-line pb-3">
-        <span className="text-sm font-bold tracking-wide text-ink-900">STATUS PEMBAYARAN</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold tracking-wide text-ink-900">PEMBAYARAN</span>
+          <span className="rounded-md border border-line bg-cream-50 px-2 py-0.5 text-xs font-bold text-ink-700 uppercase">
+            {order.payment_method === "qris" ? "QRIS" : "Cash"}
+          </span>
+        </div>
         {paymentStatus === "belum_bayar" && (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-danger/30 bg-danger-bg px-2.5 py-0.5 text-xs font-semibold text-danger">
             <AlertCircle className="size-3.5" aria-hidden />

@@ -78,7 +78,7 @@ test("alur checkout lengkap dari keranjang sampai pesanan berhasil dibuat (360 p
   await expect(page.getByText("Pesanan Berhasil Dibuat!")).toBeVisible();
   await expect(page.getByText("Budi Santoso")).toBeVisible();
   await expect(page.getByText("Bungkus")).toBeVisible();
-  await expect(page.getByText("QRIS")).toBeVisible();
+  await expect(page.getByText("QRIS", { exact: true })).toBeVisible();
 
   // 6. Verifikasi keranjang sudah dikosongkan
   await page.goto("/keranjang");
