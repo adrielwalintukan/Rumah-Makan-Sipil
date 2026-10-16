@@ -81,10 +81,15 @@ export function CartView({ categories, isOpen }: { categories: Category[]; isOpe
       </div>
 
       <div className="mt-4 flex flex-col gap-2">
-        {/* shortcut: checkout dibuat di M2; tombol dinonaktifkan sampai halaman /checkout ada */}
-        <Button disabled className="w-full">
-          {!isOpen ? "Toko sedang tutup" : hasUnavailable ? "Hapus menu yang habis dulu" : "Lanjut pesan (segera hadir)"}
-        </Button>
+        {!isOpen || hasUnavailable ? (
+          <Button disabled className="w-full">
+            {!isOpen ? "Toko sedang tutup" : "Hapus menu yang habis dulu"}
+          </Button>
+        ) : (
+          <Button asChild className="w-full">
+            <Link href="/checkout">Lanjut pesan</Link>
+          </Button>
+        )}
         <Button asChild variant="secondary" className="w-full">
           <Link href="/">Tambah menu lain</Link>
         </Button>
