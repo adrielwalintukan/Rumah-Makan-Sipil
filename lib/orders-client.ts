@@ -85,6 +85,39 @@ export function addActiveOrder(token: string): void {
   memoryActiveOrders = updated;
 }
 
+/** Hapus public_token tertentu dari active_orders (misal setelah pesanan selesai/batal). */
+export function removeActiveOrder(token: string): void {
+  const cleanToken = token.trim();
+  if (!cleanToken) return;
+
+  const storage = getStorage();
+  const current = getActiveOrders().filter((t) => t !== cleanToken);
+
+  if (storage) {
+    try {
+      storage.setItem(ACTIVE_ORDERS_KEY, JSON.stringify(current));
+      return;
+    } catch {
+      // fallback ke memory
+    }
+  }
+  memoryActiveOrders = current;
+}
+
+/** Kosongkan seluruh daftar active_orders (misal untuk testing). */
+export function clearActiveOrders(): void {
+  const storage = getStorage();
+  if (storage) {
+    try {
+      storage.removeItem(ACTIVE_ORDERS_KEY);
+      return;
+    } catch {
+      // fallback
+    }
+  }
+  memoryActiveOrders = [];
+}
+
 /** Validasi format nomor HP Indonesia opsional. */
 export function isValidIndonesianPhone(phone: string): boolean {
   const trimmed = phone.trim();

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ActiveOrderBanner } from "@/components/pelanggan/active-order-banner";
 import { MenuView } from "@/components/pelanggan/menu-view";
 import { PaketDosCard } from "@/components/pelanggan/paket-dos-card";
 import { StoreHeader } from "@/components/pelanggan/store-header";
@@ -19,6 +20,7 @@ async function Menu() {
   return (
     <>
       <StoreHeader settings={settings} />
+      <ActiveOrderBanner />
       <MenuView categories={categories} isOpen={settings.is_open} />
       <div className="mt-8">
         <PaketDosCard settings={settings} />

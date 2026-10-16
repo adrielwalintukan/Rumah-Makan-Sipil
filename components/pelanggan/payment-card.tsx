@@ -25,13 +25,21 @@ export interface PaymentCardProps {
     total: number;
   };
   qrisImageUrl: string | null;
+  onPaymentStatusChange?: (newStatus: "belum_bayar" | "menunggu_verifikasi" | "lunas") => void;
 }
 
-export function PaymentCard({ order, qrisImageUrl }: PaymentCardProps) {
-  const [paymentStatus, setPaymentStatus] = React.useState(order.payment_status);
+export function PaymentCard({ order, qrisImageUrl, onPaymentStatusChange }: PaymentCardProps) {
+  const [localClaimedStatus, setLocalClaimedStatus] = React.useState<
+    "belum_bayar" | "menunggu_verifikasi" | "lunas" | null
+  >(null);
   const [isClaiming, setIsClaiming] = React.useState(false);
   const [claimError, setClaimError] = React.useState<string | null>(null);
   const [isZoomed, setIsZoomed] = React.useState(false);
+
+  const paymentStatus =
+    order.payment_status === "lunas"
+      ? "lunas"
+      : localClaimedStatus ?? order.payment_status;
 
   const dailyNum = String(order.daily_number).padStart(3, "0");
 
@@ -52,11 +60,9 @@ export function PaymentCard({ order, qrisImageUrl }: PaymentCardProps) {
       }
 
       const data = await res.json();
-      if (data.payment_status) {
-        setPaymentStatus(data.payment_status);
-      } else {
-        setPaymentStatus("menunggu_verifikasi");
-      }
+      const nextStatus = data.payment_status || "menunggu_verifikasi";
+      setLocalClaimedStatus(nextStatus);
+      onPaymentStatusChange?.(nextStatus);
     } catch {
       setClaimError("Terjadi kesalahan koneksi. Silakan periksa jaringan dan coba lagi.");
     } finally {
