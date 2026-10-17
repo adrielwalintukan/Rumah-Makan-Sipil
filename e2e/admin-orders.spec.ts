@@ -182,3 +182,112 @@ test("pesanan baru muncul secara live di dashboard tanpa reload halaman", async 
   await expect(page.getByText("Bungkus")).toBeVisible();
   await expect(page.getByText("Rp18.000").first()).toBeVisible();
 });
+
+test("pemilik dapat menolak pembayaran belum masuk dan menandai lunas", async ({ page }) => {
+  await loginAsAdmin(page);
+
+  const card001 = page.locator("div.rounded-xl").filter({ hasText: "#001" });
+  await expect(card001).toBeVisible();
+
+  // Pesanan #001 awal berstatus menunggu_verifikasi, tombol 'Belum Masuk' tersedia
+  const rejectBtn = card001.getByRole("button", { name: "Belum Masuk" });
+  await expect(rejectBtn).toBeVisible();
+  await rejectBtn.click();
+
+  // Status bayar berubah jadi 'Belum Bayar' dan tombol 'Belum Masuk' menghilang
+  await expect(card001.getByText("Belum Bayar")).toBeVisible();
+  await expect(rejectBtn).not.toBeVisible();
+
+  // Pemilik menandai pesanan lunas
+  const payBtn = card001.getByRole("button", { name: "Tandai Lunas" });
+  await expect(payBtn).toBeVisible();
+  await payBtn.click();
+
+  // Status bayar berubah jadi 'Lunas' dan tombol 'Tandai Lunas' menghilang
+  await expect(card001.getByText("Lunas")).toBeVisible();
+  await expect(payBtn).not.toBeVisible();
+});
+
+test("pemilik dapat memajukan alur masak dari Mulai Masak -> Siap Diambil -> Selesai", async ({ page }) => {
+  await loginAsAdmin(page);
+
+  const card001 = page.locator("div.rounded-xl").filter({ hasText: "#001" });
+  await expect(card001).toBeVisible();
+
+  // 1. Mulai Masak (baru -> dimasak)
+  const cookBtn = card001.getByRole("button", { name: /Mulai Masak/i });
+  await expect(cookBtn).toBeVisible();
+  await cookBtn.click();
+
+  // Tombol berganti jadi 'Siap Diambil'
+  const readyBtn = card001.getByRole("button", { name: /Siap Diambil/i });
+  await expect(readyBtn).toBeVisible();
+
+  // 2. Siap Diambil (dimasak -> siap)
+  await readyBtn.click();
+
+  // Tombol berganti jadi 'Selesai'
+  const finishBtn = card001.getByRole("button", { name: /^Selesai$/i });
+  await expect(finishBtn).toBeVisible();
+
+  // 3. Selesai (siap -> selesai)
+  // Karena pesanan #001 sudah lunas pada pengujian sebelumnya, pesanan selesai + lunas keluar dari live board
+  await finishBtn.click();
+
+  // Pesanan #001 keluar dari live board
+  await expect(page.getByText("#001")).not.toBeVisible();
+});
+
+test("pemilik dapat membatalkan pesanan dengan konfirmasi dan alasan", async ({ page }) => {
+  await loginAsAdmin(page);
+
+  // Pastikan pesanan #002 terlihat di papan (jika belum ada, buat langsung)
+  let card002 = page.locator("div.rounded-xl").filter({ hasText: "#002" });
+  if (!(await card002.isVisible())) {
+    const { data: newOrder } = await db!
+      .from("orders")
+      .insert({
+        public_token: `tokentest${Date.now()}03`,
+        order_date: new Date().toISOString().slice(0, 10),
+        daily_number: 2,
+        customer_name: "Siti Rahma",
+        order_type: "takeaway",
+        payment_method: "cash",
+        payment_status: "belum_bayar",
+        status: "baru",
+        total: 18000,
+        device_id: "device-e2e-order-3",
+        ip_hash: "hash-e2e-order-3",
+        idempotency_key: `idem-${Date.now()}-03`,
+      })
+      .select("id")
+      .single();
+
+    realtimeOrderId = newOrder!.id;
+    await page.reload();
+    card002 = page.locator("div.rounded-xl").filter({ hasText: "#002" });
+  }
+
+  await expect(card002).toBeVisible();
+
+  // Klik tombol Batal
+  const cancelBtn = card002.getByRole("button", { name: "Batal" });
+  await expect(cancelBtn).toBeVisible();
+  await cancelBtn.click();
+
+  // Dialog konfirmasi pembatalan terbuka
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText(/Batalkan Pesanan #002\?/i)).toBeVisible();
+
+  // Pilih preset alasan "Bahan habis"
+  await dialog.getByRole("button", { name: "Bahan habis" }).click();
+
+  // Konfirmasi pembatalan
+  await dialog.getByRole("button", { name: /Ya, Batalkan Pesanan/i }).click();
+
+  // Dialog tertutup dan pesanan #002 keluar dari live board
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByText("#002")).not.toBeVisible();
+});
+

@@ -28,16 +28,16 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 
 ### M2 — Checkout, pembayaran, lacak (P5–P8)
 - [x] Fungsi SQL `create_order` (validasi, harga server, nomor harian, rate limit, idempotensi) + tes pgTAP
-- [ ] `POST /api/orders`, `GET /api/orders/[token]`, `POST …/claim-paid`
-- [ ] Halaman checkout, layar QRIS (total besar), instruksi cash
-- [ ] Halaman lacak dengan polling 5 detik, getar saat Siap, banner "Pesanan aktif"
+- [x] `POST /api/orders`, `GET /api/orders/[token]`, `POST …/claim-paid`
+- [x] Halaman checkout, layar QRIS (total besar), instruksi cash
+- [x] Halaman lacak dengan polling 5 detik, getar saat Siap, banner "Pesanan aktif"
 
 **Selesai jika**: pesanan tersimpan dengan nomor #001, dan pesanan kedua mendapat #002.
 
 ### M3 — Dashboard pesanan live (D1–D5)
-- [ ] Login pemilik, layout `/admin`, navigasi bottom-tab/sidebar
-- [ ] Daftar/kanban pesanan + Realtime + bunyi + Wake Lock
-- [ ] Tombol status (Mulai masak → Siap → Selesai), Lunas, Batal, "Pembayaran belum masuk"
+- [x] Login pemilik, layout `/admin`, navigasi bottom-tab/sidebar
+- [x] Daftar/kanban pesanan + Realtime + bunyi + Wake Lock
+- [x] Tombol status (Mulai masak → Siap → Selesai), Lunas, Batal, "Pembayaran belum masuk"
 - [ ] Toggle Buka/Tutup toko
 
 **Selesai jika**: alur E2E lengkap (pesan di HP A → bunyi di HP B → Lunas → Siap → HP A menampilkan "Siap") lulus di Playwright dan di HP sungguhan.

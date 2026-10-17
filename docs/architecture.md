@@ -71,6 +71,9 @@ rumah-makan-sipil/
 │  │  ├─ page.tsx                  # pesanan live
 │  │  ├─ menu/…  riwayat/…  laporan/…  keuangan/…  qr/…  pengaturan/…
 │  └─ api/
+│     ├─ admin/
+│     │  └─ orders/[id]/
+│     │     └─ route.ts            # PATCH aksi pesanan (mulai_masak, siap, selesai, lunas, batal, dll)
 │     └─ orders/
 │        ├─ route.ts               # POST buat pesanan
 │        └─ [token]/

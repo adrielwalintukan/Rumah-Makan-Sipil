@@ -1,10 +1,45 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getLiveOrders, getOrderItems } from "./admin-orders";
+import {
+  adminOrderActionSchema,
+  getLiveOrders,
+  getOrderItems,
+} from "./admin-orders";
 
 describe("admin-orders", () => {
+  describe("adminOrderActionSchema", () => {
+    it("memvalidasi aksi pesanan yang sah", () => {
+      const validActions = [
+        { action: "mulai_masak" },
+        { action: "siap" },
+        { action: "selesai" },
+        { action: "batal", cancel_reason: "Bahan habis" },
+        { action: "tandai_lunas" },
+        { action: "pembayaran_belum_masuk" },
+      ];
+
+      for (const item of validActions) {
+        const parsed = adminOrderActionSchema.safeParse(item);
+        expect(parsed.success).toBe(true);
+      }
+    });
+
+    it("menolak aksi yang tidak dikenal", () => {
+      const invalid = adminOrderActionSchema.safeParse({ action: "ngawur" });
+      expect(invalid.success).toBe(false);
+    });
+
+    it("menolak alasan pembatalan melebihi 200 karakter", () => {
+      const tooLong = adminOrderActionSchema.safeParse({
+        action: "batal",
+        cancel_reason: "a".repeat(201),
+      });
+      expect(tooLong.success).toBe(false);
+    });
+  });
+
   describe("getLiveOrders", () => {
-    it("mengambil pesanan dengan status baru, dimasak, siap", async () => {
+    it("mengambil pesanan aktif dengan klausa .or", async () => {
       const mockOrders = [
         {
           id: "order-1",
@@ -18,7 +53,7 @@ describe("admin-orders", () => {
       const mockSupabase = {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            in: vi.fn().mockReturnValue({
+            or: vi.fn().mockReturnValue({
               order: vi.fn().mockResolvedValue({ data: mockOrders, error: null }),
             }),
           }),
@@ -35,7 +70,7 @@ describe("admin-orders", () => {
       const mockSupabase = {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            in: vi.fn().mockReturnValue({
+            or: vi.fn().mockReturnValue({
               order: vi.fn().mockResolvedValue({ data: null, error: new Error("DB Error") }),
             }),
           }),

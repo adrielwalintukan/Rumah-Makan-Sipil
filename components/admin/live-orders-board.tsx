@@ -136,8 +136,11 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
           const updated = payload.new as AdminOrder;
 
           setOrders((prev) => {
-            // Jika pesanan telah selesai atau dibatalkan, keluarkan dari board live
-            if (updated.status === "selesai" || updated.status === "batal") {
+            // Jika pesanan telah selesai DAN lunas, atau dibatalkan, keluarkan dari board live
+            if (
+              updated.status === "batal" ||
+              (updated.status === "selesai" && updated.payment_status === "lunas")
+            ) {
               return prev.filter((o) => o.id !== updated.id);
             }
 
@@ -169,16 +172,38 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
     };
   }, [isSoundEnabled, refreshOrders]);
 
+  const handleOrderUpdated = React.useCallback((updated: AdminOrder) => {
+    setOrders((prev) => {
+      if (
+        updated.status === "batal" ||
+        (updated.status === "selesai" && updated.payment_status === "lunas")
+      ) {
+        return prev.filter((o) => o.id !== updated.id);
+      }
+      return prev.map((o) =>
+        o.id === updated.id
+          ? {
+              ...o,
+              ...updated,
+              order_items: o.order_items,
+            }
+          : o
+      );
+    });
+  }, []);
+
   // Kelompokkan pesanan berdasarkan status kanban
   const ordersBaru = orders.filter((o) => o.status === "baru");
   const ordersDimasak = orders.filter((o) => o.status === "dimasak");
-  const ordersSiap = orders.filter((o) => o.status === "siap");
+  const ordersSiap = orders.filter((o) => o.status === "siap" || o.status === "selesai");
 
   // Filter untuk tampilan tab di mobile (< 640 px)
   const mobileFilteredOrders =
     mobileTab === "semua"
       ? orders
-      : orders.filter((o) => o.status === mobileTab);
+      : mobileTab === "siap"
+        ? orders.filter((o) => o.status === "siap" || o.status === "selesai")
+        : orders.filter((o) => o.status === mobileTab);
 
   return (
     <div className="flex flex-col gap-5">
@@ -335,6 +360,7 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
                     key={order.id}
                     order={order}
                     isNew={newOrderIds.has(order.id)}
+                    onOrderUpdated={handleOrderUpdated}
                   />
                 ))
               ) : (
@@ -367,6 +393,7 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
                     key={order.id}
                     order={order}
                     isNew={newOrderIds.has(order.id)}
+                    onOrderUpdated={handleOrderUpdated}
                   />
                 ))
               ) : (
@@ -399,6 +426,7 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
                     key={order.id}
                     order={order}
                     isNew={newOrderIds.has(order.id)}
+                    onOrderUpdated={handleOrderUpdated}
                   />
                 ))
               ) : (
@@ -468,6 +496,7 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
                   key={order.id}
                   order={order}
                   isNew={newOrderIds.has(order.id)}
+                  onOrderUpdated={handleOrderUpdated}
                 />
               ))}
             </div>
