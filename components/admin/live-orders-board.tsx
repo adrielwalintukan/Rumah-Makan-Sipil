@@ -27,7 +27,7 @@ interface LiveOrdersBoardProps {
 
 export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
   const [orders, setOrders] = React.useState<AdminOrder[]>(initialOrders);
-  const [isConnected, setIsConnected] = React.useState(true);
+  const [connectionStatus, setConnectionStatus] = React.useState<"connecting" | "connected" | "disconnected">("connecting");
   const [isSoundEnabled, setIsSoundEnabled] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [newOrderIds, setNewOrderIds] = React.useState<Set<string>>(new Set());
@@ -156,10 +156,11 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
         }
       )
       .subscribe((status) => {
-        const connected = status === "SUBSCRIBED";
-        setIsConnected(connected);
-        if (connected) {
+        if (status === "SUBSCRIBED") {
+          setConnectionStatus("connected");
           refreshOrders();
+        } else if (status === "CLOSED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          setConnectionStatus("disconnected");
         }
       });
 
@@ -182,7 +183,7 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
   return (
     <div className="flex flex-col gap-5">
       {/* Banner Peringatan jika Realtime Terputus */}
-      {!isConnected && (
+      {connectionStatus === "disconnected" && (
         <div
           role="alert"
           className="flex items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger-bg p-3.5 text-sm text-danger shadow-xs"
@@ -227,16 +228,23 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
           {/* Status Koneksi */}
           <span
             className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
-              isConnected
+              connectionStatus === "connected"
                 ? "border-green-700/20 bg-green-50 text-green-800"
+                : connectionStatus === "connecting"
+                ? "border-amber-200 bg-amber-50 text-amber-800"
                 : "border-danger/30 bg-danger-bg text-danger"
             }`}
           >
-            {isConnected ? (
+            {connectionStatus === "connected" ? (
               <>
                 <Wifi className="size-3.5" aria-hidden />
                 <span className="size-1.5 rounded-full bg-green-700 animate-pulse" />
                 <span>Terhubung</span>
+              </>
+            ) : connectionStatus === "connecting" ? (
+              <>
+                <RefreshCw className="size-3.5 animate-spin" aria-hidden />
+                <span>Menghubungkan...</span>
               </>
             ) : (
               <>

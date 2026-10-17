@@ -103,7 +103,7 @@ test("dashboard pesanan live menampilkan detail pesanan awal dengan benar", asyn
   // Verifikasi rincian menu dan catatan
   await expect(page.getByText("Nasi Campur")).toBeVisible();
   await expect(page.getByText(/sambal dipisah ya/i)).toBeVisible();
-  await expect(page.getByText("Rp25.000")).toBeVisible();
+  await expect(page.getByText("Rp25.000").first()).toBeVisible();
   await expect(page.getByText("QRIS")).toBeVisible();
   await expect(page.getByText("Perlu Verifikasi")).toBeVisible();
 });
@@ -142,6 +142,9 @@ test("pesanan baru muncul secara live di dashboard tanpa reload halaman", async 
   await expect(page.getByText("#001")).toBeVisible();
   await expect(page.getByText("#002")).not.toBeVisible();
 
+  // Pastikan status realtime sudah terhubung sebelum pesanan baru dibuat di DB
+  await expect(page.getByText("Terhubung")).toBeVisible({ timeout: 15000 });
+
   // Buat pesanan kedua langsung di database
   const { data: newOrder, error: newOrderErr } = await db!
     .from("orders")
@@ -173,9 +176,9 @@ test("pesanan baru muncul secara live di dashboard tanpa reload halaman", async 
     subtotal: 18000,
   });
 
-  // Pesanan #002 harus muncul secara otomatis tanpa reload (maks ±5 detik)
+  // Pesanan #002 harus muncul secara otomatis tanpa reload (maks ±10 detik)
   await expect(page.getByText("#002")).toBeVisible({ timeout: 10000 });
   await expect(page.getByText("Siti Rahma")).toBeVisible();
   await expect(page.getByText("Bungkus")).toBeVisible();
-  await expect(page.getByText("Rp18.000")).toBeVisible();
+  await expect(page.getByText("Rp18.000").first()).toBeVisible();
 });
