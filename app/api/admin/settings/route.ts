@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAdminUser } from "@/lib/auth";
 import { updateStoreStatusSchema } from "@/lib/admin-settings";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -77,6 +78,9 @@ export async function PATCH(request: Request) {
       }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    revalidatePath("/");
+    revalidatePath("/admin");
 
     return NextResponse.json({ is_open: data.is_open }, { status: 200 });
   } catch (err) {

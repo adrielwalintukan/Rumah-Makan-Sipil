@@ -318,7 +318,15 @@ test("pemilik dapat mengubah status buka tutup toko dari dashboard", async ({ pa
   await expect(toggleBtn).toHaveAttribute("aria-checked", "false");
 
   // Klik saklar untuk membuka toko
-  await toggleBtn.click();
+  await Promise.all([
+    page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/admin/settings") &&
+        res.request().method() === "PATCH" &&
+        res.status() === 200
+    ),
+    toggleBtn.click(),
+  ]);
 
   // Status di dashboard berganti menjadi Toko Buka
   await expect(page.getByText("Toko Buka")).toBeVisible();
@@ -334,7 +342,15 @@ test("pemilik dapat mengubah status buka tutup toko dari dashboard", async ({ pa
   const toggleBtnBack = page.getByRole("switch");
   await expect(toggleBtnBack).toBeVisible();
   await expect(page.getByText("Toko Buka")).toBeVisible();
-  await toggleBtnBack.click();
+  await Promise.all([
+    page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/admin/settings") &&
+        res.request().method() === "PATCH" &&
+        res.status() === 200
+    ),
+    toggleBtnBack.click(),
+  ]);
 
   // Status kembali menjadi Toko Tutup
   await expect(page.getByText("Toko Tutup")).toBeVisible();
