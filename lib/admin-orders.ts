@@ -1,9 +1,37 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
 export type OrderType = "dine_in" | "takeaway";
 export type PaymentMethod = "qris" | "cash";
 export type PaymentStatus = "belum_bayar" | "menunggu_verifikasi" | "lunas";
 export type OrderStatus = "baru" | "dimasak" | "siap" | "selesai" | "batal";
+
+export type AdminOrderAction =
+  | "mulai_masak"
+  | "siap"
+  | "selesai"
+  | "batal"
+  | "tandai_lunas"
+  | "pembayaran_belum_masuk";
+
+export const adminOrderActionSchema = z.object({
+  action: z.enum([
+    "mulai_masak",
+    "siap",
+    "selesai",
+    "batal",
+    "tandai_lunas",
+    "pembayaran_belum_masuk",
+  ]),
+  cancel_reason: z
+    .string()
+    .trim()
+    .max(200, "Alasan pembatalan maksimal 200 karakter.")
+    .optional()
+    .nullable(),
+});
+
+export type AdminOrderActionPayload = z.infer<typeof adminOrderActionSchema>;
 
 export interface AdminOrderItemOption {
   group: string;
@@ -42,7 +70,7 @@ export interface AdminOrder {
 }
 
 /**
- * Mengambil seluruh pesanan aktif (baru, dimasak, siap) beserta item-itemnya.
+ * Mengambil seluruh pesanan aktif (baru, dimasak, siap, atau selesai tapi belum lunas) beserta item-itemnya.
  */
 export async function getLiveOrders(supabase: SupabaseClient): Promise<AdminOrder[]> {
   const { data, error } = await supabase
@@ -51,7 +79,7 @@ export async function getLiveOrders(supabase: SupabaseClient): Promise<AdminOrde
       *,
       order_items (*)
     `)
-    .in("status", ["baru", "dimasak", "siap"])
+    .or("status.in.(baru,dimasak,siap),and(status.eq.selesai,payment_status.neq.lunas)")
     .order("created_at", { ascending: true });
 
   if (error || !data) {

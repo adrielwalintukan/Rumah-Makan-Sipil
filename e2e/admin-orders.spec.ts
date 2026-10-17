@@ -14,6 +14,7 @@ const PASSWORD = "Password123!";
 let adminUserId: string | null = null;
 let testOrderId: string | null = null;
 let realtimeOrderId: string | null = null;
+let cancelOrderId: string | null = null;
 
 test.beforeAll(async () => {
   if (!db) return;
@@ -65,6 +66,38 @@ test.beforeAll(async () => {
     options: [{ group: "Pilihan", name: "Pedas Sedang", price_delta: 0 }],
   });
   expect(itemErr).toBeNull();
+
+  // 3. Buat pesanan untuk pengujian pembatalan
+  const { data: cancelOrderData, error: cancelErr } = await db
+    .from("orders")
+    .insert({
+      public_token: `tokentest${Date.now()}03`,
+      order_date: new Date().toISOString().slice(0, 10),
+      daily_number: 3,
+      customer_name: "Dewi Lestari",
+      order_type: "takeaway",
+      payment_method: "cash",
+      payment_status: "belum_bayar",
+      status: "baru",
+      total: 15000,
+      device_id: "device-e2e-order-3",
+      ip_hash: "hash-e2e-order-3",
+      idempotency_key: `idem-${Date.now()}-03`,
+    })
+    .select("id")
+    .single();
+
+  expect(cancelErr).toBeNull();
+  cancelOrderId = cancelOrderData!.id;
+
+  const { error: cancelItemErr } = await db.from("order_items").insert({
+    order_id: cancelOrderId,
+    name: "Mie Kuah",
+    unit_price: 15000,
+    quantity: 1,
+    subtotal: 15000,
+  });
+  expect(cancelItemErr).toBeNull();
 });
 
 test.afterAll(async () => {
@@ -76,6 +109,10 @@ test.afterAll(async () => {
   if (realtimeOrderId) {
     await db.from("order_items").delete().eq("order_id", realtimeOrderId);
     await db.from("orders").delete().eq("id", realtimeOrderId);
+  }
+  if (cancelOrderId) {
+    await db.from("order_items").delete().eq("order_id", cancelOrderId);
+    await db.from("orders").delete().eq("id", cancelOrderId);
   }
   if (adminUserId) {
     await db.from("admins").delete().eq("user_id", adminUserId);
@@ -177,8 +214,94 @@ test("pesanan baru muncul secara live di dashboard tanpa reload halaman", async 
   });
 
   // Pesanan #002 harus muncul secara otomatis tanpa reload (maks ±10 detik)
-  await expect(page.getByText("#002")).toBeVisible({ timeout: 10000 });
-  await expect(page.getByText("Siti Rahma")).toBeVisible();
-  await expect(page.getByText("Bungkus")).toBeVisible();
-  await expect(page.getByText("Rp18.000").first()).toBeVisible();
+  const card002 = page.locator("div.rounded-xl").filter({ hasText: "#002" });
+  await expect(card002).toBeVisible({ timeout: 10000 });
+  await expect(card002.getByText("Siti Rahma")).toBeVisible();
+  await expect(card002.getByText("Bungkus")).toBeVisible();
+  await expect(card002.getByText("Rp18.000").first()).toBeVisible();
 });
+
+test("pemilik dapat menolak pembayaran belum masuk dan menandai lunas", async ({ page }) => {
+  await loginAsAdmin(page);
+
+  const card001 = page.locator("div.rounded-xl").filter({ hasText: "#001" });
+  await expect(card001).toBeVisible();
+
+  // Pesanan #001 awal berstatus menunggu_verifikasi, tombol 'Belum Masuk' tersedia
+  const rejectBtn = card001.getByRole("button", { name: "Belum Masuk" });
+  await expect(rejectBtn).toBeVisible();
+  await rejectBtn.click();
+
+  // Status bayar berubah jadi 'Belum Bayar' dan tombol 'Belum Masuk' menghilang
+  await expect(card001.getByText("Belum Bayar")).toBeVisible();
+  await expect(rejectBtn).not.toBeVisible();
+
+  // Pemilik menandai pesanan lunas
+  const payBtn = card001.getByRole("button", { name: "Tandai Lunas" });
+  await expect(payBtn).toBeVisible();
+  await payBtn.click();
+
+  // Status bayar berubah jadi 'Lunas' dan tombol 'Tandai Lunas' menghilang
+  await expect(card001.getByText("Lunas")).toBeVisible();
+  await expect(payBtn).not.toBeVisible();
+});
+
+test("pemilik dapat memajukan alur masak dari Mulai Masak -> Siap Diambil -> Selesai", async ({ page }) => {
+  await loginAsAdmin(page);
+
+  const card001 = page.locator("div.rounded-xl").filter({ hasText: "#001" });
+  await expect(card001).toBeVisible();
+
+  // 1. Mulai Masak (baru -> dimasak)
+  const cookBtn = card001.getByRole("button", { name: /Mulai Masak/i });
+  await expect(cookBtn).toBeVisible();
+  await cookBtn.click();
+
+  // Tombol berganti jadi 'Siap Diambil'
+  const readyBtn = card001.getByRole("button", { name: /Siap Diambil/i });
+  await expect(readyBtn).toBeVisible();
+
+  // 2. Siap Diambil (dimasak -> siap)
+  await readyBtn.click();
+
+  // Tombol berganti jadi 'Selesai'
+  const finishBtn = card001.getByRole("button", { name: /^Selesai$/i });
+  await expect(finishBtn).toBeVisible();
+
+  // 3. Selesai (siap -> selesai)
+  // Karena pesanan #001 sudah lunas pada pengujian sebelumnya, pesanan selesai + lunas keluar dari live board
+  await finishBtn.click();
+
+  // Pesanan #001 keluar dari live board
+  await expect(page.getByText("#001")).not.toBeVisible();
+});
+
+test("pemilik dapat membatalkan pesanan dengan konfirmasi dan alasan", async ({ page }) => {
+  await loginAsAdmin(page);
+
+  // Pastikan pesanan #003 terlihat di papan
+  const card003 = page.locator("div.rounded-xl").filter({ hasText: "#003" });
+  await expect(card003).toBeVisible();
+
+  // Klik tombol Batal
+  const cancelBtn = card003.getByRole("button", { name: "Batal" });
+  await expect(cancelBtn).toBeVisible();
+  await cancelBtn.click();
+
+  // Dialog konfirmasi pembatalan terbuka
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText(/Batalkan Pesanan #003\?/i)).toBeVisible();
+
+  // Pilih preset alasan "Bahan habis"
+  await dialog.getByRole("button", { name: "Bahan habis" }).click();
+
+  // Konfirmasi pembatalan
+  await dialog.getByRole("button", { name: /Ya, Batalkan Pesanan/i }).click();
+
+  // Dialog tertutup dan pesanan #003 keluar dari live board
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByText("#003")).not.toBeVisible();
+});
+
+
