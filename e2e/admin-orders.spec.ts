@@ -214,10 +214,11 @@ test("pesanan baru muncul secara live di dashboard tanpa reload halaman", async 
   });
 
   // Pesanan #002 harus muncul secara otomatis tanpa reload (maks ±10 detik)
-  await expect(page.getByText("#002")).toBeVisible({ timeout: 10000 });
-  await expect(page.getByText("Siti Rahma")).toBeVisible();
-  await expect(page.getByText("Bungkus")).toBeVisible();
-  await expect(page.getByText("Rp18.000").first()).toBeVisible();
+  const card002 = page.locator("div.rounded-xl").filter({ hasText: "#002" });
+  await expect(card002).toBeVisible({ timeout: 10000 });
+  await expect(card002.getByText("Siti Rahma")).toBeVisible();
+  await expect(card002.getByText("Bungkus")).toBeVisible();
+  await expect(card002.getByText("Rp18.000").first()).toBeVisible();
 });
 
 test("pemilik dapat menolak pembayaran belum masuk dan menandai lunas", async ({ page }) => {
