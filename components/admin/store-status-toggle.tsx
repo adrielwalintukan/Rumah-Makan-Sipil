@@ -50,8 +50,8 @@ export function StoreStatusToggle({
       setIsOpen(data.is_open);
       setAnnouncement(
         data.is_open
-          ? "Status toko berhasil diubah: Toko Buka."
-          : "Status toko berhasil diubah: Toko Tutup."
+          ? "Toko sekarang dibuka untuk menerima pesanan."
+          : "Toko sekarang ditutup."
       );
       onStatusChange?.(data.is_open);
     } catch (err) {
