@@ -10,8 +10,18 @@ export const metadata: Metadata = {
 
 async function LiveOrdersLoader() {
   const supabase = await createServerSupabaseClient();
-  const initialOrders = await getLiveOrders(supabase);
-  return <LiveOrdersBoard initialOrders={initialOrders} />;
+  const [initialOrders, settingsRes] = await Promise.all([
+    getLiveOrders(supabase),
+    supabase.from("settings").select("is_open").eq("id", 1).single(),
+  ]);
+
+  const initialIsOpen = settingsRes.data?.is_open ?? false;
+  return (
+    <LiveOrdersBoard
+      initialOrders={initialOrders}
+      initialIsOpen={initialIsOpen}
+    />
+  );
 }
 
 function OrdersLoadingSkeleton() {
@@ -22,7 +32,10 @@ function OrdersLoadingSkeleton() {
           <div className="h-8 w-44 rounded-md bg-cream-200" />
           <div className="h-4 w-72 rounded-md bg-cream-100 mt-2" />
         </div>
-        <div className="h-8 w-32 rounded-full bg-cream-100" />
+        <div className="flex items-center gap-2">
+          <div className="h-10 w-36 rounded-xl bg-cream-100" />
+          <div className="h-8 w-28 rounded-full bg-cream-100" />
+        </div>
       </div>
 
       <div className="hidden sm:grid sm:grid-cols-3 gap-4">

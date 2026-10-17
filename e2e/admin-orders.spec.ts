@@ -114,6 +114,8 @@ test.afterAll(async () => {
     await db.from("order_items").delete().eq("order_id", cancelOrderId);
     await db.from("orders").delete().eq("id", cancelOrderId);
   }
+  // Kembalikan status toko ke false
+  await db.from("settings").update({ is_open: false }).eq("id", 1);
   if (adminUserId) {
     await db.from("admins").delete().eq("user_id", adminUserId);
     await db.auth.admin.deleteUser(adminUserId);
@@ -303,5 +305,45 @@ test("pemilik dapat membatalkan pesanan dengan konfirmasi dan alasan", async ({ 
   await expect(dialog).not.toBeVisible();
   await expect(page.getByText("#003")).not.toBeVisible();
 });
+
+test("pemilik dapat mengubah status buka tutup toko dari dashboard", async ({ page }) => {
+  await loginAsAdmin(page);
+
+  // Pastikan saklar status toko tampil
+  const toggleBtn = page.getByRole("switch");
+  await expect(toggleBtn).toBeVisible();
+
+  // Awalnya status toko adalah Tutup
+  await expect(page.getByText("Toko Tutup")).toBeVisible();
+  await expect(toggleBtn).toHaveAttribute("aria-checked", "false");
+
+  // Klik saklar untuk membuka toko
+  await toggleBtn.click();
+
+  // Status di dashboard berganti menjadi Toko Buka
+  await expect(page.getByText("Toko Buka")).toBeVisible();
+  await expect(toggleBtn).toHaveAttribute("aria-checked", "true");
+
+  // Verifikasi di halaman pelanggan (toko buka -> banner tutup hilang dan badge Buka tampil)
+  await page.goto("/");
+  await expect(page.getByText(/Maaf, toko sedang tutup/i)).not.toBeVisible();
+  await expect(page.getByText("Buka").first()).toBeVisible();
+
+  // Kembali ke dashboard admin dan tutup kembali toko
+  await page.goto("/admin");
+  const toggleBtnBack = page.getByRole("switch");
+  await expect(toggleBtnBack).toBeVisible();
+  await expect(page.getByText("Toko Buka")).toBeVisible();
+  await toggleBtnBack.click();
+
+  // Status kembali menjadi Toko Tutup
+  await expect(page.getByText("Toko Tutup")).toBeVisible();
+  await expect(toggleBtnBack).toHaveAttribute("aria-checked", "false");
+
+  // Verifikasi di halaman pelanggan (banner tutup kembali muncul)
+  await page.goto("/");
+  await expect(page.getByText(/Maaf, toko sedang tutup/i)).toBeVisible();
+});
+
 
 
