@@ -72,8 +72,10 @@ rumah-makan-sipil/
 │  │  ├─ menu/…  riwayat/…  laporan/…  keuangan/…  qr/…  pengaturan/…
 │  └─ api/
 │     ├─ admin/
-│     │  └─ orders/[id]/
-│     │     └─ route.ts            # PATCH aksi pesanan (mulai_masak, siap, selesai, lunas, batal, dll)
+│     │  ├─ orders/[id]/
+│     │  │  └─ route.ts            # PATCH aksi pesanan (mulai_masak, siap, selesai, lunas, batal, dll)
+│     │  └─ settings/
+│     │     └─ route.ts            # GET & PATCH status buka/tutup toko
 │     └─ orders/
 │        ├─ route.ts               # POST buat pesanan
 │        └─ [token]/

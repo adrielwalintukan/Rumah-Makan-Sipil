@@ -20,12 +20,14 @@ import { soundNotifier } from "@/lib/sound";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { OrderCard } from "./order-card";
+import { StoreStatusToggle } from "./store-status-toggle";
 
 interface LiveOrdersBoardProps {
   initialOrders: AdminOrder[];
+  initialIsOpen?: boolean;
 }
 
-export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
+export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOrdersBoardProps) {
   const [orders, setOrders] = React.useState<AdminOrder[]>(initialOrders);
   const [connectionStatus, setConnectionStatus] = React.useState<"connecting" | "connected" | "disconnected">("connecting");
   const [isSoundEnabled, setIsSoundEnabled] = React.useState(false);
@@ -250,6 +252,9 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
 
         {/* Toolbar Tombol Aksi & Indikator */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Toggle Saklar Buka / Tutup Toko */}
+          <StoreStatusToggle initialIsOpen={initialIsOpen} />
+
           {/* Status Koneksi */}
           <span
             className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${

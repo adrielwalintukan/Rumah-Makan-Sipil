@@ -38,7 +38,7 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 - [x] Login pemilik, layout `/admin`, navigasi bottom-tab/sidebar
 - [x] Daftar/kanban pesanan + Realtime + bunyi + Wake Lock
 - [x] Tombol status (Mulai masak → Siap → Selesai), Lunas, Batal, "Pembayaran belum masuk"
-- [ ] Toggle Buka/Tutup toko
+- [x] Toggle Buka/Tutup toko
 
 **Selesai jika**: alur E2E lengkap (pesan di HP A → bunyi di HP B → Lunas → Siap → HP A menampilkan "Siap") lulus di Playwright dan di HP sungguhan.
 
