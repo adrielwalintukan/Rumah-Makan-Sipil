@@ -97,6 +97,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
 
   return (
     <div
+      data-testid="admin-order-card"
       className={`flex flex-col rounded-xl border border-line bg-card shadow-xs transition-all border-l-4 ${paymentBorderColor} ${
         isNew ? "animate-pulse ring-2 ring-amber-400" : ""
       }`}
@@ -114,7 +115,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
           </div>
           <div className="flex items-center gap-1.5 text-xs text-ink-500 mt-0.5">
             <Clock className="size-3.5" aria-hidden />
-            <span>{formatRelativeTime(order.created_at)}</span>
+            <span suppressHydrationWarning>{formatRelativeTime(order.created_at)}</span>
           </div>
         </div>
 

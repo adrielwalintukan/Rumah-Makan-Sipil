@@ -1,5 +1,6 @@
 import * as React from "react";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { getLiveOrders } from "@/lib/admin-orders";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { LiveOrdersBoard } from "@/components/admin/live-orders-board";
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 async function LiveOrdersLoader() {
+  await connection();
   const supabase = await createServerSupabaseClient();
   const [initialOrders, settingsRes] = await Promise.all([
     getLiveOrders(supabase),
