@@ -15,6 +15,7 @@ import {
 import type { AdminOrder, OrderStatus } from "@/lib/admin-orders";
 import { getOrderItems } from "@/lib/admin-orders";
 import { useWakeLock } from "@/lib/hooks/use-wake-lock";
+import { useIsDesktop } from "@/lib/hooks/use-media-query";
 import { soundNotifier } from "@/lib/sound";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [newOrderIds, setNewOrderIds] = React.useState<Set<string>>(new Set());
   const [mobileTab, setMobileTab] = React.useState<"semua" | OrderStatus>("semua");
+  const isDesktop = useIsDesktop();
 
   // Screen Wake Lock API (Issue #12 & PRD US-10)
   const { isSupported: isWakeLockSupported, isActive: isWakeLockActive, request: requestWakeLock } = useWakeLock();
@@ -250,7 +252,7 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
             variant="outline"
             size="sm"
             onClick={handleToggleSound}
-            aria-label={isSoundEnabled ? "Matikan suara notifikasi" : "Aktifkan suara notifikasi"}
+            aria-pressed={isSoundEnabled}
             className={`h-8 min-h-[36px] text-xs font-semibold ${
               isSoundEnabled
                 ? "border-green-700/30 bg-green-50 text-green-800 hover:bg-green-100"
@@ -300,175 +302,178 @@ export function LiveOrdersBoard({ initialOrders }: LiveOrdersBoardProps) {
         </div>
       </div>
 
-      {/* TAMPILAN MOBILE (< 640 px): Filter Tab Bar + 1 Kolom Vertikal */}
-      <div className="flex flex-col gap-4 sm:hidden">
-        {/* Tab Filter Status */}
-        <div className="flex rounded-lg border border-line bg-card p-1 text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setMobileTab("semua")}
-            className={`flex-1 py-1.5 text-center rounded-md transition ${
-              mobileTab === "semua"
-                ? "bg-green-700 text-white shadow-xs font-bold"
-                : "text-ink-600 hover:text-ink-900"
-            }`}
-          >
-            Semua ({orders.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileTab("baru")}
-            className={`flex-1 py-1.5 text-center rounded-md transition ${
-              mobileTab === "baru"
-                ? "bg-green-700 text-white shadow-xs font-bold"
-                : "text-ink-600 hover:text-ink-900"
-            }`}
-          >
-            Baru ({ordersBaru.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileTab("dimasak")}
-            className={`flex-1 py-1.5 text-center rounded-md transition ${
-              mobileTab === "dimasak"
-                ? "bg-green-700 text-white shadow-xs font-bold"
-                : "text-ink-600 hover:text-ink-900"
-            }`}
-          >
-            Dimasak ({ordersDimasak.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileTab("siap")}
-            className={`flex-1 py-1.5 text-center rounded-md transition ${
-              mobileTab === "siap"
-                ? "bg-green-700 text-white shadow-xs font-bold"
-                : "text-ink-600 hover:text-ink-900"
-            }`}
-          >
-            Siap ({ordersSiap.length})
-          </button>
-        </div>
-
-        {/* Daftar Kartu Pesanan di Mobile */}
-        {mobileFilteredOrders.length > 0 ? (
-          <div className="flex flex-col gap-3.5">
-            {mobileFilteredOrders.map((order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                isNew={newOrderIds.has(order.id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-line bg-card p-8 text-center">
-            <Utensils className="mx-auto size-10 text-ink-300 mb-2" aria-hidden />
-            <p className="font-semibold text-ink-800">Belum ada pesanan aktif</p>
-            <p className="text-xs text-ink-500 mt-1">
-              Pesanan baru yang masuk akan otomatis tampil di sini.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* TAMPILAN TABLET & DESKTOP (≥ 640 px): Kanban 3 Kolom */}
-      <div className="hidden sm:grid sm:grid-cols-3 gap-4.5 items-start">
-        {/* Kolom 1: Pesanan Baru */}
-        <div className="flex flex-col gap-3 rounded-xl border border-line bg-cream-50/70 p-3.5">
-          <div className="flex items-center justify-between border-b border-line/60 pb-2.5">
-            <div className="flex items-center gap-2">
-              <span className="size-2.5 rounded-full bg-amber-500" />
-              <h2 className="font-display text-sm font-bold text-ink-900">
-                Pesanan Baru
-              </h2>
+      {/* Render salah satu tampilan: Tablet & Desktop (Kanban 3 Kolom) atau Mobile (Tab + 1 Kolom) */}
+      {isDesktop ? (
+        /* TAMPILAN TABLET & DESKTOP (≥ 640 px): Kanban 3 Kolom */
+        <div className="grid grid-cols-3 gap-4.5 items-start">
+          {/* Kolom 1: Pesanan Baru */}
+          <div className="flex flex-col gap-3 rounded-xl border border-line bg-cream-50/70 p-3.5">
+            <div className="flex items-center justify-between border-b border-line/60 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="size-2.5 rounded-full bg-amber-500" />
+                <h2 className="font-display text-sm font-bold text-ink-900">
+                  Pesanan Baru
+                </h2>
+              </div>
+              <span className="rounded-full bg-card border border-line px-2 py-0.5 text-xs font-bold text-ink-700">
+                {ordersBaru.length}
+              </span>
             </div>
-            <span className="rounded-full bg-card border border-line px-2 py-0.5 text-xs font-bold text-ink-700">
-              {ordersBaru.length}
-            </span>
+
+            <div className="flex flex-col gap-3 min-h-[200px]">
+              {ordersBaru.length > 0 ? (
+                ordersBaru.map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    isNew={newOrderIds.has(order.id)}
+                  />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 text-center text-ink-400">
+                  <Sparkles className="size-6 text-ink-300 mb-1" aria-hidden />
+                  <p className="text-xs font-medium">Tidak ada pesanan baru</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-col gap-3 min-h-[200px]">
-            {ordersBaru.length > 0 ? (
-              ordersBaru.map((order) => (
+          {/* Kolom 2: Sedang Dimasak */}
+          <div className="flex flex-col gap-3 rounded-xl border border-line bg-cream-50/70 p-3.5">
+            <div className="flex items-center justify-between border-b border-line/60 pb-2.5">
+              <div className="flex items-center gap-2">
+                <Flame className="size-3.5 text-brown-700" aria-hidden />
+                <h2 className="font-display text-sm font-bold text-ink-900">
+                  Sedang Dimasak
+                </h2>
+              </div>
+              <span className="rounded-full bg-card border border-line px-2 py-0.5 text-xs font-bold text-ink-700">
+                {ordersDimasak.length}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-3 min-h-[200px]">
+              {ordersDimasak.length > 0 ? (
+                ordersDimasak.map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    isNew={newOrderIds.has(order.id)}
+                  />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 text-center text-ink-400">
+                  <Utensils className="size-6 text-ink-300 mb-1" aria-hidden />
+                  <p className="text-xs font-medium">Dapur sedang santai</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Kolom 3: Siap Diambil */}
+          <div className="flex flex-col gap-3 rounded-xl border border-line bg-cream-50/70 p-3.5">
+            <div className="flex items-center justify-between border-b border-line/60 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="size-2.5 rounded-full bg-green-700" />
+                <h2 className="font-display text-sm font-bold text-ink-900">
+                  Siap Diambil
+                </h2>
+              </div>
+              <span className="rounded-full bg-card border border-line px-2 py-0.5 text-xs font-bold text-ink-700">
+                {ordersSiap.length}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-3 min-h-[200px]">
+              {ordersSiap.length > 0 ? (
+                ordersSiap.map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    isNew={newOrderIds.has(order.id)}
+                  />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 text-center text-ink-400">
+                  <p className="text-xs font-medium">Belum ada pesanan siap</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* TAMPILAN MOBILE (< 640 px): Filter Tab Bar + 1 Kolom Vertikal */
+        <div className="flex flex-col gap-4">
+          {/* Tab Filter Status */}
+          <div className="flex rounded-lg border border-line bg-card p-1 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setMobileTab("semua")}
+              className={`flex-1 py-1.5 text-center rounded-md transition ${
+                mobileTab === "semua"
+                  ? "bg-green-700 text-white shadow-xs font-bold"
+                  : "text-ink-600 hover:text-ink-900"
+              }`}
+            >
+              Semua ({orders.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("baru")}
+              className={`flex-1 py-1.5 text-center rounded-md transition ${
+                mobileTab === "baru"
+                  ? "bg-green-700 text-white shadow-xs font-bold"
+                  : "text-ink-600 hover:text-ink-900"
+              }`}
+            >
+              Baru ({ordersBaru.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("dimasak")}
+              className={`flex-1 py-1.5 text-center rounded-md transition ${
+                mobileTab === "dimasak"
+                  ? "bg-green-700 text-white shadow-xs font-bold"
+                  : "text-ink-600 hover:text-ink-900"
+              }`}
+            >
+              Dimasak ({ordersDimasak.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("siap")}
+              className={`flex-1 py-1.5 text-center rounded-md transition ${
+                mobileTab === "siap"
+                  ? "bg-green-700 text-white shadow-xs font-bold"
+                  : "text-ink-600 hover:text-ink-900"
+              }`}
+            >
+              Siap ({ordersSiap.length})
+            </button>
+          </div>
+
+          {/* Daftar Kartu Pesanan di Mobile */}
+          {mobileFilteredOrders.length > 0 ? (
+            <div className="flex flex-col gap-3.5">
+              {mobileFilteredOrders.map((order) => (
                 <OrderCard
                   key={order.id}
                   order={order}
                   isNew={newOrderIds.has(order.id)}
                 />
-              ))
-            ) : (
-              <div className="flex flex-col items-center justify-center p-6 text-center text-ink-400">
-                <Sparkles className="size-6 text-ink-300 mb-1" aria-hidden />
-                <p className="text-xs font-medium">Tidak ada pesanan baru</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Kolom 2: Sedang Dimasak */}
-        <div className="flex flex-col gap-3 rounded-xl border border-line bg-cream-50/70 p-3.5">
-          <div className="flex items-center justify-between border-b border-line/60 pb-2.5">
-            <div className="flex items-center gap-2">
-              <Flame className="size-3.5 text-brown-700" aria-hidden />
-              <h2 className="font-display text-sm font-bold text-ink-900">
-                Sedang Dimasak
-              </h2>
+              ))}
             </div>
-            <span className="rounded-full bg-card border border-line px-2 py-0.5 text-xs font-bold text-ink-700">
-              {ordersDimasak.length}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-3 min-h-[200px]">
-            {ordersDimasak.length > 0 ? (
-              ordersDimasak.map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  isNew={newOrderIds.has(order.id)}
-                />
-              ))
-            ) : (
-              <div className="flex flex-col items-center justify-center p-6 text-center text-ink-400">
-                <Utensils className="size-6 text-ink-300 mb-1" aria-hidden />
-                <p className="text-xs font-medium">Dapur sedang santai</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Kolom 3: Siap Diambil */}
-        <div className="flex flex-col gap-3 rounded-xl border border-line bg-cream-50/70 p-3.5">
-          <div className="flex items-center justify-between border-b border-line/60 pb-2.5">
-            <div className="flex items-center gap-2">
-              <span className="size-2.5 rounded-full bg-green-700" />
-              <h2 className="font-display text-sm font-bold text-ink-900">
-                Siap Diambil
-              </h2>
+          ) : (
+            <div className="rounded-xl border border-line bg-card p-8 text-center">
+              <Utensils className="mx-auto size-10 text-ink-300 mb-2" aria-hidden />
+              <p className="font-semibold text-ink-800">Belum ada pesanan aktif</p>
+              <p className="text-xs text-ink-500 mt-1">
+                Pesanan baru yang masuk akan otomatis tampil di sini.
+              </p>
             </div>
-            <span className="rounded-full bg-card border border-line px-2 py-0.5 text-xs font-bold text-ink-700">
-              {ordersSiap.length}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-3 min-h-[200px]">
-            {ordersSiap.length > 0 ? (
-              ordersSiap.map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  isNew={newOrderIds.has(order.id)}
-                />
-              ))
-            ) : (
-              <div className="flex flex-col items-center justify-center p-6 text-center text-ink-400">
-                <p className="text-xs font-medium">Belum ada pesanan siap</p>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
