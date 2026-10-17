@@ -314,7 +314,7 @@ test("pemilik dapat mengubah status buka tutup toko dari dashboard", async ({ pa
   await expect(toggleBtn).toBeVisible();
 
   // Awalnya status toko adalah Tutup
-  await expect(page.getByText("Toko Tutup")).toBeVisible();
+  await expect(page.getByText("Toko Tutup", { exact: true })).toBeVisible();
   await expect(toggleBtn).toHaveAttribute("aria-checked", "false");
 
   // Klik saklar untuk membuka toko
@@ -329,7 +329,7 @@ test("pemilik dapat mengubah status buka tutup toko dari dashboard", async ({ pa
   ]);
 
   // Status di dashboard berganti menjadi Toko Buka
-  await expect(page.getByText("Toko Buka")).toBeVisible();
+  await expect(page.getByText("Toko Buka", { exact: true })).toBeVisible();
   await expect(toggleBtn).toHaveAttribute("aria-checked", "true");
 
   // Verifikasi di halaman pelanggan (toko buka -> banner tutup hilang dan badge Buka tampil)
@@ -341,7 +341,7 @@ test("pemilik dapat mengubah status buka tutup toko dari dashboard", async ({ pa
   await page.goto("/admin");
   const toggleBtnBack = page.getByRole("switch");
   await expect(toggleBtnBack).toBeVisible();
-  await expect(page.getByText("Toko Buka")).toBeVisible();
+  await expect(page.getByText("Toko Buka", { exact: true })).toBeVisible();
   await Promise.all([
     page.waitForResponse(
       (res) =>
@@ -353,7 +353,7 @@ test("pemilik dapat mengubah status buka tutup toko dari dashboard", async ({ pa
   ]);
 
   // Status kembali menjadi Toko Tutup
-  await expect(page.getByText("Toko Tutup")).toBeVisible();
+  await expect(page.getByText("Toko Tutup", { exact: true })).toBeVisible();
   await expect(toggleBtnBack).toHaveAttribute("aria-checked", "false");
 
   // Verifikasi di halaman pelanggan (banner tutup kembali muncul)
