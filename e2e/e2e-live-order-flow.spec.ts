@@ -54,30 +54,52 @@ test.afterAll(async () => {
   if (!db) return;
 
   // 1. Bersihkan HANYA data pesanan yang dibuat oleh skenario pengujian ini
-  if (createdOrderId) {
-    await db.from("order_items").delete().eq("order_id", createdOrderId);
-    await db.from("orders").delete().eq("id", createdOrderId);
-  } else if (createdOrderToken) {
-    const { data: orderData } = await db
+  let orderIdToDelete = createdOrderId;
+  if (!orderIdToDelete && createdOrderToken) {
+    const { data: orderData, error: findOrderErr } = await db
       .from("orders")
       .select("id")
       .eq("public_token", createdOrderToken)
       .maybeSingle();
+    expect(findOrderErr).toBeNull();
     if (orderData?.id) {
-      await db.from("order_items").delete().eq("order_id", orderData.id);
-      await db.from("orders").delete().eq("id", orderData.id);
+      orderIdToDelete = orderData.id;
     }
+  }
+
+  if (orderIdToDelete) {
+    const { error: deleteItemsErr } = await db
+      .from("order_items")
+      .delete()
+      .eq("order_id", orderIdToDelete);
+    expect(deleteItemsErr).toBeNull();
+
+    const { error: deleteOrderErr } = await db
+      .from("orders")
+      .delete()
+      .eq("id", orderIdToDelete);
+    expect(deleteOrderErr).toBeNull();
   }
 
   // 2. Bersihkan akun admin
   if (adminUserId) {
-    await db.from("admins").delete().eq("user_id", adminUserId);
-    await db.auth.admin.deleteUser(adminUserId);
+    const { error: deleteAdminRowErr } = await db
+      .from("admins")
+      .delete()
+      .eq("user_id", adminUserId);
+    expect(deleteAdminRowErr).toBeNull();
+
+    const { error: deleteAuthUserErr } = await db.auth.admin.deleteUser(adminUserId);
+    expect(deleteAuthUserErr).toBeNull();
   }
 
   // 3. Pulihkan status toko ke kondisi awal sebelum pengujian
   if (initialIsOpen !== null) {
-    await db.from("settings").update({ is_open: initialIsOpen }).eq("id", 1);
+    const { error: restoreStoreErr } = await db
+      .from("settings")
+      .update({ is_open: initialIsOpen })
+      .eq("id", 1);
+    expect(restoreStoreErr).toBeNull();
   }
 });
 
@@ -93,15 +115,20 @@ test("alur lengkap M3: Pelanggan pesan di HP A -> Pemilik proses di HP B (Lunas,
   const customerPage = await customerContext.newPage();
 
   try {
-    // Pasang pengawas pemutaran Web Audio pada browser pemilik
+    // Pasang pengawas pemutaran Web Audio (OscillatorNode.prototype.start) pada browser pemilik
     await ownerPage.addInitScript(() => {
-      (window as unknown as { __audioPlayedCount: number }).__audioPlayedCount = 0;
+      (window as unknown as { __oscillatorStartCalls: number }).__oscillatorStartCalls = 0;
       const originalCreateOsc = window.AudioContext?.prototype.createOscillator;
       if (originalCreateOsc) {
         window.AudioContext.prototype.createOscillator = function (...args) {
-          const win = window as unknown as { __audioPlayedCount: number };
-          win.__audioPlayedCount = (win.__audioPlayedCount || 0) + 1;
-          return originalCreateOsc.apply(this, args);
+          const osc = originalCreateOsc.apply(this, args);
+          const originalStart = osc.start;
+          osc.start = function (when?: number) {
+            const win = window as unknown as { __oscillatorStartCalls: number };
+            win.__oscillatorStartCalls = (win.__oscillatorStartCalls || 0) + 1;
+            return originalStart.apply(this, [when]);
+          };
+          return osc;
         };
       }
     });
@@ -122,6 +149,11 @@ test("alur lengkap M3: Pelanggan pesan di HP A -> Pemilik proses di HP B (Lunas,
     if (await soundBtn.isVisible()) {
       await soundBtn.click();
     }
+
+    // Catat jumlah pemanggilan oscillator.start setelah audio dibuka
+    const startCallsBeforeOrder = await ownerPage.evaluate(
+      () => (window as unknown as { __oscillatorStartCalls?: number }).__oscillatorStartCalls ?? 0
+    );
 
     // 2. Pelanggan membuka website di HP A, memilih menu, dan checkout dengan QRIS
     await customerPage.goto("/");
@@ -145,11 +177,12 @@ test("alur lengkap M3: Pelanggan pesan di HP A -> Pemilik proses di HP B (Lunas,
     createdOrderToken = token;
 
     if (db) {
-      const { data: orderRow } = await db
+      const { data: orderRow, error: fetchOrderErr } = await db
         .from("orders")
         .select("id")
         .eq("public_token", token)
         .maybeSingle();
+      expect(fetchOrderErr).toBeNull();
       if (orderRow?.id) {
         createdOrderId = orderRow.id;
       }
@@ -169,20 +202,20 @@ test("alur lengkap M3: Pelanggan pesan di HP A -> Pemilik proses di HP B (Lunas,
     // Status bayar pelanggan menjadi Menunggu Verifikasi
     await expect(customerPage.getByText("Menunggu Verifikasi", { exact: true })).toBeVisible();
 
-    // 3. Verifikasi pesanan baru masuk ke Live Board Pemilik (HP B) dan audio notifikasi berbunyi
+    // 3. Verifikasi pesanan baru masuk ke Live Board Pemilik (HP B) dan pemutaran nada audio (oscillator.start) dipicu
     await expect(ownerPage.getByText("Rian Pelanggan M3")).toBeVisible({ timeout: 15000 });
     const orderCard = ownerPage.getByTestId("admin-order-card").filter({ hasText: "Rian Pelanggan M3" });
     await expect(orderCard).toBeVisible();
     await expect(orderCard.getByText("Perlu Verifikasi")).toBeVisible();
 
-    // Pastikan pemutaran notifikasi suara terbukti terpanggil di browser pemilik
+    // Verifikasi pemanggilan oscillator.start bertambah, membuktikan nada audio bel pesanan baru benar-benar diputar
     await expect
       .poll(async () => {
         return await ownerPage.evaluate(
-          () => (window as unknown as { __audioPlayedCount?: number }).__audioPlayedCount ?? 0
+          () => (window as unknown as { __oscillatorStartCalls?: number }).__oscillatorStartCalls ?? 0
         );
       }, { timeout: 10000 })
-      .toBeGreaterThan(0);
+      .toBeGreaterThan(startCallsBeforeOrder);
 
     // 4. Pemilik menandai pesanan Lunas
     const lunasBtn = orderCard.getByRole("button", { name: "Tandai Lunas" });
