@@ -65,13 +65,6 @@ begin
     end if;
   end if;
 
-  -- 3. Sinkronisasi paid_at dengan payment_status
-  if NEW.payment_status = 'lunas' and NEW.paid_at is null then
-    NEW.paid_at := now();
-  elsif NEW.payment_status <> 'lunas' then
-    NEW.paid_at := null;
-  end if;
-
   return NEW;
 end;
 $$;

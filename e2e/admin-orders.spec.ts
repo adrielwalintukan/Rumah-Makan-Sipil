@@ -14,6 +14,7 @@ const PASSWORD = "Password123!";
 let adminUserId: string | null = null;
 let testOrderId: string | null = null;
 let realtimeOrderId: string | null = null;
+let cancelOrderId: string | null = null;
 
 test.beforeAll(async () => {
   if (!db) return;
@@ -65,6 +66,38 @@ test.beforeAll(async () => {
     options: [{ group: "Pilihan", name: "Pedas Sedang", price_delta: 0 }],
   });
   expect(itemErr).toBeNull();
+
+  // 3. Buat pesanan untuk pengujian pembatalan
+  const { data: cancelOrderData, error: cancelErr } = await db
+    .from("orders")
+    .insert({
+      public_token: `tokentest${Date.now()}03`,
+      order_date: new Date().toISOString().slice(0, 10),
+      daily_number: 3,
+      customer_name: "Dewi Lestari",
+      order_type: "takeaway",
+      payment_method: "cash",
+      payment_status: "belum_bayar",
+      status: "baru",
+      total: 15000,
+      device_id: "device-e2e-order-3",
+      ip_hash: "hash-e2e-order-3",
+      idempotency_key: `idem-${Date.now()}-03`,
+    })
+    .select("id")
+    .single();
+
+  expect(cancelErr).toBeNull();
+  cancelOrderId = cancelOrderData!.id;
+
+  const { error: cancelItemErr } = await db.from("order_items").insert({
+    order_id: cancelOrderId,
+    name: "Mie Kuah",
+    unit_price: 15000,
+    quantity: 1,
+    subtotal: 15000,
+  });
+  expect(cancelItemErr).toBeNull();
 });
 
 test.afterAll(async () => {
@@ -76,6 +109,10 @@ test.afterAll(async () => {
   if (realtimeOrderId) {
     await db.from("order_items").delete().eq("order_id", realtimeOrderId);
     await db.from("orders").delete().eq("id", realtimeOrderId);
+  }
+  if (cancelOrderId) {
+    await db.from("order_items").delete().eq("order_id", cancelOrderId);
+    await db.from("orders").delete().eq("id", cancelOrderId);
   }
   if (adminUserId) {
     await db.from("admins").delete().eq("user_id", adminUserId);
@@ -241,44 +278,19 @@ test("pemilik dapat memajukan alur masak dari Mulai Masak -> Siap Diambil -> Sel
 test("pemilik dapat membatalkan pesanan dengan konfirmasi dan alasan", async ({ page }) => {
   await loginAsAdmin(page);
 
-  // Pastikan pesanan #002 terlihat di papan (jika belum ada, buat langsung)
-  let card002 = page.locator("div.rounded-xl").filter({ hasText: "#002" });
-  if (!(await card002.isVisible())) {
-    const { data: newOrder } = await db!
-      .from("orders")
-      .insert({
-        public_token: `tokentest${Date.now()}03`,
-        order_date: new Date().toISOString().slice(0, 10),
-        daily_number: 2,
-        customer_name: "Siti Rahma",
-        order_type: "takeaway",
-        payment_method: "cash",
-        payment_status: "belum_bayar",
-        status: "baru",
-        total: 18000,
-        device_id: "device-e2e-order-3",
-        ip_hash: "hash-e2e-order-3",
-        idempotency_key: `idem-${Date.now()}-03`,
-      })
-      .select("id")
-      .single();
-
-    realtimeOrderId = newOrder!.id;
-    await page.reload();
-    card002 = page.locator("div.rounded-xl").filter({ hasText: "#002" });
-  }
-
-  await expect(card002).toBeVisible();
+  // Pastikan pesanan #003 terlihat di papan
+  const card003 = page.locator("div.rounded-xl").filter({ hasText: "#003" });
+  await expect(card003).toBeVisible();
 
   // Klik tombol Batal
-  const cancelBtn = card002.getByRole("button", { name: "Batal" });
+  const cancelBtn = card003.getByRole("button", { name: "Batal" });
   await expect(cancelBtn).toBeVisible();
   await cancelBtn.click();
 
   // Dialog konfirmasi pembatalan terbuka
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByText(/Batalkan Pesanan #002\?/i)).toBeVisible();
+  await expect(dialog.getByText(/Batalkan Pesanan #003\?/i)).toBeVisible();
 
   // Pilih preset alasan "Bahan habis"
   await dialog.getByRole("button", { name: "Bahan habis" }).click();
@@ -286,8 +298,9 @@ test("pemilik dapat membatalkan pesanan dengan konfirmasi dan alasan", async ({ 
   // Konfirmasi pembatalan
   await dialog.getByRole("button", { name: /Ya, Batalkan Pesanan/i }).click();
 
-  // Dialog tertutup dan pesanan #002 keluar dari live board
+  // Dialog tertutup dan pesanan #003 keluar dari live board
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByText("#002")).not.toBeVisible();
+  await expect(page.getByText("#003")).not.toBeVisible();
 });
+
 
