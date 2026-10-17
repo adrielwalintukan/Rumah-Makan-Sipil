@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { requireAdmin } from "@/lib/auth";
 
@@ -27,6 +28,7 @@ export default function AdminDashboardLayout({
 }
 
 async function AdminDashboardNav() {
+  await connection();
   const admin = await requireAdmin();
   return <AdminNav userEmail={admin.email} />;
 }

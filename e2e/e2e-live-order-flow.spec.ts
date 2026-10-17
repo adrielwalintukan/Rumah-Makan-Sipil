@@ -15,13 +15,26 @@ const ADMIN_EMAIL = `owner-m3flow-${Date.now()}@test.local`;
 const PASSWORD = "Password123!";
 
 let adminUserId: string | null = null;
+let initialIsOpen: boolean | null = null;
+let createdOrderId: string | null = null;
+let createdOrderToken: string | null = null;
 
 test.beforeAll(async () => {
   if (!db) return;
 
-  // 1. Pastikan toko buka di pengaturan
-  const { error: storeErr } = await db.from("settings").update({ is_open: true }).eq("id", 1);
-  expect(storeErr).toBeNull();
+  // 1. Simpan status awal toko dan pastikan toko buka di pengaturan
+  const { data: storeSetting, error: storeGetErr } = await db
+    .from("settings")
+    .select("is_open")
+    .eq("id", 1)
+    .single();
+  expect(storeGetErr).toBeNull();
+  initialIsOpen = storeSetting?.is_open ?? null;
+
+  if (!initialIsOpen) {
+    const { error: storeErr } = await db.from("settings").update({ is_open: true }).eq("id", 1);
+    expect(storeErr).toBeNull();
+  }
 
   // 2. Buat akun pemilik di Supabase Auth & daftarkan ke tabel admins
   const { data: adminAuth, error: adminErr } = await db.auth.admin.createUser({
@@ -40,17 +53,32 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   if (!db) return;
 
-  // Bersihkan data pesanan uji
-  await db.from("orders").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  // 1. Bersihkan HANYA data pesanan yang dibuat oleh skenario pengujian ini
+  if (createdOrderId) {
+    await db.from("order_items").delete().eq("order_id", createdOrderId);
+    await db.from("orders").delete().eq("id", createdOrderId);
+  } else if (createdOrderToken) {
+    const { data: orderData } = await db
+      .from("orders")
+      .select("id")
+      .eq("public_token", createdOrderToken)
+      .maybeSingle();
+    if (orderData?.id) {
+      await db.from("order_items").delete().eq("order_id", orderData.id);
+      await db.from("orders").delete().eq("id", orderData.id);
+    }
+  }
 
-  // Bersihkan akun admin
+  // 2. Bersihkan akun admin
   if (adminUserId) {
     await db.from("admins").delete().eq("user_id", adminUserId);
     await db.auth.admin.deleteUser(adminUserId);
   }
 
-  // Kembalikan status toko ke false
-  await db.from("settings").update({ is_open: false }).eq("id", 1);
+  // 3. Pulihkan status toko ke kondisi awal sebelum pengujian
+  if (initialIsOpen !== null) {
+    await db.from("settings").update({ is_open: initialIsOpen }).eq("id", 1);
+  }
 });
 
 test("alur lengkap M3: Pelanggan pesan di HP A -> Pemilik proses di HP B (Lunas, Masak, Siap) -> HP A otomatis menampilkan Siap", async ({
@@ -65,6 +93,19 @@ test("alur lengkap M3: Pelanggan pesan di HP A -> Pemilik proses di HP B (Lunas,
   const customerPage = await customerContext.newPage();
 
   try {
+    // Pasang pengawas pemutaran Web Audio pada browser pemilik
+    await ownerPage.addInitScript(() => {
+      (window as unknown as { __audioPlayedCount: number }).__audioPlayedCount = 0;
+      const originalCreateOsc = window.AudioContext?.prototype.createOscillator;
+      if (originalCreateOsc) {
+        window.AudioContext.prototype.createOscillator = function (...args) {
+          const win = window as unknown as { __audioPlayedCount: number };
+          win.__audioPlayedCount = (win.__audioPlayedCount || 0) + 1;
+          return originalCreateOsc.apply(this, args);
+        };
+      }
+    });
+
     // 1. Pemilik login dan bersiap di Dashboard Pesanan Live (/admin)
     await ownerPage.goto("/admin/login");
     await ownerPage.getByLabel(/Email Pemilik/i).fill(ADMIN_EMAIL);
@@ -101,6 +142,18 @@ test("alur lengkap M3: Pelanggan pesan di HP A -> Pemilik proses di HP B (Lunas,
     await expect(customerPage).toHaveURL(/\/pesanan\/[a-zA-Z0-9_-]+/);
     const token = customerPage.url().split("/pesanan/")[1];
     expect(token).toBeTruthy();
+    createdOrderToken = token;
+
+    if (db) {
+      const { data: orderRow } = await db
+        .from("orders")
+        .select("id")
+        .eq("public_token", token)
+        .maybeSingle();
+      if (orderRow?.id) {
+        createdOrderId = orderRow.id;
+      }
+    }
 
     // Verifikasi status awal pelanggan di HP A
     const statusRegion = customerPage.getByRole("status");
@@ -116,11 +169,20 @@ test("alur lengkap M3: Pelanggan pesan di HP A -> Pemilik proses di HP B (Lunas,
     // Status bayar pelanggan menjadi Menunggu Verifikasi
     await expect(customerPage.getByText("Menunggu Verifikasi", { exact: true })).toBeVisible();
 
-    // 3. Verifikasi pesanan baru masuk ke Live Board Pemilik (HP B)
+    // 3. Verifikasi pesanan baru masuk ke Live Board Pemilik (HP B) dan audio notifikasi berbunyi
     await expect(ownerPage.getByText("Rian Pelanggan M3")).toBeVisible({ timeout: 15000 });
     const orderCard = ownerPage.getByTestId("admin-order-card").filter({ hasText: "Rian Pelanggan M3" });
     await expect(orderCard).toBeVisible();
     await expect(orderCard.getByText("Perlu Verifikasi")).toBeVisible();
+
+    // Pastikan pemutaran notifikasi suara terbukti terpanggil di browser pemilik
+    await expect
+      .poll(async () => {
+        return await ownerPage.evaluate(
+          () => (window as unknown as { __audioPlayedCount?: number }).__audioPlayedCount ?? 0
+        );
+      }, { timeout: 10000 })
+      .toBeGreaterThan(0);
 
     // 4. Pemilik menandai pesanan Lunas
     const lunasBtn = orderCard.getByRole("button", { name: "Tandai Lunas" });
