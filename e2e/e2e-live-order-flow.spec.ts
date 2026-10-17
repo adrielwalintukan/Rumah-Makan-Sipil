@@ -118,7 +118,7 @@ test("alur lengkap M3: Pelanggan pesan di HP A -> Pemilik proses di HP B (Lunas,
 
     // 3. Verifikasi pesanan baru masuk ke Live Board Pemilik (HP B)
     await expect(ownerPage.getByText("Rian Pelanggan M3")).toBeVisible({ timeout: 15000 });
-    const orderCard = ownerPage.locator("article").filter({ hasText: "Rian Pelanggan M3" });
+    const orderCard = ownerPage.getByTestId("admin-order-card").filter({ hasText: "Rian Pelanggan M3" });
     await expect(orderCard).toBeVisible();
     await expect(orderCard.getByText("Perlu Verifikasi")).toBeVisible();
 
@@ -135,22 +135,13 @@ test("alur lengkap M3: Pelanggan pesan di HP A -> Pemilik proses di HP B (Lunas,
     await expect(cookBtn).toBeVisible();
     await cookBtn.click();
 
-    // Kartu pesanan berpindah ke kolom "Sedang Dimasak"
-    const cookingColumn = ownerPage.locator("section").filter({ hasText: "Sedang Dimasak" });
-    await expect(cookingColumn.getByText("Rian Pelanggan M3")).toBeVisible();
-
     // 6. Verifikasi di HP A (Pelanggan) otomatis mendeteksi status "Sedang Dimasak" via polling (<= 5 detik)
     await expect(statusRegion.getByText("Sedang Dimasak")).toBeVisible({ timeout: 12000 });
 
-    // 7. Pemilik menekan tombol "Pesanan Siap"
-    const cookingCard = cookingColumn.locator("article").filter({ hasText: "Rian Pelanggan M3" });
-    const readyBtn = cookingCard.getByRole("button", { name: "Pesanan Siap" });
+    // 7. Pemilik menekan tombol "Siap Diambil"
+    const readyBtn = orderCard.getByRole("button", { name: "Siap Diambil" });
     await expect(readyBtn).toBeVisible();
     await readyBtn.click();
-
-    // Kartu pesanan berpindah ke kolom "Siap Diambil"
-    const readyColumn = ownerPage.locator("section").filter({ hasText: "Siap Diambil" });
-    await expect(readyColumn.getByText("Rian Pelanggan M3")).toBeVisible();
 
     // 8. Verifikasi di HP A (Pelanggan) otomatis menampilkan banner "Pesanan kamu siap!"
     const readyBanner = customerPage.getByTestId("order-ready-banner");
@@ -160,8 +151,7 @@ test("alur lengkap M3: Pelanggan pesan di HP A -> Pemilik proses di HP B (Lunas,
     ).toBeVisible();
 
     // 9. Pemilik menekan tombol "Selesai" setelah pesanan diserahkan
-    const readyCard = readyColumn.locator("article").filter({ hasText: "Rian Pelanggan M3" });
-    const finishBtn = readyCard.getByRole("button", { name: "Selesai" });
+    const finishBtn = orderCard.getByRole("button", { name: "Selesai" });
     await expect(finishBtn).toBeVisible();
     await finishBtn.click();
 

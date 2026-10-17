@@ -97,6 +97,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
 
   return (
     <div
+      data-testid="admin-order-card"
       className={`flex flex-col rounded-xl border border-line bg-card shadow-xs transition-all border-l-4 ${paymentBorderColor} ${
         isNew ? "animate-pulse ring-2 ring-amber-400" : ""
       }`}
