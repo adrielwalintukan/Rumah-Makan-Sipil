@@ -74,15 +74,6 @@ export function OrderCard({ order, isNew }: OrderCardProps) {
         </span>
       </div>
 
-      {/* Catatan Khusus Pesanan (jika ada) */}
-      {order.notes && (
-        <div className="bg-brown-100/70 border-b border-brown-200/50 px-4 py-2">
-          <p className="text-xs italic font-medium text-brown-900">
-            Catatan: &ldquo;{order.notes}&rdquo;
-          </p>
-        </div>
-      )}
-
       {/* Daftar Item Pesanan */}
       <div className="flex-1 p-4 py-3 space-y-2.5">
         {order.order_items && order.order_items.length > 0 ? (
@@ -108,9 +99,9 @@ export function OrderCard({ order, isNew }: OrderCardProps) {
                 )}
 
                 {/* Catatan Item */}
-                {item.notes && (
+                {item.note && (
                   <p className="text-xs italic text-brown-900 bg-brown-50 rounded px-2 py-0.5 mt-1 ml-5 inline-block">
-                    &ldquo;{item.notes}&rdquo;
+                    &ldquo;{item.note}&rdquo;
                   </p>
                 )}
               </div>

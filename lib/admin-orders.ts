@@ -19,7 +19,7 @@ export interface AdminOrderItem {
   unit_price: number;
   quantity: number;
   subtotal: number;
-  notes: string | null;
+  note: string | null;
   options: AdminOrderItemOption[] | null;
 }
 
@@ -35,9 +35,9 @@ export interface AdminOrder {
   payment_status: PaymentStatus;
   status: OrderStatus;
   total: number;
-  notes: string | null;
+  cancel_reason: string | null;
   created_at: string;
-  updated_at: string;
+  paid_at: string | null;
   order_items: AdminOrderItem[];
 }
 

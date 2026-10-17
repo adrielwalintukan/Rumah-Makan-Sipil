@@ -44,7 +44,6 @@ test.beforeAll(async () => {
       payment_status: "menunggu_verifikasi",
       status: "baru",
       total: 25000,
-      notes: "sambal dipisah ya",
       device_id: "device-e2e-order",
       ip_hash: "hash-e2e-order",
       idempotency_key: `idem-${Date.now()}-01`,
@@ -62,6 +61,7 @@ test.beforeAll(async () => {
     unit_price: 25000,
     quantity: 1,
     subtotal: 25000,
+    note: "sambal dipisah ya",
     options: [{ group: "Pilihan", name: "Pedas Sedang", price_delta: 0 }],
   });
   expect(itemErr).toBeNull();
