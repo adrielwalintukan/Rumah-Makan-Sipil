@@ -115,7 +115,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
           </div>
           <div className="flex items-center gap-1.5 text-xs text-ink-500 mt-0.5">
             <Clock className="size-3.5" aria-hidden />
-            <span>{formatRelativeTime(order.created_at)}</span>
+            <span suppressHydrationWarning>{formatRelativeTime(order.created_at)}</span>
           </div>
         </div>
 
