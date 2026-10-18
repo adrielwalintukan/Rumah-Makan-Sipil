@@ -1,0 +1,373 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  calculateCrop4x3,
+  compressAndCropMenuPhoto,
+  MAX_IMAGE_FILE_SIZE,
+  MAX_OUTPUT_HEIGHT,
+  MAX_OUTPUT_WIDTH,
+  TARGET_ASPECT_RATIO,
+  validateImageFile,
+} from "./image-compression";
+
+describe("image-compression", () => {
+  describe("konstanta", () => {
+    it("memiliki nilai konstanta yang sesuai spesifikasi", () => {
+      expect(MAX_IMAGE_FILE_SIZE).toBe(5 * 1024 * 1024);
+      expect(ALLOWED_IMAGE_MIME_TYPES).toEqual([
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+      ]);
+      expect(MAX_OUTPUT_WIDTH).toBe(1200);
+      expect(MAX_OUTPUT_HEIGHT).toBe(900);
+      expect(TARGET_ASPECT_RATIO).toBeCloseTo(4 / 3, 5);
+    });
+  });
+
+  describe("validateImageFile", () => {
+    it("menerima file dengan MIME type jpeg, png, atau webp dalam batas ukuran 5 MB", () => {
+      const validJpeg = new File(["dummy content"], "menu.jpg", {
+        type: "image/jpeg",
+      });
+      const validPng = new File(["dummy content"], "menu.png", {
+        type: "image/png",
+      });
+      const validWebp = new File(["dummy content"], "menu.webp", {
+        type: "image/webp",
+      });
+
+      expect(validateImageFile(validJpeg)).toEqual({ valid: true });
+      expect(validateImageFile(validPng)).toEqual({ valid: true });
+      expect(validateImageFile(validWebp)).toEqual({ valid: true });
+    });
+
+    it("menolak file dengan MIME type selain JPG, PNG, atau WebP", () => {
+      const invalidGif = new File(["dummy content"], "menu.gif", {
+        type: "image/gif",
+      });
+      const invalidPdf = new File(["dummy content"], "document.pdf", {
+        type: "application/pdf",
+      });
+      const invalidText = new File(["dummy content"], "note.txt", {
+        type: "text/plain",
+      });
+
+      expect(validateImageFile(invalidGif)).toEqual({
+        valid: false,
+        error: "Format file harus JPG, PNG, atau WebP.",
+      });
+      expect(validateImageFile(invalidPdf)).toEqual({
+        valid: false,
+        error: "Format file harus JPG, PNG, atau WebP.",
+      });
+      expect(validateImageFile(invalidText)).toEqual({
+        valid: false,
+        error: "Format file harus JPG, PNG, atau WebP.",
+      });
+    });
+
+    it("menolak file yang ukurannya melebihi 5 MB", () => {
+      // 5 MB + 1 byte
+      const oversizedFile = new File(["a"], "big.jpg", {
+        type: "image/jpeg",
+      });
+      Object.defineProperty(oversizedFile, "size", {
+        value: 5 * 1024 * 1024 + 1,
+      });
+
+      expect(validateImageFile(oversizedFile)).toEqual({
+        valid: false,
+        error: "Ukuran file maksimal 5 MB.",
+      });
+    });
+
+    it("menerima file yang ukurannya tepat 5 MB", () => {
+      const exact5MbFile = new File(["a"], "exact.jpg", {
+        type: "image/jpeg",
+      });
+      Object.defineProperty(exact5MbFile, "size", {
+        value: 5 * 1024 * 1024,
+      });
+
+      expect(validateImageFile(exact5MbFile)).toEqual({ valid: true });
+    });
+  });
+
+  describe("calculateCrop4x3", () => {
+    it("memotong landscape 16:9 secara horizontal di tengah", () => {
+      // 1600x900 -> sw: 1200, sx: 200, sh: 900, sy: 0, outWidth: 1200, outHeight: 900
+      const result = calculateCrop4x3(1600, 900);
+      expect(result).toEqual({
+        sx: 200,
+        sy: 0,
+        sw: 1200,
+        sh: 900,
+        outWidth: 1200,
+        outHeight: 900,
+      });
+    });
+
+    it("memotong portrait 900x1600 secara vertikal di tengah", () => {
+      // 900x1600 -> sw: 900, sx: 0, sh: 675, sy: 463, outWidth: 900, outHeight: 675
+      const result = calculateCrop4x3(900, 1600);
+      expect(result).toEqual({
+        sx: 0,
+        sy: 463,
+        sw: 900,
+        sh: 675,
+        outWidth: 900,
+        outHeight: 675,
+      });
+    });
+
+    it("mengecilkan (downscale) gambar 4:3 berukuran besar ke maksimal 1200x900", () => {
+      // 2400x1800 (sudah 4:3) -> downscale ke 1200x900
+      const result = calculateCrop4x3(2400, 1800);
+      expect(result).toEqual({
+        sx: 0,
+        sy: 0,
+        sw: 2400,
+        sh: 1800,
+        outWidth: 1200,
+        outHeight: 900,
+      });
+    });
+
+    it("mempertahankan dimensi gambar 4:3 yang ukurannya di bawah 1200x900", () => {
+      // 800x600 (sudah 4:3) -> tetap 800x600
+      const result = calculateCrop4x3(800, 600);
+      expect(result).toEqual({
+        sx: 0,
+        sy: 0,
+        sw: 800,
+        sh: 600,
+        outWidth: 800,
+        outHeight: 600,
+      });
+    });
+
+    it("memotong dan mendownscale gambar ultra-wide besar", () => {
+      // 3000x1000 -> ratio 3 > 4/3 -> sw = 1333, sx = (3000 - 1333)/2 = 834, sh = 1000
+      // sw > 1200 -> outWidth = 1200, outHeight = Math.round(1000 * (1200 / 1333)) = 900
+      const result = calculateCrop4x3(3000, 1000);
+      expect(result.outWidth).toBe(1200);
+      expect(result.outHeight).toBe(900);
+      expect(result.sw).toBe(1333);
+      expect(result.sh).toBe(1000);
+      expect(result.sx).toBe(834);
+      expect(result.sy).toBe(0);
+    });
+
+    it("memotong gambar bujur sangkar (1:1) di tengah vertikal", () => {
+      // 1000x1000 -> ratio 1 < 4/3 -> sh = 750, sy = (1000 - 750)/2 = 125, sw = 1000, sx = 0
+      const result = calculateCrop4x3(1000, 1000);
+      expect(result).toEqual({
+        sx: 0,
+        sy: 125,
+        sw: 1000,
+        sh: 750,
+        outWidth: 1000,
+        outHeight: 750,
+      });
+    });
+
+    it("melempar error jika dimensi gambar tidak valid atau nol/negatif", () => {
+      expect(() => calculateCrop4x3(0, 500)).toThrow(
+        "Dimensi gambar harus angka positif yang valid."
+      );
+      expect(() => calculateCrop4x3(500, -10)).toThrow(
+        "Dimensi gambar harus angka positif yang valid."
+      );
+      expect(() => calculateCrop4x3(Number.NaN, 500)).toThrow(
+        "Dimensi gambar harus angka positif yang valid."
+      );
+    });
+  });
+
+  describe("compressAndCropMenuPhoto", () => {
+    let originalWindow: typeof globalThis.window;
+    let originalDocument: typeof globalThis.document;
+    let originalImage: typeof globalThis.Image;
+    let originalCreateObjectURL: typeof URL.createObjectURL;
+    let originalRevokeObjectURL: typeof URL.revokeObjectURL;
+
+    let mockCanvas: {
+      width: number;
+      height: number;
+      getContext: ReturnType<typeof vi.fn>;
+      toBlob: ReturnType<typeof vi.fn>;
+    };
+    let drawImageMock: ReturnType<typeof vi.fn>;
+    let toBlobMock: ReturnType<typeof vi.fn>;
+    let createObjectURLMock: ReturnType<typeof vi.fn>;
+    let revokeObjectURLMock: ReturnType<typeof vi.fn>;
+
+    class MockImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      naturalWidth = 1600;
+      naturalHeight = 900;
+      width = 1600;
+      height = 900;
+      private _src = "";
+
+      get src() {
+        return this._src;
+      }
+      set src(value: string) {
+        this._src = value;
+        setTimeout(() => {
+          if (value.includes("corrupt")) {
+            this.onerror?.();
+          } else {
+            this.onload?.();
+          }
+        }, 0);
+      }
+    }
+
+    beforeEach(() => {
+      originalWindow = globalThis.window;
+      originalDocument = globalThis.document;
+      originalImage = globalThis.Image;
+      originalCreateObjectURL = URL.createObjectURL;
+      originalRevokeObjectURL = URL.revokeObjectURL;
+
+      drawImageMock = vi.fn();
+      toBlobMock = vi.fn(
+        (callback: (blob: Blob | null) => void) => {
+          callback(new Blob(["compressed-webp"], { type: "image/webp" }));
+        }
+      );
+
+      mockCanvas = {
+        width: 0,
+        height: 0,
+        getContext: vi.fn().mockReturnValue({
+          drawImage: drawImageMock,
+        }),
+        toBlob: toBlobMock,
+      };
+
+      createObjectURLMock = vi.fn().mockReturnValue("blob:http://localhost/test-uuid");
+      revokeObjectURLMock = vi.fn();
+      URL.createObjectURL = createObjectURLMock as unknown as typeof URL.createObjectURL;
+      URL.revokeObjectURL = revokeObjectURLMock as unknown as typeof URL.revokeObjectURL;
+
+      // Mock DOM environment
+      globalThis.window = {} as unknown as Window & typeof globalThis;
+      globalThis.document = {
+        createElement: vi.fn((tag: string) => {
+          if (tag === "canvas") return mockCanvas;
+          return {};
+        }),
+      } as unknown as Document;
+      globalThis.Image = MockImage as unknown as typeof Image;
+    });
+
+    afterEach(() => {
+      globalThis.window = originalWindow;
+      globalThis.document = originalDocument;
+      globalThis.Image = originalImage;
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+      vi.restoreAllMocks();
+    });
+
+    it("menolak dan melempar error sebelum proses jika file tidak valid", async () => {
+      const invalidFile = new File(["dummy"], "file.txt", {
+        type: "text/plain",
+      });
+
+      await expect(compressAndCropMenuPhoto(invalidFile)).rejects.toThrow(
+        "Format file harus JPG, PNG, atau WebP."
+      );
+      expect(createObjectURLMock).not.toHaveBeenCalled();
+    });
+
+    it("berhasil memuat gambar, memotong ke 4:3, menggambar ke canvas, dan menghasilkan blob WebP", async () => {
+      const validFile = new File(["photo-bytes"], "photo.jpg", {
+        type: "image/jpeg",
+      });
+
+      const result = await compressAndCropMenuPhoto(validFile);
+
+      expect(createObjectURLMock).toHaveBeenCalledWith(validFile);
+      expect(mockCanvas.width).toBe(1200);
+      expect(mockCanvas.height).toBe(900);
+      expect(drawImageMock).toHaveBeenCalledWith(
+        expect.any(MockImage),
+        200, // sx
+        0,   // sy
+        1200,// sw
+        900, // sh
+        0,   // dx
+        0,   // dy
+        1200,// dWidth
+        900  // dHeight
+      );
+      expect(toBlobMock).toHaveBeenCalledWith(
+        expect.any(Function),
+        "image/webp",
+        0.8
+      );
+      expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:http://localhost/test-uuid");
+
+      expect(result.width).toBe(1200);
+      expect(result.height).toBe(900);
+      expect(result.blob).toBeInstanceOf(Blob);
+      expect(result.blob.type).toBe("image/webp");
+    });
+
+    it("membersihkan object URL dan melempar error jika gambar korup/gagal dimuat", async () => {
+      createObjectURLMock.mockReturnValue("blob:http://localhost/corrupt-image");
+      const corruptFile = new File(["bad data"], "corrupt.jpg", {
+        type: "image/jpeg",
+      });
+
+      await expect(compressAndCropMenuPhoto(corruptFile)).rejects.toThrow(
+        "Gagal memuat gambar. Pastikan file gambar tidak korup."
+      );
+      expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:http://localhost/corrupt-image");
+    });
+
+    it("melempar error jika getContext canvas mengembalikan null", async () => {
+      mockCanvas.getContext.mockReturnValue(null);
+      const validFile = new File(["photo-bytes"], "photo.png", {
+        type: "image/png",
+      });
+
+      await expect(compressAndCropMenuPhoto(validFile)).rejects.toThrow(
+        "Gagal menginisialisasi canvas 2D context."
+      );
+      expect(revokeObjectURLMock).toHaveBeenCalled();
+    });
+
+    it("melempar error jika canvas toBlob menghasilkan null", async () => {
+      toBlobMock.mockImplementation((callback: (blob: Blob | null) => void) => {
+        callback(null);
+      });
+      const validFile = new File(["photo-bytes"], "photo.webp", {
+        type: "image/webp",
+      });
+
+      await expect(compressAndCropMenuPhoto(validFile)).rejects.toThrow(
+        "Gagal mengonversi canvas ke blob WebP."
+      );
+      expect(revokeObjectURLMock).toHaveBeenCalled();
+    });
+
+    it("melempar error jika dipanggil di luar browser (SSR)", async () => {
+      // @ts-expect-error simulasi environment SSR
+      delete globalThis.window;
+      const validFile = new File(["photo-bytes"], "photo.jpg", {
+        type: "image/jpeg",
+      });
+
+      await expect(compressAndCropMenuPhoto(validFile)).rejects.toThrow(
+        "compressAndCropMenuPhoto hanya dapat dijalankan di lingkungan browser."
+      );
+    });
+  });
+});
