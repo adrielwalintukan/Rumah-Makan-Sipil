@@ -17,9 +17,11 @@ vi.mock("@/lib/auth", () => ({
 
 // Mock Supabase
 const mockFrom = vi.fn();
+const mockRpc = vi.fn();
 vi.mock("@/lib/supabase/server", () => ({
   createServerSupabaseClient: async () => ({
     from: mockFrom,
+    rpc: mockRpc,
   }),
 }));
 
@@ -33,6 +35,10 @@ describe("Categories API: /api/admin/categories", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFrom.mockReset();
+    mockRpc.mockReset();
+    mockGetAdminUser.mockReset();
+    mockRevalidatePath.mockReset();
   });
 
   describe("GET /api/admin/categories", () => {
@@ -198,20 +204,23 @@ describe("Categories API: /api/admin/categories", () => {
       expect(json.error).toContain("Daftar urutan tidak boleh kosong");
     });
 
-    it("berhasil memperbarui urutan batch dan revalidate (200)", async () => {
+    it("menolak jika payload reorder berisi properti tidak dikenal (400)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request("http://localhost/api/admin/categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [{ id: validCatId, sort_order: 1 }],
+          extra_key: "forbidden",
+        }),
+      });
+      const res = await reorderHandler(req);
+      expect(res.status).toBe(400);
+    });
 
-      mockFrom
-        .mockReturnValueOnce({
-          update: () => ({
-            eq: () => Promise.resolve({ error: null }),
-          }),
-        })
-        .mockReturnValueOnce({
-          update: () => ({
-            eq: () => Promise.resolve({ error: null }),
-          }),
-        });
+    it("berhasil memperbarui urutan batch via RPC dan revalidate (200)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      mockRpc.mockResolvedValueOnce({ error: null });
 
       const req = new Request("http://localhost/api/admin/categories", {
         method: "PATCH",
@@ -227,8 +236,52 @@ describe("Categories API: /api/admin/categories", () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.success).toBe(true);
+      expect(mockRpc).toHaveBeenCalledWith("reorder_categories", {
+        p_items: [
+          { id: validCatId, sort_order: 1 },
+          { id: validCatId2, sort_order: 0 },
+        ],
+      });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/");
       expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/menu");
+    });
+
+    it("mengembalikan 403 jika RPC reorder ditolak izin RLS (42501)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      mockRpc.mockResolvedValueOnce({
+        error: { code: "42501", message: "permission denied" },
+      });
+
+      const req = new Request("http://localhost/api/admin/categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [{ id: validCatId, sort_order: 1 }],
+        }),
+      });
+      const res = await reorderHandler(req);
+      expect(res.status).toBe(403);
+      const json = await res.json();
+      expect(json.error).toContain("hak akses pemilik");
+    });
+
+    it("mengembalikan 404 jika ada ID kategori yang tidak ditemukan (P0002)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      mockRpc.mockResolvedValueOnce({
+        error: { code: "P0002", message: "Kategori tidak ditemukan." },
+      });
+
+      const req = new Request("http://localhost/api/admin/categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [{ id: validCatId, sort_order: 1 }],
+        }),
+      });
+      const res = await reorderHandler(req);
+      expect(res.status).toBe(404);
+      const json = await res.json();
+      expect(json.error).toContain("Kategori tidak ditemukan");
     });
   });
 
@@ -273,6 +326,19 @@ describe("Categories API: /api/admin/categories", () => {
       expect(res.status).toBe(400);
       const json = await res.json();
       expect(json.error).toContain("Tidak ada data yang diperbarui");
+    });
+
+    it("menolak jika payload update memuat properti asing tidak dikenal (400)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request(`http://localhost/api/admin/categories/${validCatId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Nama Baru", unknown_prop: "invalid" }),
+      });
+      const res = await updateCategoryHandler(req, {
+        params: Promise.resolve({ id: validCatId }),
+      });
+      expect(res.status).toBe(400);
     });
 
     it("mengembalikan 404 jika kategori tidak ditemukan", async () => {

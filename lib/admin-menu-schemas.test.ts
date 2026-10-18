@@ -36,6 +36,15 @@ describe("admin-menu-schemas", () => {
       const res = categorySchema.safeParse({ name: "A".repeat(51) });
       expect(res.success).toBe(false);
     });
+
+    it("menolak properti asing yang tidak dikenal (strict mode)", () => {
+      const res = categorySchema.safeParse({
+        name: "Makanan",
+        sort_order: 1,
+        extra_field: "unknown",
+      });
+      expect(res.success).toBe(false);
+    });
   });
 
   describe("menuItemSchema", () => {
@@ -106,6 +115,16 @@ describe("admin-menu-schemas", () => {
         expect(res.data.sort_order).toBe(0);
       }
     });
+
+    it("menolak properti asing yang tidak dikenal (strict mode)", () => {
+      const res = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        extra_key: "not allowed",
+      });
+      expect(res.success).toBe(false);
+    });
   });
 
   describe("quickToggleAvailabilitySchema", () => {
@@ -119,6 +138,14 @@ describe("admin-menu-schemas", () => {
 
     it("menolak nilai is_available yang bukan boolean", () => {
       const res = quickToggleAvailabilitySchema.safeParse({ is_available: "yes" });
+      expect(res.success).toBe(false);
+    });
+
+    it("menolak properti asing yang tidak dikenal (strict mode)", () => {
+      const res = quickToggleAvailabilitySchema.safeParse({
+        is_available: true,
+        extra: "unknown",
+      });
       expect(res.success).toBe(false);
     });
   });
@@ -151,6 +178,19 @@ describe("admin-menu-schemas", () => {
         items: [{ id: "a0000000-0000-0000-0000-000000000001", sort_order: -1 }],
       });
       expect(resNegSort.success).toBe(false);
+    });
+
+    it("menolak properti asing pada root maupun item urutan (strict mode)", () => {
+      const resRootExtra = reorderSchema.safeParse({
+        items: [{ id: "a0000000-0000-0000-0000-000000000001", sort_order: 0 }],
+        extra_root: 123,
+      });
+      expect(resRootExtra.success).toBe(false);
+
+      const resItemExtra = reorderSchema.safeParse({
+        items: [{ id: "a0000000-0000-0000-0000-000000000001", sort_order: 0, extra_item: "foo" }],
+      });
+      expect(resItemExtra.success).toBe(false);
     });
   });
 });

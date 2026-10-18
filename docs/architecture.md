@@ -254,6 +254,13 @@ Error dikembalikan dengan kode yang jelas (`STORE_CLOSED`, `ITEM_UNAVAILABLE` + 
 - `top_items(from, to, limit)`: menu terlaris berdasarkan jumlah porsi.
 - `cashbook(from, to)`: per tanggal → pemasukan, pengeluaran, laba kotor.
 
+### 5.4 `reorder_categories(p_items jsonb)` dan `reorder_menu_items(p_items jsonb)` — Postgres, `security definer`
+
+Hanya bisa dipanggil oleh akun pemilik (`public.is_owner()`). Dalam **satu transaksi atomik**:
+1. Memvalidasi format array `p_items`.
+2. Memperbarui `sort_order` setiap baris secara berurutan.
+3. Jika terdapat ID yang tidak ditemukan atau tidak aktif, membatalkan (*rollback*) seluruh perubahan dan melempar error `P0002`.
+
 ## 6. Keamanan (RLS)
 
 RLS **aktif di semua tabel**. Pendaftaran user baru di Supabase Auth **dimatikan**, dan akun pemilik dibuat manual satu kali.

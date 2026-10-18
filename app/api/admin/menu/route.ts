@@ -150,24 +150,24 @@ export async function PATCH(request: Request) {
 
   try {
     const supabase = await createServerSupabaseClient();
-    const updates = parseResult.data.items.map((item) =>
-      supabase
-        .from("menu_items")
-        .update({ sort_order: item.sort_order })
-        .eq("id", item.id)
-        .eq("is_active", true)
-    );
+    const { error } = await supabase.rpc("reorder_menu_items", {
+      p_items: parseResult.data.items,
+    });
 
-    const results = await Promise.all(updates);
-    const failure = results.find((r) => r.error);
-    if (failure?.error) {
-      if (failure.error.code === "42501") {
+    if (error) {
+      if (error.code === "42501") {
         return NextResponse.json(
           { error: "Akun ini tidak memiliki hak akses pemilik." },
           { status: 403 }
         );
       }
-      return NextResponse.json({ error: failure.error.message }, { status: 500 });
+      if (error.code === "P0002") {
+        return NextResponse.json(
+          { error: "Menu tidak ditemukan atau tidak aktif." },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     revalidatePath("/");

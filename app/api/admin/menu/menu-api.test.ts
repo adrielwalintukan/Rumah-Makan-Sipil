@@ -17,9 +17,11 @@ vi.mock("@/lib/auth", () => ({
 
 // Mock Supabase
 const mockFrom = vi.fn();
+const mockRpc = vi.fn();
 vi.mock("@/lib/supabase/server", () => ({
   createServerSupabaseClient: async () => ({
     from: mockFrom,
+    rpc: mockRpc,
   }),
 }));
 
@@ -39,6 +41,7 @@ describe("Menu Items API: /api/admin/menu", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFrom.mockReset();
+    mockRpc.mockReset();
     mockGetAdminUser.mockReset();
     mockRevalidatePath.mockReset();
   });
@@ -374,24 +377,23 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(json.error).toContain("Daftar urutan tidak boleh kosong");
     });
 
-    it("berhasil memperbarui urutan menu secara batch dan revalidate (200)", async () => {
+    it("menolak jika payload reorder berisi properti tidak dikenal (400)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [{ id: validMenuId, sort_order: 1 }],
+          extra_key: "forbidden",
+        }),
+      });
+      const res = await reorderHandler(req);
+      expect(res.status).toBe(400);
+    });
 
-      mockFrom
-        .mockReturnValueOnce({
-          update: () => ({
-            eq: () => ({
-              eq: () => Promise.resolve({ error: null }),
-            }),
-          }),
-        })
-        .mockReturnValueOnce({
-          update: () => ({
-            eq: () => ({
-              eq: () => Promise.resolve({ error: null }),
-            }),
-          }),
-        });
+    it("berhasil memperbarui urutan menu via RPC dan revalidate (200)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      mockRpc.mockResolvedValueOnce({ error: null });
 
       const req = new Request("http://localhost/api/admin/menu", {
         method: "PATCH",
@@ -407,8 +409,52 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.success).toBe(true);
+      expect(mockRpc).toHaveBeenCalledWith("reorder_menu_items", {
+        p_items: [
+          { id: validMenuId, sort_order: 1 },
+          { id: validMenuId2, sort_order: 0 },
+        ],
+      });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/");
       expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/menu");
+    });
+
+    it("mengembalikan 403 jika RPC reorder ditolak izin RLS (42501)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      mockRpc.mockResolvedValueOnce({
+        error: { code: "42501", message: "permission denied" },
+      });
+
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [{ id: validMenuId, sort_order: 1 }],
+        }),
+      });
+      const res = await reorderHandler(req);
+      expect(res.status).toBe(403);
+      const json = await res.json();
+      expect(json.error).toContain("hak akses pemilik");
+    });
+
+    it("mengembalikan 404 jika ada ID menu yang tidak ditemukan atau tidak aktif (P0002)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      mockRpc.mockResolvedValueOnce({
+        error: { code: "P0002", message: "Menu tidak ditemukan atau tidak aktif." },
+      });
+
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [{ id: validMenuId, sort_order: 1 }],
+        }),
+      });
+      const res = await reorderHandler(req);
+      expect(res.status).toBe(404);
+      const json = await res.json();
+      expect(json.error).toContain("Menu tidak ditemukan atau tidak aktif");
     });
   });
 
@@ -620,6 +666,19 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(res.status).toBe(400);
       const json = await res.json();
       expect(json.error).toContain("Harga tidak boleh negatif");
+    });
+
+    it("menolak update jika memuat properti asing tidak dikenal (400)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Ayam Madu", unknown_field: "hacked" }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+      expect(res.status).toBe(400);
     });
 
     it("mengembalikan 404 jika menu tidak ditemukan saat update", async () => {
