@@ -168,7 +168,8 @@ describe("storage", () => {
       expect(mockRemove).toHaveBeenCalledWith([uploadedPath]);
     });
 
-    it("tidak membiarkan kegagalan cleanup menutupi error utama API", async () => {
+    it("tidak membiarkan kegagalan cleanup menutupi error utama API jika remove melempar exception", async () => {
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       const mockUpload = vi.fn().mockResolvedValue({ error: null });
       // Storage remove melempar error saat mencoba membersihkan
       const mockRemove = vi.fn().mockRejectedValue(new Error("Storage timeout"));
@@ -197,6 +198,51 @@ describe("storage", () => {
       // Pesan error tetap merupakan error utama API, bukan error timeout cleanup
       expect(res.error).toBe("Menu dengan nama tersebut sudah ada");
       expect(mockRemove).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Gagal membersihkan foto baru dari storage:",
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("mencatat log error dan tidak menutupi error utama jika storage remove resolve dengan error object", async () => {
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const mockUpload = vi.fn().mockResolvedValue({ error: null });
+      // Storage remove resolve dengan error object (bukan throw exception)
+      const mockRemove = vi.fn().mockResolvedValue({
+        error: { message: "Storage permission denied" },
+      });
+      const mockStorage = {
+        from: vi.fn().mockReturnValue({
+          upload: mockUpload,
+          remove: mockRemove,
+        }),
+      };
+
+      const mockFetcher = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Harga menu tidak valid" }),
+      } as unknown as Response);
+
+      const res = await saveMenuItemWithPhotoCleanup({
+        storage: mockStorage,
+        processedBlob: dummyBlob,
+        payload: dummyPayload,
+        endpoint: "/api/admin/menu",
+        method: "POST",
+        fetcher: mockFetcher as unknown as typeof fetch,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toBe("Harga menu tidak valid");
+      expect(mockRemove).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Gagal membersihkan foto baru dari storage:",
+        { message: "Storage permission denied" }
+      );
+
+      consoleErrorSpy.mockRestore();
     });
 
     it("mengembalikan error jika upload foto gagal sebelum memanggil API (dan tidak memanggil remove)", async () => {

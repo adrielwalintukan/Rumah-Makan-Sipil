@@ -87,9 +87,20 @@ export async function saveMenuItemWithPhotoCleanup({
   } catch (err) {
     if (uploadedNewPath) {
       try {
-        await storage.from(MENU_PHOTOS_BUCKET).remove([uploadedNewPath]);
-      } catch {
-        // Abaikan kegagalan cleanup agar error utama tetap tampil ke pemanggil
+        const { error: cleanupError } = await storage
+          .from(MENU_PHOTOS_BUCKET)
+          .remove([uploadedNewPath]);
+        if (cleanupError) {
+          console.error(
+            "Gagal membersihkan foto baru dari storage:",
+            cleanupError
+          );
+        }
+      } catch (cleanupException) {
+        console.error(
+          "Gagal membersihkan foto baru dari storage:",
+          cleanupException
+        );
       }
     }
     const msg =
