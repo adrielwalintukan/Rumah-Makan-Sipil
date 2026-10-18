@@ -140,7 +140,7 @@ test("alur kelola menu: CRUD kategori & menu, urutan, toggle habis, dan hapus lu
   await expect(catItem.getByRole("button", { name: `Pindahkan ${CATEGORY_NAME} ke bawah` })).toBeDisabled();
 
   // Tutup dialog kategori
-  await categoryDialog.getByRole("button", { name: "Tutup" }).click();
+  await categoryDialog.getByRole("button", { name: "Tutup" }).first().click();
   await expect(categoryDialog).not.toBeVisible();
 
   // Verifikasi kategori muncul di tab filter halaman kelola menu

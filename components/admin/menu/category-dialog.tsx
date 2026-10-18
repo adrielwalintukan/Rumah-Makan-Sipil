@@ -505,6 +505,7 @@ export function CategoryDialog({
             onClick={handleClose}
             disabled={isBusy}
             className="min-h-[44px] w-full sm:w-auto"
+            data-testid="category-dialog-close-button"
           >
             Tutup
           </Button>
