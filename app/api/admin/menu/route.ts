@@ -1,0 +1,174 @@
+import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
+import { getAdminUser } from "@/lib/auth";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { menuItemSchema, reorderSchema } from "@/lib/admin-menu-schemas";
+
+export async function GET(request: Request) {
+  const admin = await getAdminUser();
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Akses ditolak. Sesi pemilik diperlukan." },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const categoryId = searchParams.get("category_id");
+
+    const supabase = await createServerSupabaseClient();
+    let query = supabase
+      .from("menu_items")
+      .select("*, category:categories(id, name)")
+      .eq("is_active", true);
+
+    if (categoryId) {
+      query = query.eq("category_id", categoryId);
+    }
+
+    query = query.order("sort_order", { ascending: true });
+    if (query && typeof query.order === "function") {
+      query = query.order("name", { ascending: true });
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      if (error.code === "42501") {
+        return NextResponse.json(
+          { error: "Akun ini tidak memiliki hak akses pemilik." },
+          { status: 403 }
+        );
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ data: data ?? [] }, { status: 200 });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Terjadi kesalahan pada server.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  const admin = await getAdminUser();
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Akses ditolak. Sesi pemilik diperlukan." },
+      { status: 401 }
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Format request body tidak valid." },
+      { status: 400 }
+    );
+  }
+
+  const parseResult = menuItemSchema.safeParse(body);
+  if (!parseResult.success) {
+    const errorMsg =
+      parseResult.error.issues[0]?.message ?? "Data menu tidak valid.";
+    return NextResponse.json({ error: errorMsg }, { status: 400 });
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from("menu_items")
+      .insert({
+        category_id: parseResult.data.category_id,
+        name: parseResult.data.name,
+        description: parseResult.data.description,
+        price: parseResult.data.price,
+        is_available: parseResult.data.is_available,
+        sort_order: parseResult.data.sort_order,
+        is_active: true,
+      })
+      .select("*, category:categories(id, name)")
+      .single();
+
+    if (error) {
+      if (error.code === "42501") {
+        return NextResponse.json(
+          { error: "Akun ini tidak memiliki hak akses pemilik." },
+          { status: 403 }
+        );
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    revalidatePath("/");
+    revalidatePath("/admin/menu");
+
+    return NextResponse.json({ data }, { status: 201 });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Terjadi kesalahan pada server.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  const admin = await getAdminUser();
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Akses ditolak. Sesi pemilik diperlukan." },
+      { status: 401 }
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Format request body tidak valid." },
+      { status: 400 }
+    );
+  }
+
+  const parseResult = reorderSchema.safeParse(body);
+  if (!parseResult.success) {
+    const errorMsg =
+      parseResult.error.issues[0]?.message ?? "Data urutan tidak valid.";
+    return NextResponse.json({ error: errorMsg }, { status: 400 });
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient();
+    const updates = parseResult.data.items.map((item) =>
+      supabase
+        .from("menu_items")
+        .update({ sort_order: item.sort_order })
+        .eq("id", item.id)
+    );
+
+    const results = await Promise.all(updates);
+    const failure = results.find((r) => r.error);
+    if (failure?.error) {
+      if (failure.error.code === "42501") {
+        return NextResponse.json(
+          { error: "Akun ini tidak memiliki hak akses pemilik." },
+          { status: 403 }
+        );
+      }
+      return NextResponse.json({ error: failure.error.message }, { status: 500 });
+    }
+
+    revalidatePath("/");
+    revalidatePath("/admin/menu");
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Terjadi kesalahan pada server.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
