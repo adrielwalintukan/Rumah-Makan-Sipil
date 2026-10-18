@@ -277,7 +277,7 @@ export function CategoryDialog({
             <button
               type="button"
               onClick={() => setErrorMessage(null)}
-              className="rounded p-0.5 text-danger transition hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+              className="flex size-11 -mr-2 -mt-2 shrink-0 items-center justify-center rounded text-danger transition hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
               aria-label="Tutup pesan error"
             >
               <X className="size-4" />
@@ -339,6 +339,8 @@ export function CategoryDialog({
                             e.preventDefault();
                             handleSaveEdit(cat.id, cat.name);
                           } else if (e.key === "Escape") {
+                            e.preventDefault();
+                            e.stopPropagation();
                             handleCancelEdit();
                           }
                         }}
