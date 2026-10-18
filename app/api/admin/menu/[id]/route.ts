@@ -6,6 +6,7 @@ import {
   menuItemSchema,
   quickToggleAvailabilitySchema,
 } from "@/lib/admin-menu-schemas";
+import { MENU_PHOTOS_BUCKET } from "@/lib/storage";
 import { UUID_REGEX } from "@/lib/schemas";
 
 export async function GET(
@@ -119,6 +120,7 @@ export async function PATCH(
       "name",
       "description",
       "price",
+      "image_path",
       "is_available",
       "sort_order",
     ];
@@ -152,6 +154,9 @@ export async function PATCH(
     if ("price" in rawBody && parseResult.data.price !== undefined) {
       updateData.price = parseResult.data.price;
     }
+    if ("image_path" in rawBody) {
+      updateData.image_path = parseResult.data.image_path ?? null;
+    }
     if (
       "is_available" in rawBody &&
       parseResult.data.is_available !== undefined
@@ -165,6 +170,35 @@ export async function PATCH(
 
   try {
     const supabase = await createServerSupabaseClient();
+
+    let oldImagePath: string | null = null;
+    if ("image_path" in rawBody) {
+      const { data: currentItem, error: fetchErr } = await supabase
+        .from("menu_items")
+        .select("image_path")
+        .eq("id", id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (fetchErr) {
+        if (fetchErr.code === "42501") {
+          return NextResponse.json(
+            { error: "Akun ini tidak memiliki hak akses pemilik." },
+            { status: 403 }
+          );
+        }
+        return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+      }
+
+      if (!currentItem) {
+        return NextResponse.json(
+          { error: "Menu tidak ditemukan." },
+          { status: 404 }
+        );
+      }
+
+      oldImagePath = currentItem.image_path ?? null;
+    }
 
     // Jika category_id diubah dan sort_order tidak ditentukan secara eksplisit di request,
     // tempatkan menu di akhir daftar kategori tujuan (max(sort_order) + 1)
@@ -243,6 +277,19 @@ export async function PATCH(
         { error: "Menu tidak ditemukan." },
         { status: 404 }
       );
+    }
+
+    if (oldImagePath && oldImagePath !== updateData.image_path) {
+      try {
+        const { error: storageErr } = await supabase.storage
+          .from(MENU_PHOTOS_BUCKET)
+          .remove([oldImagePath]);
+        if (storageErr) {
+          console.error("Gagal menghapus foto lama dari storage:", storageErr);
+        }
+      } catch (err) {
+        console.error("Gagal menghapus foto lama dari storage:", err);
+      }
     }
 
     revalidatePath("/");

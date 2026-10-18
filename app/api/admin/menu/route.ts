@@ -121,6 +121,7 @@ export async function POST(request: Request) {
         name: parseResult.data.name,
         description: parseResult.data.description,
         price: parseResult.data.price,
+        image_path: parseResult.data.image_path ?? null,
         is_available: parseResult.data.is_available,
         sort_order: sortOrder,
         is_active: true,

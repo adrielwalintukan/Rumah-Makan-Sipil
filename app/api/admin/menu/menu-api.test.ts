@@ -18,13 +18,21 @@ vi.mock("@/lib/auth", () => ({
 // Mock Supabase
 const mockFrom = vi.fn();
 const mockRpc = vi.fn();
+const mockStorageRemove = vi.fn();
+const mockStorageFrom = vi.fn().mockReturnValue({
+  remove: mockStorageRemove,
+});
 vi.mock("@/lib/supabase/server", () => ({
   createServerSupabaseClient: async () => ({
     from: mockFrom,
     rpc: mockRpc,
+    storage: {
+      from: mockStorageFrom,
+    },
   }),
 }));
 
+import { MENU_PHOTOS_BUCKET } from "@/lib/storage";
 import { GET, POST, PATCH as reorderHandler } from "./route";
 import {
   GET as getMenuItemHandler,
@@ -42,6 +50,9 @@ describe("Menu Items API: /api/admin/menu", () => {
     vi.clearAllMocks();
     mockFrom.mockReset();
     mockRpc.mockReset();
+    mockStorageRemove.mockReset();
+    mockStorageFrom.mockClear();
+    mockStorageRemove.mockResolvedValue({ data: [], error: null });
     mockGetAdminUser.mockReset();
     mockRevalidatePath.mockReset();
   });
@@ -524,6 +535,38 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(res.status).toBe(403);
       const json = await res.json();
       expect(json.error).toContain("hak akses pemilik");
+    });
+
+    it("berhasil menambahkan menu baru dengan image_path (201)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      let insertedPayload: Record<string, unknown> | null = null;
+      mockFrom.mockReturnValueOnce({
+        insert: (insertData: Record<string, unknown>) => {
+          insertedPayload = insertData;
+          return {
+            select: () => ({
+              single: () =>
+                Promise.resolve({
+                  data: { id: validMenuId, ...insertData, is_active: true },
+                  error: null,
+                }),
+            }),
+          };
+        },
+      });
+
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...validPayload,
+          image_path: "items/menu-ayam.webp",
+        }),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(201);
+      expect(insertedPayload).not.toBeNull();
+      expect(insertedPayload!.image_path).toBe("items/menu-ayam.webp");
     });
   });
 
@@ -1121,6 +1164,292 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(res.status).toBe(403);
       const json = await res.json();
       expect(json.error).toContain("hak akses pemilik");
+    });
+
+    it("berhasil memperbarui image_path dan menghapus foto lama dari storage jika berbeda (200)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const oldImage = "menu-items/foto-lama.webp";
+      const newImage = "menu-items/foto-baru.webp";
+
+      // 1. Query fetch oldImagePath
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { image_path: oldImage },
+                  error: null,
+                }),
+            }),
+          }),
+        }),
+      });
+
+      // 2. Query update
+      let updatedPayload: Record<string, unknown> | null = null;
+      mockFrom.mockReturnValueOnce({
+        update: (payload: Record<string, unknown>) => {
+          updatedPayload = payload;
+          return {
+            eq: () => ({
+              eq: () => ({
+                select: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: {
+                        id: validMenuId,
+                        name: "Ayam Goreng",
+                        image_path: payload.image_path,
+                      },
+                      error: null,
+                    }),
+                }),
+              }),
+            }),
+          };
+        },
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_path: newImage }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(updatedPayload).toEqual({ image_path: newImage });
+      expect(mockStorageFrom).toHaveBeenCalledWith(MENU_PHOTOS_BUCKET);
+      expect(mockStorageRemove).toHaveBeenCalledWith([oldImage]);
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/menu");
+    });
+
+    it("berhasil menghapus foto (image_path: null) dan membersihkan file lama dari storage (200)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const oldImage = "menu-items/foto-lama.webp";
+
+      // 1. Query fetch oldImagePath
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { image_path: oldImage },
+                  error: null,
+                }),
+            }),
+          }),
+        }),
+      });
+
+      // 2. Query update
+      let updatedPayload: Record<string, unknown> | null = null;
+      mockFrom.mockReturnValueOnce({
+        update: (payload: Record<string, unknown>) => {
+          updatedPayload = payload;
+          return {
+            eq: () => ({
+              eq: () => ({
+                select: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: {
+                        id: validMenuId,
+                        name: "Ayam Goreng",
+                        image_path: payload.image_path,
+                      },
+                      error: null,
+                    }),
+                }),
+              }),
+            }),
+          };
+        },
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_path: null }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(updatedPayload).toEqual({ image_path: null });
+      expect(mockStorageFrom).toHaveBeenCalledWith(MENU_PHOTOS_BUCKET);
+      expect(mockStorageRemove).toHaveBeenCalledWith([oldImage]);
+    });
+
+    it("tidak memicu penghapusan storage jika image_path tidak berubah (200)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const sameImage = "menu-items/foto-tetap.webp";
+
+      // 1. Query fetch oldImagePath
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { image_path: sameImage },
+                  error: null,
+                }),
+            }),
+          }),
+        }),
+      });
+
+      // 2. Query update
+      mockFrom.mockReturnValueOnce({
+        update: () => ({
+          eq: () => ({
+            eq: () => ({
+              select: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: {
+                      id: validMenuId,
+                      name: "Ayam Goreng",
+                      image_path: sameImage,
+                    },
+                    error: null,
+                  }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_path: sameImage }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockStorageRemove).not.toHaveBeenCalled();
+    });
+
+    it("tidak memicu penghapusan storage jika menu sebelumnya tidak memiliki foto (200)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const newImage = "menu-items/foto-pertama.webp";
+
+      // 1. Query fetch oldImagePath (null)
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { image_path: null },
+                  error: null,
+                }),
+            }),
+          }),
+        }),
+      });
+
+      // 2. Query update
+      mockFrom.mockReturnValueOnce({
+        update: () => ({
+          eq: () => ({
+            eq: () => ({
+              select: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: {
+                      id: validMenuId,
+                      name: "Ayam Goreng",
+                      image_path: newImage,
+                    },
+                    error: null,
+                  }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_path: newImage }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockStorageRemove).not.toHaveBeenCalled();
+    });
+
+    it("tetap sukses mengembalikan 200 jika storage remove gagal atau melempar error (defensive try-catch)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const oldImage = "menu-items/foto-lama.webp";
+      const newImage = "menu-items/foto-baru.webp";
+
+      // Storage remove melempar error
+      mockStorageRemove.mockRejectedValueOnce(new Error("Storage connection timeout"));
+
+      // 1. Query fetch oldImagePath
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { image_path: oldImage },
+                  error: null,
+                }),
+            }),
+          }),
+        }),
+      });
+
+      // 2. Query update
+      mockFrom.mockReturnValueOnce({
+        update: () => ({
+          eq: () => ({
+            eq: () => ({
+              select: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: {
+                      id: validMenuId,
+                      name: "Ayam Goreng",
+                      image_path: newImage,
+                    },
+                    error: null,
+                  }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_path: newImage }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.data.image_path).toBe(newImage);
+      expect(mockStorageRemove).toHaveBeenCalledWith([oldImage]);
     });
   });
 
