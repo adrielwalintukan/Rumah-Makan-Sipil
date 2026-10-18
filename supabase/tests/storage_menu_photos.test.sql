@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(8);
+select plan(10);
 
 -- ------------------------------------------------------------
 -- Fixture Data: Akun Pemilik dan Akun Bukan Pemilik
@@ -14,6 +14,10 @@ on conflict (id) do nothing;
 
 insert into public.admins (user_id) values ('00000000-0000-0000-0000-0000000000a1')
 on conflict (user_id) do nothing;
+
+-- Objek fixture awal (disisipkan dalam konteks postgres tanpa bypass)
+insert into storage.objects (bucket_id, name, owner)
+values ('menu-photos', 'fixture-publik.webp', '00000000-0000-0000-0000-0000000000a1');
 
 -- ------------------------------------------------------------
 -- 1. Verifikasi Konfigurasi Bucket
@@ -46,10 +50,11 @@ set local role anon;
 set local "request.jwt.claims" to '{"role":"anon"}';
 set local "request.jwt.claim.sub" to '';
 
--- Anonymous dapat membaca objek di menu-photos
-select ok(
-  (select count(*) >= 0 from storage.objects where bucket_id = 'menu-photos'),
-  'anon dapat menjalankan select pada objek menu-photos'
+-- Anonymous dapat membaca objek di menu-photos (memastikan membaca fixture)
+select is(
+  (select count(*) from storage.objects where bucket_id = 'menu-photos' and name = 'fixture-publik.webp'),
+  1::bigint,
+  'anon dapat membaca objek di menu-photos'
 );
 
 -- Anonymous tidak dapat upload ke menu-photos (42501)
@@ -87,10 +92,23 @@ select lives_ok(
   'pemilik dapat upload objek ke menu-photos'
 );
 
+-- Pemilik dapat memperbarui objek di menu-photos
+select lives_ok(
+  $$update storage.objects set metadata = '{"size": 1024}'::jsonb where bucket_id = 'menu-photos' and name = 'tes-pemilik.webp'$$,
+  'pemilik dapat memperbarui objek di menu-photos'
+);
+
 -- Pemilik dapat menghapus objek di menu-photos
 select lives_ok(
   $$delete from storage.objects where bucket_id = 'menu-photos' and name = 'tes-pemilik.webp'$$,
   'pemilik dapat menghapus objek di menu-photos'
+);
+
+-- Verifikasi objek tes-pemilik.webp benar-benar terhapus
+select is(
+  (select count(*) from storage.objects where bucket_id = 'menu-photos' and name = 'tes-pemilik.webp'),
+  0::bigint,
+  'objek tes-pemilik.webp berhasil terhapus secara fisik'
 );
 
 select * from finish();
