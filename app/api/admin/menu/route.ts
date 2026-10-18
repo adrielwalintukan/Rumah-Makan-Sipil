@@ -90,6 +90,8 @@ export async function POST(request: Request) {
 
     let sortOrder = parseResult.data.sort_order;
     if (sortOrder === undefined) {
+      // shortcut: penentuan max(sort_order) + 1 di server memadai untuk 1 akun pemilik (v1).
+      // Upgrade ke RPC/transaksi database jika warung mendukung multi-admin konkuren di masa depan.
       const { data: maxItem, error: maxErr } = await supabase
         .from("menu_items")
         .select("sort_order")
