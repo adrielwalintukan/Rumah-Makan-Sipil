@@ -253,7 +253,7 @@ test("alur upload foto menu: pratinjau 4:3, simpan, cek foto di admin & pelangga
     .filter({ hasText: MENU_NAME });
   await expect(adminCardNoPhoto).toBeVisible();
   await expect(adminCardNoPhoto.locator("img")).not.toBeVisible();
-  await expect(adminCardNoPhoto.getByText(MENU_NAME.charAt(0).toUpperCase())).toBeVisible();
+  await expect(adminCardNoPhoto.getByText(MENU_NAME.charAt(0).toUpperCase(), { exact: true })).toBeVisible();
 
   // -------------------------------------------------------------
   // 13. Verifikasi di Halaman Pelanggan (/) Menampilkan Placeholder Inisial
@@ -264,5 +264,5 @@ test("alur upload foto menu: pratinjau 4:3, simpan, cek foto di admin & pelangga
     .filter({ hasText: MENU_NAME });
   await expect(customerCardNoPhoto).toBeVisible();
   await expect(customerCardNoPhoto.locator("img")).not.toBeVisible();
-  await expect(customerCardNoPhoto.getByText(MENU_NAME.charAt(0).toUpperCase())).toBeVisible();
+  await expect(customerCardNoPhoto.getByText(MENU_NAME.charAt(0).toUpperCase(), { exact: true })).toBeVisible();
 });
