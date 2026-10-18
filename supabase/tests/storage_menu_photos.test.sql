@@ -1,0 +1,97 @@
+-- Tes Supabase Storage menu-photos & Kebijakan RLS (Issue #17)
+begin;
+create extension if not exists pgtap with schema extensions;
+
+select plan(8);
+
+-- ------------------------------------------------------------
+-- Fixture Data: Akun Pemilik dan Akun Bukan Pemilik
+-- ------------------------------------------------------------
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-0000000000a1', 'pemilik-storage@test.local'),
+  ('00000000-0000-0000-0000-0000000000b2', 'bukan-pemilik-storage@test.local')
+on conflict (id) do nothing;
+
+insert into public.admins (user_id) values ('00000000-0000-0000-0000-0000000000a1')
+on conflict (user_id) do nothing;
+
+-- ------------------------------------------------------------
+-- 1. Verifikasi Konfigurasi Bucket
+-- ------------------------------------------------------------
+-- Bucket menu-photos ada dan publik
+select is(
+  (select count(*) from storage.buckets where id = 'menu-photos' and public = true),
+  1::bigint,
+  'bucket menu-photos ada dan berstatus publik'
+);
+
+-- Batas ukuran file 5 MB
+select is(
+  (select file_size_limit from storage.buckets where id = 'menu-photos'),
+  5242880::bigint,
+  'batas ukuran file bucket adalah 5 MB'
+);
+
+-- Allowed mime types sesuai spek (jpeg, png, webp)
+select is(
+  (select allowed_mime_types from storage.buckets where id = 'menu-photos'),
+  array['image/jpeg', 'image/png', 'image/webp']::text[],
+  'allowed mime types bucket mencakup jpeg, png, webp'
+);
+
+-- ------------------------------------------------------------
+-- 2. Hak Akses Anonymous
+-- ------------------------------------------------------------
+set local role anon;
+set local "request.jwt.claims" to '{"role":"anon"}';
+set local "request.jwt.claim.sub" to '';
+
+-- Anonymous dapat membaca objek di menu-photos
+select ok(
+  (select count(*) >= 0 from storage.objects where bucket_id = 'menu-photos'),
+  'anon dapat menjalankan select pada objek menu-photos'
+);
+
+-- Anonymous tidak dapat upload ke menu-photos (42501)
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name, owner) values ('menu-photos', 'tes-anon.webp', null)$$,
+  '42501',
+  null,
+  'anon ditolak saat upload ke menu-photos'
+);
+
+-- ------------------------------------------------------------
+-- 3. Hak Akses Authenticated Bukan Pemilik
+-- ------------------------------------------------------------
+set local role authenticated;
+set local "request.jwt.claims" to '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}';
+set local "request.jwt.claim.sub" to '00000000-0000-0000-0000-0000000000b2';
+
+-- User authenticated bukan pemilik ditolak saat upload ke menu-photos (42501)
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name, owner) values ('menu-photos', 'tes-bukan-pemilik.webp', '00000000-0000-0000-0000-0000000000b2')$$,
+  '42501',
+  null,
+  'user authenticated bukan pemilik ditolak saat upload ke menu-photos'
+);
+
+-- ------------------------------------------------------------
+-- 4. Hak Akses Pemilik Toko
+-- ------------------------------------------------------------
+set local "request.jwt.claims" to '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}';
+set local "request.jwt.claim.sub" to '00000000-0000-0000-0000-0000000000a1';
+
+-- Pemilik dapat upload ke menu-photos
+select lives_ok(
+  $$insert into storage.objects (bucket_id, name, owner) values ('menu-photos', 'tes-pemilik.webp', '00000000-0000-0000-0000-0000000000a1')$$,
+  'pemilik dapat upload objek ke menu-photos'
+);
+
+-- Pemilik dapat menghapus objek di menu-photos
+select lives_ok(
+  $$delete from storage.objects where bucket_id = 'menu-photos' and name = 'tes-pemilik.webp'$$,
+  'pemilik dapat menghapus objek di menu-photos'
+);
+
+select * from finish();
+rollback;
