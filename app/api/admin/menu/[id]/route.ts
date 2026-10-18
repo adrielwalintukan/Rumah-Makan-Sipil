@@ -194,7 +194,7 @@ export async function PATCH(
       }
 
       if (updateData.category_id !== currentItem.category_id) {
-        const { data: maxItem } = await supabase
+        const { data: maxItem, error: maxErr } = await supabase
           .from("menu_items")
           .select("sort_order")
           .eq("category_id", updateData.category_id)
@@ -202,6 +202,16 @@ export async function PATCH(
           .order("sort_order", { ascending: false })
           .limit(1)
           .maybeSingle();
+
+        if (maxErr) {
+          if (maxErr.code === "42501") {
+            return NextResponse.json(
+              { error: "Akun ini tidak memiliki hak akses pemilik." },
+              { status: 403 }
+            );
+          }
+          return NextResponse.json({ error: maxErr.message }, { status: 500 });
+        }
 
         updateData.sort_order =
           maxItem?.sort_order !== undefined ? maxItem.sort_order + 1 : 0;

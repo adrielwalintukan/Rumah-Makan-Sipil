@@ -423,6 +423,84 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(insertedPayload!.sort_order).toBe(0);
     });
 
+    it("mengembalikan 500 jika query sort_order maksimum gagal saat tambah menu", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: null,
+                      error: { message: "Database connection lost" },
+                    }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const payloadWithoutSortOrder = {
+        category_id: validPayload.category_id,
+        name: validPayload.name,
+        description: validPayload.description,
+        price: validPayload.price,
+        is_available: validPayload.is_available,
+      };
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadWithoutSortOrder),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(500);
+      const json = await res.json();
+      expect(json.error).toBe("Database connection lost");
+    });
+
+    it("mengembalikan 403 jika query sort_order maksimum ditolak RLS saat tambah menu", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: null,
+                      error: { code: "42501", message: "permission denied" },
+                    }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const payloadWithoutSortOrder = {
+        category_id: validPayload.category_id,
+        name: validPayload.name,
+        description: validPayload.description,
+        price: validPayload.price,
+        is_available: validPayload.is_available,
+      };
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadWithoutSortOrder),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(403);
+      const json = await res.json();
+      expect(json.error).toContain("hak akses pemilik");
+    });
+
     it("mengembalikan 403 jika RLS menolak insert", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
       mockFrom.mockReturnValueOnce({
@@ -939,6 +1017,110 @@ describe("Menu Items API: /api/admin/menu", () => {
         category_id: targetCatId,
         sort_order: 2,
       });
+    });
+
+    it("mengembalikan 500 jika query sort_order maksimum kategori tujuan gagal saat pindah kategori", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const targetCatId = "a0000000-0000-0000-0000-000000000099";
+
+      // 1. Current item query
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { category_id: validCatId },
+                  error: null,
+                }),
+            }),
+          }),
+        }),
+      });
+
+      // 2. Max sort_order query fails
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: null,
+                      error: { message: "Database timeout" },
+                    }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: targetCatId }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+
+      expect(res.status).toBe(500);
+      const json = await res.json();
+      expect(json.error).toBe("Database timeout");
+    });
+
+    it("mengembalikan 403 jika query sort_order maksimum kategori tujuan ditolak RLS saat pindah kategori", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const targetCatId = "a0000000-0000-0000-0000-000000000099";
+
+      // 1. Current item query
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { category_id: validCatId },
+                  error: null,
+                }),
+            }),
+          }),
+        }),
+      });
+
+      // 2. Max sort_order query RLS denied
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: null,
+                      error: { code: "42501", message: "permission denied" },
+                    }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: targetCatId }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+
+      expect(res.status).toBe(403);
+      const json = await res.json();
+      expect(json.error).toContain("hak akses pemilik");
     });
   });
 

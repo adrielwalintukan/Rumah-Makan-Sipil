@@ -90,7 +90,7 @@ export async function POST(request: Request) {
 
     let sortOrder = parseResult.data.sort_order;
     if (sortOrder === undefined) {
-      const { data: maxItem } = await supabase
+      const { data: maxItem, error: maxErr } = await supabase
         .from("menu_items")
         .select("sort_order")
         .eq("category_id", parseResult.data.category_id)
@@ -98,6 +98,16 @@ export async function POST(request: Request) {
         .order("sort_order", { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      if (maxErr) {
+        if (maxErr.code === "42501") {
+          return NextResponse.json(
+            { error: "Akun ini tidak memiliki hak akses pemilik." },
+            { status: 403 }
+          );
+        }
+        return NextResponse.json({ error: maxErr.message }, { status: 500 });
+      }
 
       sortOrder = maxItem?.sort_order !== undefined ? maxItem.sort_order + 1 : 0;
     }
