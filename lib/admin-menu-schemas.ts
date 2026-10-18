@@ -14,6 +14,8 @@ export type AdminCategory = {
   sort_order: number;
 };
 
+export const MENU_PHOTO_PATH_REGEX = /^items\/[a-zA-Z0-9_-]+\.(webp|jpg|jpeg|png)$/;
+
 export const menuItemSchema = z.object({
   category_id: z.string().regex(UUID_REGEX, "Kategori tidak valid"),
   name: z.string().trim().min(1, "Nama menu wajib diisi").max(100, "Nama menu maksimal 100 karakter"),
@@ -25,10 +27,16 @@ export const menuItemSchema = z.object({
   image_path: z
     .string()
     .trim()
-    .max(255)
+    .max(255, "Path foto maksimal 255 karakter")
+    .transform((val) => (val === "" ? null : val))
     .nullable()
     .optional()
-    .transform((val) => (val === "" ? null : val)),
+    .refine(
+      (val) => val === null || val === undefined || MENU_PHOTO_PATH_REGEX.test(val),
+      {
+        message: "Format path foto tidak valid. Harus berupa path relatif dalam folder items/ (mis. items/nama-file.webp)",
+      }
+    ),
   is_available: z.boolean().default(true),
   sort_order: z.number().int().min(0).optional(),
 }).strict();

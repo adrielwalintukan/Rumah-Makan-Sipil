@@ -112,11 +112,56 @@ export function calculateCrop4x3(width: number, height: number): CropResult {
   return { sx, sy, sw, sh, outWidth, outHeight };
 }
 
+export interface CropTransform {
+  zoom: number;
+  offsetX: number;
+  offsetY: number;
+}
+
 /**
- * Melakukan auto center-crop 4:3, downscaling maksimal 1200x900,
- * dan kompresi WebP 80% pada file foto menu di browser via HTML5 Canvas.
+ * Menggambar gambar ke elemen canvas dengan skala zoom dan offset posisi yang ditentukan.
+ * Area kosong diisi dengan warna putih (#FFFFFF) bersih sesuai desain SIPIL.
  */
-export async function compressAndCropMenuPhoto(file: File): Promise<CompressResult> {
+export function renderImageToCanvas(
+  canvas: HTMLCanvasElement,
+  img: HTMLImageElement | ImageBitmap,
+  transform: CropTransform = { zoom: 1, offsetX: 0, offsetY: 0 },
+  backgroundColor: string = "#FFFFFF"
+): void {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Gagal menginisialisasi canvas 2D context.");
+  }
+
+  const { width: canvasWidth, height: canvasHeight } = canvas;
+  const imgWidth = (img as HTMLImageElement).naturalWidth || img.width;
+  const imgHeight = (img as HTMLImageElement).naturalHeight || img.height;
+
+  ctx.save();
+  ctx.fillStyle = backgroundColor;
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+  const baseScale = Math.max(canvasWidth / imgWidth, canvasHeight / imgHeight);
+  const currentScale = baseScale * (transform.zoom || 1);
+
+  const drawWidth = Math.round(imgWidth * currentScale);
+  const drawHeight = Math.round(imgHeight * currentScale);
+
+  const drawX = Math.round((canvasWidth - drawWidth) / 2 + (transform.offsetX || 0));
+  const drawY = Math.round((canvasHeight - drawHeight) / 2 + (transform.offsetY || 0));
+
+  ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+  ctx.restore();
+}
+
+/**
+ * Melakukan auto center-crop 4:3 (atau crop dengan transformasi posisi & zoom kustom),
+ * downscaling maksimal 1200x900, dan kompresi WebP 80% pada file foto menu di browser via HTML5 Canvas.
+ */
+export async function compressAndCropMenuPhoto(
+  file: File,
+  transform?: CropTransform
+): Promise<CompressResult> {
   const validation = validateImageFile(file);
   if (!validation.valid) {
     throw new Error(validation.error || "File gambar tidak valid.");
@@ -141,21 +186,43 @@ export async function compressAndCropMenuPhoto(file: File): Promise<CompressResu
       image.src = objectUrl;
     });
 
-    const { sx, sy, sw, sh, outWidth, outHeight } = calculateCrop4x3(
-      img.naturalWidth || img.width,
-      img.naturalHeight || img.height
-    );
-
     const canvas = document.createElement("canvas");
-    canvas.width = outWidth;
-    canvas.height = outHeight;
+    let outWidth: number;
+    let outHeight: number;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      throw new Error("Gagal menginisialisasi canvas 2D context.");
+    if (transform) {
+      outWidth = MAX_OUTPUT_WIDTH;
+      outHeight = MAX_OUTPUT_HEIGHT;
+      canvas.width = outWidth;
+      canvas.height = outHeight;
+      renderImageToCanvas(canvas, img, transform, "#FFFFFF");
+    } else {
+      const crop = calculateCrop4x3(
+        img.naturalWidth || img.width,
+        img.naturalHeight || img.height
+      );
+      outWidth = crop.outWidth;
+      outHeight = crop.outHeight;
+      canvas.width = outWidth;
+      canvas.height = outHeight;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        throw new Error("Gagal menginisialisasi canvas 2D context.");
+      }
+
+      ctx.drawImage(
+        img,
+        crop.sx,
+        crop.sy,
+        crop.sw,
+        crop.sh,
+        0,
+        0,
+        outWidth,
+        outHeight
+      );
     }
-
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outWidth, outHeight);
 
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(

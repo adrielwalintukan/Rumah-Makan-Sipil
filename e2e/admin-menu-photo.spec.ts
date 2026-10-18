@@ -172,9 +172,21 @@ test("alur upload foto menu: pratinjau 4:3, simpan, cek foto di admin & pelangga
   });
 
   // -------------------------------------------------------------
-  // 5. Verifikasi Pratinjau Foto & Tombol Aksi
+  // 5. Verifikasi Dialog Sesuaikan Foto & Terapkan
+  // -------------------------------------------------------------
+  const cropDialog = page.getByTestId("photo-crop-dialog");
+  await expect(cropDialog).toBeVisible();
+  await expect(
+    cropDialog.getByRole("heading", { name: /Sesuaikan Posisi & Ukuran Foto/i })
+  ).toBeVisible();
+  await cropDialog.getByRole("button", { name: "Terapkan Foto" }).click();
+  await expect(cropDialog).toBeHidden();
+
+  // -------------------------------------------------------------
+  // 6. Verifikasi Pratinjau Foto & Tombol Aksi
   // -------------------------------------------------------------
   await expect(page.getByRole("button", { name: "Ganti Foto" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sesuaikan Posisi" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Hapus Foto" })).toBeVisible();
   await expect(page.locator("img[alt='Pratinjau foto menu']")).toBeVisible();
 

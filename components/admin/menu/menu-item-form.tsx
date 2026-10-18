@@ -7,6 +7,7 @@ import {
   AlertCircle,
   Camera,
   ChevronDown,
+  Crop,
   Loader2,
   Trash2,
   UploadCloud,
@@ -23,11 +24,12 @@ import {
 } from "@/components/ui/dialog";
 import { formatRupiah } from "@/lib/format";
 import { UUID_REGEX } from "@/lib/schemas";
+import { validateImageFile } from "@/lib/image-compression";
+import { PhotoCropDialog } from "./photo-crop-dialog";
 import {
-  validateImageFile,
-  compressAndCropMenuPhoto,
-} from "@/lib/image-compression";
-import { getMenuPhotoUrl, MENU_PHOTOS_BUCKET } from "@/lib/storage";
+  getMenuPhotoUrl,
+  saveMenuItemWithPhotoCleanup,
+} from "@/lib/storage";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -84,14 +86,15 @@ export function MenuItemForm({
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
 
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
+  const [cropFile, setCropFile] = React.useState<File | null>(null);
+  const [isCropDialogOpen, setIsCropDialogOpen] = React.useState(false);
   const [processedBlob, setProcessedBlob] = React.useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(() =>
     getMenuPhotoUrl(initialData?.image_path)
   );
   const [isPhotoRemoved, setIsPhotoRemoved] = React.useState<boolean>(false);
   const [photoError, setPhotoError] = React.useState<string | null>(null);
-  const [isProcessingPhoto, setIsProcessingPhoto] =
-    React.useState<boolean>(false);
+  const isProcessingPhoto = false;
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -109,7 +112,7 @@ export function MenuItemForm({
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -124,29 +127,28 @@ export function MenuItemForm({
       return;
     }
 
-    setIsProcessingPhoto(true);
-    try {
-      const { blob } = await compressAndCropMenuPhoto(file);
-      setPhotoFile(file);
-      setProcessedBlob(blob);
-      setIsPhotoRemoved(false);
+    setCropFile(file);
+    setIsCropDialogOpen(true);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
-      if (previewUrl && previewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(previewUrl);
-      }
-      const newUrl = URL.createObjectURL(blob);
-      setPreviewUrl(newUrl);
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Gagal memproses gambar. Pastikan format didukung.";
-      setPhotoError(message);
-    } finally {
-      setIsProcessingPhoto(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+  const handleApplyCrop = (blob: Blob, newPreviewUrl: string) => {
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPhotoFile(cropFile);
+    setProcessedBlob(blob);
+    setPreviewUrl(newPreviewUrl);
+    setIsPhotoRemoved(false);
+    setPhotoError(null);
+  };
+
+  const handleOpenCropAdjust = () => {
+    if (photoFile) {
+      setCropFile(photoFile);
+      setIsCropDialogOpen(true);
     }
   };
 
@@ -155,6 +157,7 @@ export function MenuItemForm({
       URL.revokeObjectURL(previewUrl);
     }
     setPhotoFile(null);
+    setCropFile(null);
     setProcessedBlob(null);
     setPreviewUrl(null);
     setIsPhotoRemoved(true);
@@ -224,26 +227,6 @@ export function MenuItemForm({
     setIsSubmitting(true);
 
     try {
-      let finalImagePath: string | null = initialData?.image_path ?? null;
-
-      if (processedBlob) {
-        const fileName = "items/" + crypto.randomUUID() + ".webp";
-        const supabase = createBrowserSupabaseClient();
-        const { error: uploadError } = await supabase.storage
-          .from(MENU_PHOTOS_BUCKET)
-          .upload(fileName, processedBlob, {
-            contentType: "image/webp",
-            upsert: true,
-          });
-
-        if (uploadError) {
-          throw new Error("Gagal mengunggah foto: " + uploadError.message);
-        }
-        finalImagePath = fileName;
-      } else if (isPhotoRemoved) {
-        finalImagePath = null;
-      }
-
       const isCategoryChanged =
         initialData !== undefined && categoryId !== initialData.category_id;
 
@@ -252,7 +235,7 @@ export function MenuItemForm({
         name: name.trim(),
         description: description.trim(),
         price: numPrice,
-        image_path: finalImagePath,
+        image_path: isPhotoRemoved ? null : (initialData?.image_path ?? null),
         is_available: isAvailable,
         ...(initialData?.sort_order !== undefined && !isCategoryChanged
           ? { sort_order: initialData.sort_order }
@@ -265,15 +248,17 @@ export function MenuItemForm({
           : `/api/admin/menu/${initialData!.id}`;
       const method = mode === "create" ? "POST" : "PATCH";
 
-      const res = await fetch(endpoint, {
+      const supabase = createBrowserSupabaseClient();
+      const result = await saveMenuItemWithPhotoCleanup({
+        storage: supabase.storage,
+        processedBlob,
+        payload,
+        endpoint,
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
       });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal menyimpan menu.");
+      if (!result.success) {
+        throw new Error(result.error || "Gagal menyimpan menu.");
       }
 
       router.push("/admin/menu");
@@ -571,7 +556,7 @@ export function MenuItemForm({
               Foto Menu
             </span>
             <p id="photo-help-text" className="text-xs text-ink-600 leading-relaxed">
-              Opsional. Format JPG, PNG, atau WebP, maks. 5 MB. Otomatis dipotong ke rasio 4:3.
+              Opsional. Format JPG, PNG, atau WebP, maks. 5 MB. Posisi dan ukuran dapat disesuaikan ke rasio 4:3.
             </p>
           </div>
 
@@ -621,6 +606,18 @@ export function MenuItemForm({
                   <Camera className="size-4 shrink-0" aria-hidden="true" />
                   <span>Ganti Foto</span>
                 </Button>
+                {photoFile && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleOpenCropAdjust}
+                    disabled={isSubmitting || isDeleting || isProcessingPhoto}
+                    className="min-h-[44px] gap-2 font-semibold"
+                  >
+                    <Crop className="size-4 shrink-0" aria-hidden="true" />
+                    <span>Sesuaikan Posisi</span>
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="ghost"
@@ -919,6 +916,13 @@ export function MenuItemForm({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PhotoCropDialog
+        isOpen={isCropDialogOpen}
+        onClose={() => setIsCropDialogOpen(false)}
+        file={cropFile}
+        onApply={handleApplyCrop}
+      />
     </>
   );
 }

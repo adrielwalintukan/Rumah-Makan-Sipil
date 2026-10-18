@@ -1,5 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { getMenuPhotoUrl, MENU_PHOTOS_BUCKET } from "./storage";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  getMenuPhotoUrl,
+  MENU_PHOTOS_BUCKET,
+  saveMenuItemWithPhotoCleanup,
+} from "./storage";
 
 describe("storage", () => {
   const originalEnv = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -62,6 +66,196 @@ describe("storage", () => {
       delete process.env.NEXT_PUBLIC_SUPABASE_URL;
       const url = getMenuPhotoUrl("items/ayam-bakar.webp");
       expect(url).toBe("/menu-photos/items/ayam-bakar.webp");
+    });
+  });
+
+  describe("saveMenuItemWithPhotoCleanup", () => {
+    const dummyBlob = new Blob(["fake-image"], { type: "image/webp" });
+    const dummyPayload = {
+      category_id: "a0000000-0000-0000-0000-000000000001",
+      name: "Cotto",
+      price: 15000,
+    };
+
+    it("berhasil upload foto dan menyimpan menu saat API mengembalikan status 200/201 (tanpa cleanup)", async () => {
+      const mockUpload = vi.fn().mockResolvedValue({ error: null });
+      const mockRemove = vi.fn().mockResolvedValue({ error: null });
+      const mockStorage = {
+        from: vi.fn().mockReturnValue({
+          upload: mockUpload,
+          remove: mockRemove,
+        }),
+      };
+
+      const mockFetcher = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: { id: "menu-1" } }),
+      } as unknown as Response);
+
+      const res = await saveMenuItemWithPhotoCleanup({
+        storage: mockStorage,
+        processedBlob: dummyBlob,
+        payload: dummyPayload,
+        endpoint: "/api/admin/menu",
+        method: "POST",
+        fetcher: mockFetcher as unknown as typeof fetch,
+      });
+
+      expect(res.success).toBe(true);
+      expect(mockUpload).toHaveBeenCalledTimes(1);
+      const uploadedPath = mockUpload.mock.calls[0][0];
+      expect(uploadedPath).toMatch(/^items\/[a-zA-Z0-9-]+\.webp$/);
+      expect(mockFetcher).toHaveBeenCalledTimes(1);
+      expect(mockRemove).not.toHaveBeenCalled();
+    });
+
+    it("melakukan pembersihan (remove) file baru di storage jika request API gagal (HTTP 4xx/5xx)", async () => {
+      const mockUpload = vi.fn().mockResolvedValue({ error: null });
+      const mockRemove = vi.fn().mockResolvedValue({ error: null });
+      const mockStorage = {
+        from: vi.fn().mockReturnValue({
+          upload: mockUpload,
+          remove: mockRemove,
+        }),
+      };
+
+      const mockFetcher = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Validasi database gagal" }),
+      } as unknown as Response);
+
+      const res = await saveMenuItemWithPhotoCleanup({
+        storage: mockStorage,
+        processedBlob: dummyBlob,
+        payload: dummyPayload,
+        endpoint: "/api/admin/menu",
+        method: "POST",
+        fetcher: mockFetcher as unknown as typeof fetch,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toBe("Validasi database gagal");
+      expect(mockUpload).toHaveBeenCalledTimes(1);
+      const uploadedPath = mockUpload.mock.calls[0][0];
+      // Memastikan file baru yang diunggah dibersihkan agar tidak jadi orphan
+      expect(mockRemove).toHaveBeenCalledWith([uploadedPath]);
+    });
+
+    it("melakukan pembersihan file baru jika pemanggilan fetch API melempar error network", async () => {
+      const mockUpload = vi.fn().mockResolvedValue({ error: null });
+      const mockRemove = vi.fn().mockResolvedValue({ error: null });
+      const mockStorage = {
+        from: vi.fn().mockReturnValue({
+          upload: mockUpload,
+          remove: mockRemove,
+        }),
+      };
+
+      const mockFetcher = vi.fn().mockRejectedValue(new Error("Network connection dropped"));
+
+      const res = await saveMenuItemWithPhotoCleanup({
+        storage: mockStorage,
+        processedBlob: dummyBlob,
+        payload: dummyPayload,
+        endpoint: "/api/admin/menu",
+        method: "POST",
+        fetcher: mockFetcher as unknown as typeof fetch,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toBe("Network connection dropped");
+      const uploadedPath = mockUpload.mock.calls[0][0];
+      expect(mockRemove).toHaveBeenCalledWith([uploadedPath]);
+    });
+
+    it("tidak membiarkan kegagalan cleanup menutupi error utama API", async () => {
+      const mockUpload = vi.fn().mockResolvedValue({ error: null });
+      // Storage remove melempar error saat mencoba membersihkan
+      const mockRemove = vi.fn().mockRejectedValue(new Error("Storage timeout"));
+      const mockStorage = {
+        from: vi.fn().mockReturnValue({
+          upload: mockUpload,
+          remove: mockRemove,
+        }),
+      };
+
+      const mockFetcher = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Menu dengan nama tersebut sudah ada" }),
+      } as unknown as Response);
+
+      const res = await saveMenuItemWithPhotoCleanup({
+        storage: mockStorage,
+        processedBlob: dummyBlob,
+        payload: dummyPayload,
+        endpoint: "/api/admin/menu",
+        method: "POST",
+        fetcher: mockFetcher as unknown as typeof fetch,
+      });
+
+      expect(res.success).toBe(false);
+      // Pesan error tetap merupakan error utama API, bukan error timeout cleanup
+      expect(res.error).toBe("Menu dengan nama tersebut sudah ada");
+      expect(mockRemove).toHaveBeenCalledTimes(1);
+    });
+
+    it("mengembalikan error jika upload foto gagal sebelum memanggil API (dan tidak memanggil remove)", async () => {
+      const mockUpload = vi.fn().mockResolvedValue({
+        error: { message: "Storage quota exceeded" },
+      });
+      const mockRemove = vi.fn();
+      const mockStorage = {
+        from: vi.fn().mockReturnValue({
+          upload: mockUpload,
+          remove: mockRemove,
+        }),
+      };
+
+      const mockFetcher = vi.fn();
+
+      const res = await saveMenuItemWithPhotoCleanup({
+        storage: mockStorage,
+        processedBlob: dummyBlob,
+        payload: dummyPayload,
+        endpoint: "/api/admin/menu",
+        method: "POST",
+        fetcher: mockFetcher as unknown as typeof fetch,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Storage quota exceeded");
+      expect(mockFetcher).not.toHaveBeenCalled();
+      expect(mockRemove).not.toHaveBeenCalled();
+    });
+
+    it("langsung menyimpan menu tanpa upload storage jika processedBlob bernilai null", async () => {
+      const mockUpload = vi.fn();
+      const mockRemove = vi.fn();
+      const mockStorage = {
+        from: vi.fn().mockReturnValue({
+          upload: mockUpload,
+          remove: mockRemove,
+        }),
+      };
+
+      const mockFetcher = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: { id: "menu-1" } }),
+      } as unknown as Response);
+
+      const res = await saveMenuItemWithPhotoCleanup({
+        storage: mockStorage,
+        processedBlob: null,
+        payload: dummyPayload,
+        endpoint: "/api/admin/menu/1",
+        method: "PATCH",
+        fetcher: mockFetcher as unknown as typeof fetch,
+      });
+
+      expect(res.success).toBe(true);
+      expect(mockUpload).not.toHaveBeenCalled();
+      expect(mockRemove).not.toHaveBeenCalled();
+      expect(mockFetcher).toHaveBeenCalledTimes(1);
     });
   });
 });

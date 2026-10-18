@@ -6,6 +6,7 @@ import {
   MAX_IMAGE_FILE_SIZE,
   MAX_OUTPUT_HEIGHT,
   MAX_OUTPUT_WIDTH,
+  renderImageToCanvas,
   TARGET_ASPECT_RATIO,
   validateImageFile,
 } from "./image-compression";
@@ -199,6 +200,9 @@ describe("image-compression", () => {
       toBlob: ReturnType<typeof vi.fn>;
     };
     let drawImageMock: ReturnType<typeof vi.fn>;
+    let fillRectMock: ReturnType<typeof vi.fn>;
+    let saveMock: ReturnType<typeof vi.fn>;
+    let restoreMock: ReturnType<typeof vi.fn>;
     let toBlobMock: ReturnType<typeof vi.fn>;
     let createObjectURLMock: ReturnType<typeof vi.fn>;
     let revokeObjectURLMock: ReturnType<typeof vi.fn>;
@@ -241,11 +245,19 @@ describe("image-compression", () => {
         }
       );
 
+      fillRectMock = vi.fn();
+      saveMock = vi.fn();
+      restoreMock = vi.fn();
+
       mockCanvas = {
         width: 0,
         height: 0,
         getContext: vi.fn().mockReturnValue({
           drawImage: drawImageMock,
+          fillRect: fillRectMock,
+          save: saveMock,
+          restore: restoreMock,
+          fillStyle: "",
         }),
         toBlob: toBlobMock,
       };
@@ -368,6 +380,91 @@ describe("image-compression", () => {
       await expect(compressAndCropMenuPhoto(validFile)).rejects.toThrow(
         "compressAndCropMenuPhoto hanya dapat dijalankan di lingkungan browser."
       );
+    });
+
+    it("mendukung transform kustom (zoom dan offset) via renderImageToCanvas", async () => {
+      const validFile = new File(["photo-bytes"], "photo.jpg", {
+        type: "image/jpeg",
+      });
+
+      const result = await compressAndCropMenuPhoto(validFile, {
+        zoom: 1.5,
+        offsetX: 50,
+        offsetY: -30,
+      });
+
+      expect(mockCanvas.width).toBe(1200);
+      expect(mockCanvas.height).toBe(900);
+      expect(fillRectMock).toHaveBeenCalledWith(0, 0, 1200, 900);
+      expect(drawImageMock).toHaveBeenCalled();
+      expect(result.width).toBe(1200);
+      expect(result.height).toBe(900);
+    });
+  });
+
+  describe("renderImageToCanvas", () => {
+    it("menggambar gambar ke canvas dengan background putih bersih dan koordinat yang sesuai", () => {
+      const drawMock = vi.fn();
+      const fillMock = vi.fn();
+      const saveFn = vi.fn();
+      const restoreFn = vi.fn();
+
+      const canvas = {
+        width: 1200,
+        height: 900,
+        getContext: vi.fn().mockReturnValue({
+          drawImage: drawMock,
+          fillRect: fillMock,
+          save: saveFn,
+          restore: restoreFn,
+          fillStyle: "",
+        }),
+      } as unknown as HTMLCanvasElement;
+
+      const img = {
+        naturalWidth: 1000,
+        naturalHeight: 2000,
+      } as unknown as HTMLImageElement;
+
+      // Base scale = max(1200/1000, 900/2000) = 1.2
+      // Zoom 1.0 -> currentScale = 1.2
+      // drawWidth = 1200, drawHeight = 2400
+      // drawX = (1200-1200)/2 + 20 = 20
+      // drawY = (900-2400)/2 - 50 = -750 - 50 = -800
+      renderImageToCanvas(canvas, img, { zoom: 1.0, offsetX: 20, offsetY: -50 }, "#FFFFFF");
+
+      expect(fillMock).toHaveBeenCalledWith(0, 0, 1200, 900);
+      expect(drawMock).toHaveBeenCalledWith(img, 20, -800, 1200, 2400);
+    });
+
+    it("mendukung zoom out untuk memuat seluruh gambar tinggi (fit)", () => {
+      const drawMock = vi.fn();
+      const fillMock = vi.fn();
+
+      const canvas = {
+        width: 1200,
+        height: 900,
+        getContext: vi.fn().mockReturnValue({
+          drawImage: drawMock,
+          fillRect: fillMock,
+          save: vi.fn(),
+          restore: vi.fn(),
+          fillStyle: "",
+        }),
+      } as unknown as HTMLCanvasElement;
+
+      const img = {
+        naturalWidth: 1000,
+        naturalHeight: 2000,
+      } as unknown as HTMLImageElement;
+
+      // Base scale = 1.2.
+      // Jika zoom = 0.375 (fit): currentScale = 1.2 * 0.375 = 0.45
+      // drawWidth = 1000 * 0.45 = 450, drawHeight = 2000 * 0.45 = 900
+      // drawX = (1200 - 450)/2 = 375, drawY = (900 - 900)/2 = 0
+      renderImageToCanvas(canvas, img, { zoom: 0.375, offsetX: 0, offsetY: 0 });
+
+      expect(drawMock).toHaveBeenCalledWith(img, 375, 0, 450, 900);
     });
   });
 });

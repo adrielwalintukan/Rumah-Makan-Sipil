@@ -568,6 +568,22 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(insertedPayload).not.toBeNull();
       expect(insertedPayload!.image_path).toBe("items/menu-ayam.webp");
     });
+
+    it("menolak request jika image_path bukan format relatif items/ yang diizinkan (400)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...validPayload,
+          image_path: "https://evil.com/hack.jpg",
+        }),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toContain("Format path foto tidak valid");
+    });
   });
 
   describe("PATCH /api/admin/menu (reorder)", () => {
@@ -1168,8 +1184,8 @@ describe("Menu Items API: /api/admin/menu", () => {
 
     it("berhasil memperbarui image_path dan menghapus foto lama dari storage jika berbeda (200)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
-      const oldImage = "menu-items/foto-lama.webp";
-      const newImage = "menu-items/foto-baru.webp";
+      const oldImage = "items/foto-lama.webp";
+      const newImage = "items/foto-baru.webp";
 
       // 1. Query fetch oldImagePath
       mockFrom.mockReturnValueOnce({
@@ -1230,7 +1246,7 @@ describe("Menu Items API: /api/admin/menu", () => {
 
     it("berhasil menghapus foto (image_path: null) dan membersihkan file lama dari storage (200)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
-      const oldImage = "menu-items/foto-lama.webp";
+      const oldImage = "items/foto-lama.webp";
 
       // 1. Query fetch oldImagePath
       mockFrom.mockReturnValueOnce({
@@ -1289,7 +1305,7 @@ describe("Menu Items API: /api/admin/menu", () => {
 
     it("tidak memicu penghapusan storage jika image_path tidak berubah (200)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
-      const sameImage = "menu-items/foto-tetap.webp";
+      const sameImage = "items/foto-tetap.webp";
 
       // 1. Query fetch oldImagePath
       mockFrom.mockReturnValueOnce({
@@ -1342,7 +1358,7 @@ describe("Menu Items API: /api/admin/menu", () => {
 
     it("tidak memicu penghapusan storage jika menu sebelumnya tidak memiliki foto (200)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
-      const newImage = "menu-items/foto-pertama.webp";
+      const newImage = "items/foto-pertama.webp";
 
       // 1. Query fetch oldImagePath (null)
       mockFrom.mockReturnValueOnce({
@@ -1395,8 +1411,8 @@ describe("Menu Items API: /api/admin/menu", () => {
 
     it("tetap sukses mengembalikan 200 jika storage remove gagal atau melempar error (defensive try-catch)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
-      const oldImage = "menu-items/foto-lama.webp";
-      const newImage = "menu-items/foto-baru.webp";
+      const oldImage = "items/foto-lama.webp";
+      const newImage = "items/foto-baru.webp";
 
       // Storage remove melempar error
       mockStorageRemove.mockRejectedValueOnce(new Error("Storage connection timeout"));
@@ -1450,6 +1466,21 @@ describe("Menu Items API: /api/admin/menu", () => {
       const json = await res.json();
       expect(json.data.image_path).toBe(newImage);
       expect(mockStorageRemove).toHaveBeenCalledWith([oldImage]);
+    });
+
+    it("menolak request jika image_path bukan format relatif items/ yang diizinkan (400)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_path: "items/../evil.webp" }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toContain("Format path foto tidak valid");
     });
   });
 
