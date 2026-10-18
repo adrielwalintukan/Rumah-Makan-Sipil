@@ -163,6 +163,30 @@ describe("admin-menu-schemas", () => {
       }
     });
 
+    it("menormalkan string kosong atau whitespace-only pada image_path menjadi null", () => {
+      const resEmpty = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        image_path: "",
+      });
+      expect(resEmpty.success).toBe(true);
+      if (resEmpty.success) {
+        expect(resEmpty.data.image_path).toBeNull();
+      }
+
+      const resWhitespace = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        image_path: "     ",
+      });
+      expect(resWhitespace.success).toBe(true);
+      if (resWhitespace.success) {
+        expect(resWhitespace.data.image_path).toBeNull();
+      }
+    });
+
     it("menolak image_path yang melebihi 255 karakter", () => {
       const res = menuItemSchema.safeParse({
         category_id: "a0000000-0000-0000-0000-000000000001",

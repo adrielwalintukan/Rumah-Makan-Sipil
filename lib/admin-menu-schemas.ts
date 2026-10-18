@@ -22,7 +22,13 @@ export const menuItemSchema = z.object({
     .number("Harga harus berupa angka")
     .int("Harga harus berupa bilangan bulat Rupiah")
     .min(0, "Harga tidak boleh negatif"),
-  image_path: z.string().trim().max(255).nullable().optional(),
+  image_path: z
+    .string()
+    .trim()
+    .max(255)
+    .nullable()
+    .optional()
+    .transform((val) => (val === "" ? null : val)),
   is_available: z.boolean().default(true),
   sort_order: z.number().int().min(0).optional(),
 }).strict();

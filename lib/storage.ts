@@ -12,7 +12,9 @@ export function getMenuPhotoUrl(imagePath?: string | null): string | null {
   }
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (supabaseUrl) {
-    return `${supabaseUrl}/storage/v1/object/public/${MENU_PHOTOS_BUCKET}/${trimmed}`;
+    const baseUrl = supabaseUrl.replace(/\/+$/, "");
+    const cleanPath = trimmed.replace(/^\/+/, "");
+    return `${baseUrl}/storage/v1/object/public/${MENU_PHOTOS_BUCKET}/${cleanPath}`;
   }
   return `/${MENU_PHOTOS_BUCKET}/${trimmed}`;
 }

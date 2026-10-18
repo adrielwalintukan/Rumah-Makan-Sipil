@@ -38,6 +38,14 @@ describe("storage", () => {
       );
     });
 
+    it("menangani trailing slash pada NEXT_PUBLIC_SUPABASE_URL dan leading slash pada path", () => {
+      process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co/";
+      const url = getMenuPhotoUrl("items/ayam-bakar.webp");
+      expect(url).toBe(
+        "https://example.supabase.co/storage/v1/object/public/menu-photos/items/ayam-bakar.webp"
+      );
+    });
+
     it("mengembalikan path apa adanya jika sudah diawali http://, https://, atau /", () => {
       expect(getMenuPhotoUrl("https://images.example.com/foto.jpg")).toBe(
         "https://images.example.com/foto.jpg"
