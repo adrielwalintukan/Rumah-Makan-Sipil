@@ -171,7 +171,7 @@ test("alur kelola menu: CRUD kategori & menu, urutan, toggle habis, dan hapus lu
   await expect(page.getByText("Rp 15.000")).toBeVisible();
 
   // Verifikasi tombol urutan menu (karena merupakan satu-satunya item di kategori ini, kedua tombol nonaktif)
-  const itemCard = page.locator(".rounded-xl.border.bg-card").filter({ hasText: MENU_NAME });
+  const itemCard = page.locator('[data-testid="admin-menu-card"]').filter({ hasText: MENU_NAME });
   await expect(itemCard.getByRole("button", { name: `Pindahkan menu ${MENU_NAME} ke atas` })).toBeDisabled();
   await expect(itemCard.getByRole("button", { name: `Pindahkan menu ${MENU_NAME} ke bawah` })).toBeDisabled();
 
@@ -215,7 +215,7 @@ test("alur kelola menu: CRUD kategori & menu, urutan, toggle habis, dan hapus lu
   // -------------------------------------------------------------
   // Kembali ke /admin/menu dan klik Ubah
   await page.goto("/admin/menu");
-  const currentItemCard = page.locator(".rounded-xl.border.bg-card").filter({ hasText: MENU_NAME });
+  const currentItemCard = page.locator('[data-testid="admin-menu-card"]').filter({ hasText: MENU_NAME });
   await currentItemCard.getByRole("link", { name: "Ubah" }).click();
 
   // Halaman ubah menu (/admin/menu/[id])

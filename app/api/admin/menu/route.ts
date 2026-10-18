@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getAdminUser } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { menuItemSchema, reorderSchema } from "@/lib/admin-menu-schemas";
+import { UUID_REGEX } from "@/lib/schemas";
 
 export async function GET(request: Request) {
   const admin = await getAdminUser();
@@ -24,6 +25,12 @@ export async function GET(request: Request) {
       .eq("is_active", true);
 
     if (categoryId) {
+      if (!UUID_REGEX.test(categoryId)) {
+        return NextResponse.json(
+          { error: "ID kategori tidak valid." },
+          { status: 400 }
+        );
+      }
       query = query.eq("category_id", categoryId);
     }
 
@@ -148,6 +155,7 @@ export async function PATCH(request: Request) {
         .from("menu_items")
         .update({ sort_order: item.sort_order })
         .eq("id", item.id)
+        .eq("is_active", true)
     );
 
     const results = await Promise.all(updates);

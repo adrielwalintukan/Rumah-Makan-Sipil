@@ -393,7 +393,7 @@ export function MenuManagementView({
           <button
             type="button"
             onClick={() => setActionError(null)}
-            className="min-h-[32px] min-w-[32px] rounded p-1 text-danger hover:bg-danger-bg/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded p-1 text-danger hover:bg-danger-bg/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
             aria-label="Tutup notifikasi error"
           >
             <X className="size-4" aria-hidden />
@@ -418,7 +418,7 @@ export function MenuManagementView({
             <span>Semua</span>
             <span
               className={cn(
-                "rounded-full px-1.5 py-0.2 text-xs font-bold",
+                "rounded-full px-1.5 py-0.5 text-xs font-bold",
                 activeCategoryId === "all"
                   ? "bg-white/20 text-white"
                   : "bg-cream-100 text-ink-600"
@@ -447,7 +447,7 @@ export function MenuManagementView({
                 <span>{cat.name}</span>
                 <span
                   className={cn(
-                    "rounded-full px-1.5 py-0.2 text-xs font-bold",
+                    "rounded-full px-1.5 py-0.5 text-xs font-bold",
                     isSelected
                       ? "bg-white/20 text-white"
                       : "bg-cream-100 text-ink-600"
@@ -560,6 +560,7 @@ export function MenuManagementView({
             return (
               <div
                 key={item.id}
+                data-testid="admin-menu-card"
                 className={cn(
                   "rounded-xl border bg-card p-4 shadow-xs transition-shadow hover:shadow-sm",
                   item.is_available
@@ -665,7 +666,7 @@ export function MenuManagementView({
                             {item.is_available ? "Tersedia" : "Habis"}
                           </span>
                         </div>
-                        <span className="text-[10px] text-ink-500 leading-tight mt-0.5 hidden xs:inline sm:inline">
+                        <span className="text-[10px] text-ink-600 leading-tight mt-0.5 hidden sm:inline">
                           {item.is_available ? "Bisa dipesan" : "Stok kosong"}
                         </span>
                       </div>

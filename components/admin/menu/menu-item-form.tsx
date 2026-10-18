@@ -513,9 +513,17 @@ export function MenuItemForm({
               variant="outline"
               asChild
               disabled={isSubmitting}
-              className="min-h-[44px] h-11 w-full sm:w-auto"
+              className={cn(
+                "min-h-[44px] h-11 w-full sm:w-auto",
+                isSubmitting && "pointer-events-none opacity-50"
+              )}
             >
-              <Link href="/admin/menu">Batal</Link>
+              <Link
+                href="/admin/menu"
+                className={cn(isSubmitting && "pointer-events-none opacity-50")}
+              >
+                Batal
+              </Link>
             </Button>
             <Button
               type="submit"
@@ -555,9 +563,21 @@ export function MenuItemForm({
                   variant="outline"
                   asChild
                   disabled={isSubmitting || isDeleting}
-                  className="min-h-[44px] h-11 w-full sm:w-auto"
+                  className={cn(
+                    "min-h-[44px] h-11 w-full sm:w-auto",
+                    (isSubmitting || isDeleting) &&
+                      "pointer-events-none opacity-50"
+                  )}
                 >
-                  <Link href="/admin/menu">Batal</Link>
+                  <Link
+                    href="/admin/menu"
+                    className={cn(
+                      (isSubmitting || isDeleting) &&
+                        "pointer-events-none opacity-50"
+                    )}
+                  >
+                    Batal
+                  </Link>
                 </Button>
                 <Button
                   type="submit"

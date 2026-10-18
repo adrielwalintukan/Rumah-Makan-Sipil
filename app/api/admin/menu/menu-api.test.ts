@@ -38,6 +38,9 @@ describe("Menu Items API: /api/admin/menu", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFrom.mockReset();
+    mockGetAdminUser.mockReset();
+    mockRevalidatePath.mockReset();
   });
 
   describe("GET /api/admin/menu", () => {
@@ -130,6 +133,20 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.data).toHaveLength(1);
+    });
+
+    it("menolak jika query param category_id bukan UUID valid (400)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({}),
+        }),
+      });
+      const req = new Request("http://localhost/api/admin/menu?category_id=invalid-uuid");
+      const res = await GET(req);
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toContain("ID kategori tidak valid");
     });
 
     it("mengembalikan 403 jika RLS menolak akses", async () => {
@@ -363,12 +380,16 @@ describe("Menu Items API: /api/admin/menu", () => {
       mockFrom
         .mockReturnValueOnce({
           update: () => ({
-            eq: () => Promise.resolve({ error: null }),
+            eq: () => ({
+              eq: () => Promise.resolve({ error: null }),
+            }),
           }),
         })
         .mockReturnValueOnce({
           update: () => ({
-            eq: () => Promise.resolve({ error: null }),
+            eq: () => ({
+              eq: () => Promise.resolve({ error: null }),
+            }),
           }),
         });
 
