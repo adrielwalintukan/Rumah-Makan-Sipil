@@ -19,14 +19,14 @@ on conflict do nothing;
 
 insert into public.categories (id, name, sort_order)
 values
-  ('c1111111-1111-1111-1111-111111111111'::uuid, 'Kategori Reorder A', 1),
-  ('c2222222-2222-2222-2222-222222222222'::uuid, 'Kategori Reorder B', 2);
+  ('11111111-1111-1111-1111-111111111111'::uuid, 'Kategori Reorder A', 1),
+  ('22222222-2222-2222-2222-222222222222'::uuid, 'Kategori Reorder B', 2);
 
 insert into public.menu_items (id, category_id, name, price, sort_order, is_active)
 values
-  ('m1111111-1111-1111-1111-111111111111'::uuid, 'c1111111-1111-1111-1111-111111111111'::uuid, 'Menu Reorder A', 10000, 1, true),
-  ('m2222222-2222-2222-2222-222222222222'::uuid, 'c1111111-1111-1111-1111-111111111111'::uuid, 'Menu Reorder B', 15000, 2, true),
-  ('m3333333-3333-3333-3333-333333333333'::uuid, 'c1111111-1111-1111-1111-111111111111'::uuid, 'Menu Reorder Inactive', 20000, 3, false);
+  ('33333333-3333-3333-3333-333333333333'::uuid, '11111111-1111-1111-1111-111111111111'::uuid, 'Menu Reorder A', 10000, 1, true),
+  ('44444444-4444-4444-4444-444444444444'::uuid, '11111111-1111-1111-1111-111111111111'::uuid, 'Menu Reorder B', 15000, 2, true),
+  ('55555555-5555-5555-5555-555555555555'::uuid, '11111111-1111-1111-1111-111111111111'::uuid, 'Menu Reorder Inactive', 20000, 3, false);
 
 -- ------------------------------------------------------------
 -- 1. Proteksi Hak Akses (Non-Pemilik Ditolak)
@@ -35,14 +35,14 @@ set local role authenticated;
 set local "request.jwt.claims" = '{"sub": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "role": "authenticated"}';
 
 select throws_ok(
-  $$select public.reorder_categories('[{"id":"c1111111-1111-1111-1111-111111111111","sort_order":5}]'::jsonb)$$,
+  $$select public.reorder_categories('[{"id":"11111111-1111-1111-1111-111111111111","sort_order":5}]'::jsonb)$$,
   '42501',
   null,
   'reorder_categories menolak eksekusi dari user non-pemilik'
 );
 
 select throws_ok(
-  $$select public.reorder_menu_items('[{"id":"m1111111-1111-1111-1111-111111111111","sort_order":5}]'::jsonb)$$,
+  $$select public.reorder_menu_items('[{"id":"33333333-3333-3333-3333-333333333333","sort_order":5}]'::jsonb)$$,
   '42501',
   null,
   'reorder_menu_items menolak eksekusi dari user non-pemilik'
@@ -54,12 +54,12 @@ select throws_ok(
 set local "request.jwt.claims" = '{"sub": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "role": "authenticated"}';
 
 select lives_ok(
-  $$select public.reorder_categories('[{"id":"c1111111-1111-1111-1111-111111111111","sort_order":10},{"id":"c2222222-2222-2222-2222-222222222222","sort_order":20}]'::jsonb)$$,
+  $$select public.reorder_categories('[{"id":"11111111-1111-1111-1111-111111111111","sort_order":10},{"id":"22222222-2222-2222-2222-222222222222","sort_order":20}]'::jsonb)$$,
   'reorder_categories berhasil dijalankan oleh pemilik'
 );
 
 select is(
-  (select sort_order from public.categories where id = 'c1111111-1111-1111-1111-111111111111'::uuid),
+  (select sort_order from public.categories where id = '11111111-1111-1111-1111-111111111111'::uuid),
   10,
   'sort_order kategori A terupdate menjadi 10'
 );
@@ -69,14 +69,14 @@ select is(
 -- ------------------------------------------------------------
 -- Coba update kategori A ke 99 bersamaan dengan ID fiktif
 select throws_ok(
-  $$select public.reorder_categories('[{"id":"c1111111-1111-1111-1111-111111111111","sort_order":99},{"id":"c9999999-9999-9999-9999-999999999999","sort_order":99}]'::jsonb)$$,
+  $$select public.reorder_categories('[{"id":"11111111-1111-1111-1111-111111111111","sort_order":99},{"id":"99999999-9999-9999-9999-999999999999","sort_order":99}]'::jsonb)$$,
   'P0002',
   null,
   'reorder_categories melempar error P0002 ketika menemukan ID tidak ada'
 );
 
 select is(
-  (select sort_order from public.categories where id = 'c1111111-1111-1111-1111-111111111111'::uuid),
+  (select sort_order from public.categories where id = '11111111-1111-1111-1111-111111111111'::uuid),
   10,
   'sort_order kategori A tetap 10 (seluruh transaksi di-rollback secara atomik)'
 );
@@ -85,13 +85,13 @@ select is(
 -- 4. Reorder Menu & Bukti Atomisitas Menu
 -- ------------------------------------------------------------
 select lives_ok(
-  $$select public.reorder_menu_items('[{"id":"m1111111-1111-1111-1111-111111111111","sort_order":10},{"id":"m2222222-2222-2222-2222-222222222222","sort_order":20}]'::jsonb)$$,
+  $$select public.reorder_menu_items('[{"id":"33333333-3333-3333-3333-333333333333","sort_order":10},{"id":"44444444-4444-4444-4444-444444444444","sort_order":20}]'::jsonb)$$,
   'reorder_menu_items berhasil dijalankan oleh pemilik'
 );
 
--- Coba update menu A ke 99 bersamaan dengan menu tidak aktif m3333333
+-- Coba update menu A ke 99 bersamaan dengan menu tidak aktif 55555555
 select throws_ok(
-  $$select public.reorder_menu_items('[{"id":"m1111111-1111-1111-1111-111111111111","sort_order":99},{"id":"m3333333-3333-3333-3333-333333333333","sort_order":99}]'::jsonb)$$,
+  $$select public.reorder_menu_items('[{"id":"33333333-3333-3333-3333-333333333333","sort_order":99},{"id":"55555555-5555-5555-5555-555555555555","sort_order":99}]'::jsonb)$$,
   'P0002',
   null,
   'reorder_menu_items melempar P0002 jika ada menu yang tidak aktif / tidak ditemukan'
