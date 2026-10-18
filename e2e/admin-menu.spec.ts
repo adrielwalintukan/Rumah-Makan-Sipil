@@ -193,7 +193,7 @@ test("alur kelola menu: CRUD kategori & menu, urutan, toggle habis, dan hapus lu
   await expect(customerCardHabis).toBeVisible();
   await expect(customerCardHabis.getByText("Habis")).toBeVisible();
   await expect(customerCardHabis.getByRole("button", { name: `Tambah ${MENU_NAME}` })).not.toBeVisible();
-  await expect(customerCardHabis.getByRole("button", { name: MENU_NAME })).toBeDisabled();
+  await expect(customerCardHabis.getByRole("button", { name: MENU_NAME, exact: true })).toBeDisabled();
 
   // Kembali ke /admin/menu, ubah status ketersediaan kembali menjadi Tersedia
   await page.goto("/admin/menu");
@@ -209,7 +209,8 @@ test("alur kelola menu: CRUD kategori & menu, urutan, toggle habis, dan hapus lu
   const customerCardTersedia = page.locator("article[data-testid='menu-card']").filter({ hasText: MENU_NAME });
   await expect(customerCardTersedia).toBeVisible();
   await expect(customerCardTersedia.getByRole("button", { name: `Tambah ${MENU_NAME}` })).toBeVisible();
-  await expect(customerCardTersedia.getByRole("button", { name: MENU_NAME })).toBeEnabled();
+  await expect(customerCardTersedia.getByRole("button", { name: `Tambah ${MENU_NAME}` })).toBeEnabled();
+  await expect(customerCardTersedia.getByRole("button", { name: MENU_NAME, exact: true })).toBeEnabled();
 
   // -------------------------------------------------------------
   // 5. Ubah Menu & Hapus Lunak (Soft Delete)
