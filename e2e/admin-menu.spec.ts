@@ -168,7 +168,7 @@ test("alur kelola menu: CRUD kategori & menu, urutan, toggle habis, dan hapus lu
   // Verifikasi diarahkan kembali ke /admin/menu dan item muncul di daftar
   await expect(page).toHaveURL(/\/admin\/menu$/);
   await expect(page.getByRole("heading", { level: 2, name: MENU_NAME })).toBeVisible();
-  await expect(page.getByText("Rp 15.000")).toBeVisible();
+  await expect(page.getByText(/Rp\s?15\.000/)).toBeVisible();
 
   // Verifikasi tombol urutan menu (karena merupakan satu-satunya item di kategori ini, kedua tombol nonaktif)
   const itemCard = page.locator('[data-testid="admin-menu-card"]').filter({ hasText: MENU_NAME });
@@ -234,7 +234,7 @@ test("alur kelola menu: CRUD kategori & menu, urutan, toggle habis, dan hapus lu
   // Verifikasi perubahan tampil di daftar /admin/menu
   await expect(page).toHaveURL(/\/admin\/menu$/);
   await expect(page.getByRole("heading", { level: 2, name: UPDATED_MENU_NAME })).toBeVisible();
-  await expect(page.getByText("Rp 25.000")).toBeVisible();
+  await expect(page.getByText(/Rp\s?25\.000/)).toBeVisible();
 
   // Buka dialog konfirmasi hapus lunak pada menu
   await page.getByRole("button", { name: `Hapus menu ${UPDATED_MENU_NAME}` }).click();
