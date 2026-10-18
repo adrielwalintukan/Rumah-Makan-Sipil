@@ -116,6 +116,81 @@ describe("admin-menu-schemas", () => {
       }
     });
 
+    it("menerima image_path yang valid (path relatif), null, atau undefined", () => {
+      const base = {
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+      };
+
+      const resValid = menuItemSchema.safeParse({
+        ...base,
+        image_path: "items/cotto.webp",
+      });
+      expect(resValid.success).toBe(true);
+      if (resValid.success) {
+        expect(resValid.data.image_path).toBe("items/cotto.webp");
+      }
+
+      const resNull = menuItemSchema.safeParse({
+        ...base,
+        image_path: null,
+      });
+      expect(resNull.success).toBe(true);
+      if (resNull.success) {
+        expect(resNull.data.image_path).toBeNull();
+      }
+
+      const resUndefined = menuItemSchema.safeParse({
+        ...base,
+      });
+      expect(resUndefined.success).toBe(true);
+      if (resUndefined.success) {
+        expect(resUndefined.data.image_path).toBeUndefined();
+      }
+    });
+
+    it("melakukan trim pada image_path", () => {
+      const res = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        image_path: "   items/cotto.webp   ",
+      });
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.image_path).toBe("items/cotto.webp");
+      }
+    });
+
+    it("menolak image_path yang melebihi 255 karakter", () => {
+      const res = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        image_path: "a".repeat(256),
+      });
+      expect(res.success).toBe(false);
+    });
+
+    it("menolak image_path dengan tipe data salah (bukan string atau null/undefined)", () => {
+      const resNumber = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        image_path: 12345,
+      });
+      expect(resNumber.success).toBe(false);
+
+      const resObject = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        image_path: { url: "items/cotto.webp" },
+      });
+      expect(resObject.success).toBe(false);
+    });
+
     it("menolak properti asing yang tidak dikenal (strict mode)", () => {
       const res = menuItemSchema.safeParse({
         category_id: "a0000000-0000-0000-0000-000000000001",
