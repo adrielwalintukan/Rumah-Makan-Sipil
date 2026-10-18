@@ -576,6 +576,7 @@ export function MenuItemForm({
           </div>
 
           <input
+            id="menu-photo-input"
             ref={fileInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
