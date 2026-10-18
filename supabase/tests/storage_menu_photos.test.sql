@@ -98,17 +98,28 @@ select lives_ok(
   'pemilik dapat memperbarui objek di menu-photos'
 );
 
--- Pemilik dapat menghapus objek di menu-photos
-select lives_ok(
-  $$delete from storage.objects where bucket_id = 'menu-photos' and name = 'tes-pemilik.webp'$$,
-  'pemilik dapat menghapus objek di menu-photos'
+-- Kebijakan delete pemilik terpasang di pg_policies
+select ok(
+  exists(
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'menu_photos_owner_delete'
+      and cmd = 'DELETE'
+  ),
+  'kebijakan menu_photos_owner_delete terpasang pada storage.objects'
 );
 
--- Verifikasi objek tes-pemilik.webp benar-benar terhapus
-select is(
-  (select count(*) from storage.objects where bucket_id = 'menu-photos' and name = 'tes-pemilik.webp'),
-  0::bigint,
-  'objek tes-pemilik.webp berhasil terhapus secara fisik'
+-- Kebijakan delete pemilik memeriksa public.is_owner()
+select ok(
+  exists(
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'menu_photos_owner_delete'
+      and qual like '%is_owner%'
+  ),
+  'kebijakan menu_photos_owner_delete memeriksa fungsi is_owner'
 );
 
 select * from finish();

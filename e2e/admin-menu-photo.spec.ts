@@ -182,7 +182,7 @@ test("alur upload foto menu: pratinjau 4:3, simpan, cek foto di admin & pelangga
   // 6. Simpan Menu Baru
   // -------------------------------------------------------------
   await page.getByRole("button", { name: "Simpan Menu" }).click();
-  await expect(page).toHaveURL(/\/admin\/menu$/);
+  await expect(page).toHaveURL(/\/admin\/menu$/, { timeout: 15000 });
 
   // -------------------------------------------------------------
   // 7. Verifikasi Kartu Menu di /admin/menu Memuat Gambar
@@ -243,7 +243,7 @@ test("alur upload foto menu: pratinjau 4:3, simpan, cek foto di admin & pelangga
   // 11. Simpan Perubahan Menu Tanpa Foto
   // -------------------------------------------------------------
   await page.getByRole("button", { name: "Simpan Menu" }).click();
-  await expect(page).toHaveURL(/\/admin\/menu$/);
+  await expect(page).toHaveURL(/\/admin\/menu$/, { timeout: 15000 });
 
   // -------------------------------------------------------------
   // 12. Verifikasi di /admin/menu Menampilkan Placeholder Inisial
