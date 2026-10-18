@@ -87,6 +87,21 @@ export async function POST(request: Request) {
 
   try {
     const supabase = await createServerSupabaseClient();
+
+    let sortOrder = parseResult.data.sort_order;
+    if (sortOrder === undefined) {
+      const { data: maxItem } = await supabase
+        .from("menu_items")
+        .select("sort_order")
+        .eq("category_id", parseResult.data.category_id)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      sortOrder = maxItem?.sort_order !== undefined ? maxItem.sort_order + 1 : 0;
+    }
+
     const { data, error } = await supabase
       .from("menu_items")
       .insert({
@@ -95,7 +110,7 @@ export async function POST(request: Request) {
         description: parseResult.data.description,
         price: parseResult.data.price,
         is_available: parseResult.data.is_available,
-        sort_order: parseResult.data.sort_order,
+        sort_order: sortOrder,
         is_active: true,
       })
       .select("*, category:categories(id, name)")

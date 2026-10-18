@@ -134,13 +134,16 @@ export function MenuItemForm({
     setIsSubmitting(true);
 
     try {
+      const isCategoryChanged =
+        initialData !== undefined && categoryId !== initialData.category_id;
+
       const payload = {
         category_id: categoryId,
         name: name.trim(),
         description: description.trim(),
         price: numPrice,
         is_available: isAvailable,
-        ...(initialData?.sort_order !== undefined
+        ...(initialData?.sort_order !== undefined && !isCategoryChanged
           ? { sort_order: initialData.sort_order }
           : {}),
       };

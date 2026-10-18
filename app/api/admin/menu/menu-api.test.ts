@@ -315,6 +315,114 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/menu");
     });
 
+    it("menentukan sort_order otomatis di akhir daftar jika tidak disediakan pada menu baru", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+
+      // Query max sort_order yang sudah ada (misal 4)
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: { sort_order: 4 },
+                      error: null,
+                    }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      let insertedPayload: Record<string, unknown> | null = null;
+      mockFrom.mockReturnValueOnce({
+        insert: (insertData: Record<string, unknown>) => {
+          insertedPayload = insertData;
+          return {
+            select: () => ({
+              single: () =>
+                Promise.resolve({
+                  data: { id: validMenuId, ...insertData, is_active: true },
+                  error: null,
+                }),
+            }),
+          };
+        },
+      });
+
+      const payloadWithoutSortOrder = {
+        category_id: validPayload.category_id,
+        name: validPayload.name,
+        description: validPayload.description,
+        price: validPayload.price,
+        is_available: validPayload.is_available,
+      };
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadWithoutSortOrder),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(201);
+      expect(insertedPayload).not.toBeNull();
+      expect(insertedPayload!.sort_order).toBe(5);
+    });
+
+    it("menentukan sort_order 0 jika kategori belum memiliki menu aktif", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+
+      // Kategori kosong (tidak ada menu aktif)
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: () => Promise.resolve({ data: null, error: null }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      let insertedPayload: Record<string, unknown> | null = null;
+      mockFrom.mockReturnValueOnce({
+        insert: (insertData: Record<string, unknown>) => {
+          insertedPayload = insertData;
+          return {
+            select: () => ({
+              single: () =>
+                Promise.resolve({
+                  data: { id: validMenuId, ...insertData, is_active: true },
+                  error: null,
+                }),
+            }),
+          };
+        },
+      });
+
+      const payloadWithoutSortOrder = {
+        category_id: validPayload.category_id,
+        name: validPayload.name,
+        description: validPayload.description,
+        price: validPayload.price,
+        is_available: validPayload.is_available,
+      };
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadWithoutSortOrder),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(201);
+      expect(insertedPayload).not.toBeNull();
+      expect(insertedPayload!.sort_order).toBe(0);
+    });
+
     it("mengembalikan 403 jika RLS menolak insert", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
       mockFrom.mockReturnValueOnce({
@@ -706,6 +814,131 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(res.status).toBe(404);
       const json = await res.json();
       expect(json.error).toContain("Menu tidak ditemukan");
+    });
+
+    it("menentukan sort_order otomatis di akhir kategori tujuan saat memindahkan kategori tanpa sort_order eksplisit (200)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const targetCatId = "a0000000-0000-0000-0000-000000000099";
+
+      // 1. Ambil data menu saat ini (category_id lama)
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { category_id: validCatId },
+                  error: null,
+                }),
+            }),
+          }),
+        }),
+      });
+
+      // 2. Ambil max sort_order dari kategori tujuan (misal 7)
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: { sort_order: 7 },
+                      error: null,
+                    }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      // 3. Jalankan update dengan sort_order: 8
+      let updatedPayload: Record<string, unknown> | null = null;
+      mockFrom.mockReturnValueOnce({
+        update: (payload: Record<string, unknown>) => {
+          updatedPayload = payload;
+          return {
+            eq: () => ({
+              eq: () => ({
+                select: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: {
+                        id: validMenuId,
+                        category_id: targetCatId,
+                        sort_order: payload.sort_order,
+                      },
+                      error: null,
+                    }),
+                }),
+              }),
+            }),
+          };
+        },
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: targetCatId }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(updatedPayload).toEqual({
+        category_id: targetCatId,
+        sort_order: 8,
+      });
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/menu");
+    });
+
+    it("mempertahankan sort_order eksplisit jika disertakan saat memindahkan kategori (200)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const targetCatId = "a0000000-0000-0000-0000-000000000099";
+
+      let updatedPayload: Record<string, unknown> | null = null;
+      mockFrom.mockReturnValueOnce({
+        update: (payload: Record<string, unknown>) => {
+          updatedPayload = payload;
+          return {
+            eq: () => ({
+              eq: () => ({
+                select: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: {
+                        id: validMenuId,
+                        category_id: targetCatId,
+                        sort_order: 2,
+                      },
+                      error: null,
+                    }),
+                }),
+              }),
+            }),
+          };
+        },
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: targetCatId, sort_order: 2 }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(updatedPayload).toEqual({
+        category_id: targetCatId,
+        sort_order: 2,
+      });
     });
   });
 

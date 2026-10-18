@@ -24,11 +24,11 @@ describe("admin-menu-schemas", () => {
       expect(res.success).toBe(false);
     });
 
-    it("memberikan default sort_order = 0 jika tidak disediakan", () => {
+    it("membiarkan sort_order undefined jika tidak disediakan", () => {
       const res = categorySchema.safeParse({ name: "Minuman" });
       expect(res.success).toBe(true);
       if (res.success) {
-        expect(res.data.sort_order).toBe(0);
+        expect(res.data.sort_order).toBeUndefined();
       }
     });
 
@@ -102,7 +102,7 @@ describe("admin-menu-schemas", () => {
       expect(resTooLong.success).toBe(false);
     });
 
-    it("mengisi nilai default untuk description, is_available, dan sort_order", () => {
+    it("mengisi nilai default untuk description dan is_available, serta membiarkan sort_order opsional", () => {
       const res = menuItemSchema.safeParse({
         category_id: "a0000000-0000-0000-0000-000000000001",
         name: "Es Teh Manis",
@@ -112,7 +112,7 @@ describe("admin-menu-schemas", () => {
       if (res.success) {
         expect(res.data.description).toBe("");
         expect(res.data.is_available).toBe(true);
-        expect(res.data.sort_order).toBe(0);
+        expect(res.data.sort_order).toBeUndefined();
       }
     });
 

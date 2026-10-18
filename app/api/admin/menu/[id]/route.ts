@@ -165,6 +165,49 @@ export async function PATCH(
 
   try {
     const supabase = await createServerSupabaseClient();
+
+    // Jika category_id diubah dan sort_order tidak ditentukan secara eksplisit di request,
+    // tempatkan menu di akhir daftar kategori tujuan (max(sort_order) + 1)
+    if (updateData.category_id && !("sort_order" in rawBody)) {
+      const { data: currentItem, error: fetchErr } = await supabase
+        .from("menu_items")
+        .select("category_id")
+        .eq("id", id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (fetchErr) {
+        if (fetchErr.code === "42501") {
+          return NextResponse.json(
+            { error: "Akun ini tidak memiliki hak akses pemilik." },
+            { status: 403 }
+          );
+        }
+        return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+      }
+
+      if (!currentItem) {
+        return NextResponse.json(
+          { error: "Menu tidak ditemukan." },
+          { status: 404 }
+        );
+      }
+
+      if (updateData.category_id !== currentItem.category_id) {
+        const { data: maxItem } = await supabase
+          .from("menu_items")
+          .select("sort_order")
+          .eq("category_id", updateData.category_id)
+          .eq("is_active", true)
+          .order("sort_order", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        updateData.sort_order =
+          maxItem?.sort_order !== undefined ? maxItem.sort_order + 1 : 0;
+      }
+    }
+
     const { data, error } = await supabase
       .from("menu_items")
       .update(updateData)
