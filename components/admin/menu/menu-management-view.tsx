@@ -27,6 +27,7 @@ import {
 import { CategoryDialog } from "@/components/admin/menu/category-dialog";
 import { MenuPhoto } from "@/components/pelanggan/menu-photo";
 import { formatRupiah } from "@/lib/format";
+import { getMenuPhotoUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 export interface AdminMenuItem {
@@ -149,19 +150,6 @@ export function MenuManagementView({
       (item) => item.category_id === activeCategoryId
     );
   }, [sortedMenuItems, activeCategoryId]);
-
-  // URL foto menu
-  const getImageUrl = (imagePath?: string | null) => {
-    if (!imagePath) return null;
-    if (imagePath.startsWith("http") || imagePath.startsWith("/")) {
-      return imagePath;
-    }
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (supabaseUrl) {
-      return `${supabaseUrl}/storage/v1/object/public/menu-photos/${imagePath}`;
-    }
-    return `/menu-photos/${imagePath}`;
-  };
 
   // Re-fetch kategori dan menu ketika dialog kategori ditutup dengan perubahan
   const handleCategoriesUpdated = async () => {
@@ -553,7 +541,7 @@ export function MenuManagementView({
             const isLastInCategory =
               itemCatIndex === categoryItems.length - 1;
 
-            const imageUrl = getImageUrl(item.image_path);
+            const imageUrl = getMenuPhotoUrl(item.image_path);
             const categoryName = item.category?.name ?? "";
             const isToggling = togglingId === item.id;
 

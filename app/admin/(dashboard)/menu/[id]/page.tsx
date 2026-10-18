@@ -34,7 +34,7 @@ async function EditMenuLoader({ params }: PageProps) {
       supabase
         .from("menu_items")
         .select(
-          "id, category_id, name, description, price, is_available, sort_order"
+          "id, category_id, name, description, price, image_path, is_available, sort_order"
         )
         .eq("id", id)
         .eq("is_active", true)
@@ -56,6 +56,7 @@ async function EditMenuLoader({ params }: PageProps) {
     name: menuItem.name,
     description: menuItem.description ?? "",
     price: menuItem.price,
+    image_path: menuItem.image_path ?? null,
     is_available: menuItem.is_available,
     sort_order: menuItem.sort_order,
   };
