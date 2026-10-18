@@ -68,7 +68,9 @@ export function CategoryDialog({
   }
 
   const sortedCategories = React.useMemo(() => {
-    return [...categories].sort((a, b) => a.sort_order - b.sort_order);
+    return [...categories].sort(
+      (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)
+    );
   }, [categories]);
 
   const isBusy = isAdding || isReordering || isSavingEdit || isDeleting;
