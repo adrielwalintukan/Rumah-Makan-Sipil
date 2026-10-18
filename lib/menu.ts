@@ -29,7 +29,8 @@ export type StoreSettings = {
 };
 export type Menu = { categories: Category[]; settings: StoreSettings };
 
-const bySort = <T extends { sort_order: number }>(a: T, b: T) => a.sort_order - b.sort_order;
+const bySort = <T extends { sort_order: number; name?: string }>(a: T, b: T) =>
+  a.sort_order - b.sort_order || (a.name ?? "").localeCompare(b.name ?? "");
 
 /** Menu aktif + pengaturan toko, selalu segar (toggle Habis/Buka harus langsung terlihat). */
 export async function getMenu(): Promise<Menu> {

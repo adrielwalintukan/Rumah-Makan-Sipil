@@ -43,7 +43,7 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 **Selesai jika**: alur E2E lengkap (pesan di HP A → bunyi di HP B → Lunas → Siap → HP A menampilkan "Siap") lulus di Playwright dan di HP sungguhan.
 
 ### M4 — Kelola menu & pengaturan (D6, D11)
-- [ ] CRUD kategori & menu, urutan, toggle Habis
+- [x] CRUD kategori & menu, urutan, toggle Habis
 - [ ] Upload foto (crop 4:3 + kompres di browser)
 - [ ] Editor grup pilihan & opsi
 - [ ] Pengaturan: QRIS, WhatsApp, nama/tagline, harga Dos, ganti password
