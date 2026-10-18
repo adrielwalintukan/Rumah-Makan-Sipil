@@ -167,11 +167,12 @@ test("alur kelola menu: CRUD kategori & menu, urutan, toggle habis, dan hapus lu
 
   // Verifikasi diarahkan kembali ke /admin/menu dan item muncul di daftar
   await expect(page).toHaveURL(/\/admin\/menu$/);
-  await expect(page.getByRole("heading", { level: 2, name: MENU_NAME })).toBeVisible();
-  await expect(page.getByText(/Rp\s?15\.000/)).toBeVisible();
+  const itemCard = page.locator('[data-testid="admin-menu-card"]').filter({ hasText: MENU_NAME });
+  await expect(itemCard).toBeVisible();
+  await expect(itemCard.getByRole("heading", { level: 2, name: MENU_NAME })).toBeVisible();
+  await expect(itemCard.getByText(/Rp\s?15\.000/)).toBeVisible();
 
   // Verifikasi tombol urutan menu (karena merupakan satu-satunya item di kategori ini, kedua tombol nonaktif)
-  const itemCard = page.locator('[data-testid="admin-menu-card"]').filter({ hasText: MENU_NAME });
   await expect(itemCard.getByRole("button", { name: `Pindahkan menu ${MENU_NAME} ke atas` })).toBeDisabled();
   await expect(itemCard.getByRole("button", { name: `Pindahkan menu ${MENU_NAME} ke bawah` })).toBeDisabled();
 
@@ -233,8 +234,10 @@ test("alur kelola menu: CRUD kategori & menu, urutan, toggle habis, dan hapus lu
 
   // Verifikasi perubahan tampil di daftar /admin/menu
   await expect(page).toHaveURL(/\/admin\/menu$/);
-  await expect(page.getByRole("heading", { level: 2, name: UPDATED_MENU_NAME })).toBeVisible();
-  await expect(page.getByText(/Rp\s?25\.000/)).toBeVisible();
+  const updatedItemCard = page.locator('[data-testid="admin-menu-card"]').filter({ hasText: UPDATED_MENU_NAME });
+  await expect(updatedItemCard).toBeVisible();
+  await expect(updatedItemCard.getByRole("heading", { level: 2, name: UPDATED_MENU_NAME })).toBeVisible();
+  await expect(updatedItemCard.getByText(/Rp\s?25\.000/)).toBeVisible();
 
   // Buka dialog konfirmasi hapus lunak pada menu
   await page.getByRole("button", { name: `Hapus menu ${UPDATED_MENU_NAME}` }).click();
