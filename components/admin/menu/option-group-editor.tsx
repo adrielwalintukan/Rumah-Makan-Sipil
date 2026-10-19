@@ -42,11 +42,11 @@ export interface OptionGroupEditorProps {
   groups: OptionGroupFormData[];
   onChange: (groups: OptionGroupFormData[]) => void;
   disabled?: boolean;
-  errors?: Record<string, string>;
+  errors?: Record<string, string | undefined>;
 }
 
 function getFieldError(
-  errors: Record<string, string> | undefined,
+  errors: Record<string, string | undefined> | undefined,
   keys: string[]
 ): string | undefined {
   if (!errors) return undefined;
@@ -88,7 +88,11 @@ export function OptionGroupEditor({
     const group = groups[groupIndex];
     if (!group) return;
 
-    if (group.options && group.options.length > 0) {
+    const hasNonEmptyOptions = group.options?.some(
+      (opt) => opt.name.trim().length > 0 || opt.price_delta > 0
+    );
+
+    if (hasNonEmptyOptions) {
       setGroupToDelete(groupIndex);
     } else {
       handleDeleteGroupDirectly(groupIndex);
@@ -624,16 +628,16 @@ export function OptionGroupEditor({
                                   inputMode="numeric"
                                   pattern="[0-9]*"
                                   placeholder="0"
+                                  maxLength={8}
                                   value={
                                     option.price_delta === 0
                                       ? ""
                                       : option.price_delta.toString()
                                   }
                                   onChange={(e) => {
-                                    const cleaned = e.target.value.replace(
-                                      /\D/g,
-                                      ""
-                                    );
+                                    const cleaned = e.target.value
+                                      .replace(/\D/g, "")
+                                      .slice(0, 8);
                                     const val =
                                       cleaned === ""
                                         ? 0

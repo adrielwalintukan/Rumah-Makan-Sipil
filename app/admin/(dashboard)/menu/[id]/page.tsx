@@ -34,7 +34,7 @@ async function EditMenuLoader({ params }: PageProps) {
       supabase
         .from("menu_items")
         .select(
-          "id, category_id, name, description, price, image_path, is_available, sort_order"
+          "id, category_id, name, description, price, image_path, is_available, sort_order, option_groups(id, name, type, required, sort_order, options(id, name, price_delta, is_available, sort_order))"
         )
         .eq("id", id)
         .eq("is_active", true)
@@ -50,6 +50,59 @@ async function EditMenuLoader({ params }: PageProps) {
     notFound();
   }
 
+  type RawOption = {
+    id: string;
+    name: string;
+    price_delta: number;
+    is_available: boolean;
+    sort_order: number;
+  };
+
+  type RawOptionGroup = {
+    id: string;
+    name: string;
+    type: "single" | "multiple";
+    required: boolean;
+    sort_order: number;
+    options: RawOption[];
+  };
+
+  const rawGroups = (menuItem.option_groups ?? []) as unknown as RawOptionGroup[];
+
+  const sortedOptionGroups = Array.isArray(rawGroups)
+    ? [...rawGroups]
+        .sort((a, b) => {
+          if (a.sort_order !== b.sort_order) {
+            return a.sort_order - b.sort_order;
+          }
+          return (a.name || "").localeCompare(b.name || "");
+        })
+        .map((group) => {
+          const rawOptions = (group.options ?? []) as RawOption[];
+          const sortedOptions = [...rawOptions].sort((a, b) => {
+            if (a.sort_order !== b.sort_order) {
+              return a.sort_order - b.sort_order;
+            }
+            return (a.name || "").localeCompare(b.name || "");
+          });
+
+          return {
+            id: group.id,
+            name: group.name,
+            type: group.type,
+            required: group.required,
+            sort_order: group.sort_order,
+            options: sortedOptions.map((opt) => ({
+              id: opt.id,
+              name: opt.name,
+              price_delta: opt.price_delta,
+              is_available: opt.is_available,
+              sort_order: opt.sort_order,
+            })),
+          };
+        })
+    : [];
+
   const initialData: MenuItemFormData = {
     id: menuItem.id,
     category_id: menuItem.category_id,
@@ -59,6 +112,7 @@ async function EditMenuLoader({ params }: PageProps) {
     image_path: menuItem.image_path ?? null,
     is_available: menuItem.is_available,
     sort_order: menuItem.sort_order,
+    option_groups: sortedOptionGroups,
   };
 
   return (
