@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   categorySchema,
   menuItemSchema,
+  menuItemWithGroupsSchema,
+  optionGroupSchema,
+  optionSchema,
   quickToggleAvailabilitySchema,
   reorderSchema,
 } from "./admin-menu-schemas";
@@ -334,6 +337,396 @@ describe("admin-menu-schemas", () => {
         items: [{ id: "a0000000-0000-0000-0000-000000000001", sort_order: 0, extra_item: "foo" }],
       });
       expect(resItemExtra.success).toBe(false);
+    });
+  });
+
+  describe("optionSchema", () => {
+    it("memvalidasi opsi lengkap dengan id dan seluruh field valid", () => {
+      const valid = {
+        id: "b0000000-0000-0000-0000-000000000001",
+        name: "Dingin",
+        price_delta: 2000,
+        is_available: true,
+        sort_order: 1,
+      };
+      const res = optionSchema.safeParse(valid);
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.id).toBe("b0000000-0000-0000-0000-000000000001");
+        expect(res.data.name).toBe("Dingin");
+        expect(res.data.price_delta).toBe(2000);
+        expect(res.data.is_available).toBe(true);
+        expect(res.data.sort_order).toBe(1);
+      }
+    });
+
+    it("mengisi nilai default untuk price_delta (0), is_available (true), sort_order (0), dan membiarkan id undefined", () => {
+      const res = optionSchema.safeParse({ name: "Panas" });
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.id).toBeUndefined();
+        expect(res.data.name).toBe("Panas");
+        expect(res.data.price_delta).toBe(0);
+        expect(res.data.is_available).toBe(true);
+        expect(res.data.sort_order).toBe(0);
+      }
+    });
+
+    it("melakukan trim pada nama opsi", () => {
+      const res = optionSchema.safeParse({ name: "   Sedang   " });
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.name).toBe("Sedang");
+      }
+    });
+
+    it("menolak nama opsi kosong atau hanya whitespace", () => {
+      const resEmpty = optionSchema.safeParse({ name: "" });
+      expect(resEmpty.success).toBe(false);
+
+      const resWhitespace = optionSchema.safeParse({ name: "   " });
+      expect(resWhitespace.success).toBe(false);
+    });
+
+    it("menolak nama opsi melebihi 50 karakter", () => {
+      const res = optionSchema.safeParse({ name: "A".repeat(51) });
+      expect(res.success).toBe(false);
+    });
+
+    it("menolak price_delta negatif atau desimal", () => {
+      const resNeg = optionSchema.safeParse({ name: "Dingin", price_delta: -1000 });
+      expect(resNeg.success).toBe(false);
+
+      const resFloat = optionSchema.safeParse({ name: "Dingin", price_delta: 1500.5 });
+      expect(resFloat.success).toBe(false);
+    });
+
+    it("menolak sort_order negatif atau desimal", () => {
+      const resNeg = optionSchema.safeParse({ name: "Dingin", sort_order: -1 });
+      expect(resNeg.success).toBe(false);
+
+      const resFloat = optionSchema.safeParse({ name: "Dingin", sort_order: 1.5 });
+      expect(resFloat.success).toBe(false);
+    });
+
+    it("menolak id yang bukan UUID", () => {
+      const res = optionSchema.safeParse({ id: "invalid-uuid", name: "Dingin" });
+      expect(res.success).toBe(false);
+    });
+
+    it("menolak properti asing yang tidak dikenal (strict mode)", () => {
+      const res = optionSchema.safeParse({
+        name: "Dingin",
+        extra: "not-allowed",
+      });
+      expect(res.success).toBe(false);
+    });
+  });
+
+  describe("optionGroupSchema", () => {
+    const validOption = {
+      name: "Panas",
+      price_delta: 0,
+      is_available: true,
+      sort_order: 0,
+    };
+
+    it("memvalidasi grup lengkap dengan id dan tipe single", () => {
+      const valid = {
+        id: "c0000000-0000-0000-0000-000000000001",
+        name: "Suhu Minuman",
+        type: "single",
+        required: true,
+        sort_order: 1,
+        options: [
+          validOption,
+          { name: "Dingin", price_delta: 2000, is_available: true, sort_order: 1 },
+        ],
+      };
+      const res = optionGroupSchema.safeParse(valid);
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.name).toBe("Suhu Minuman");
+        expect(res.data.type).toBe("single");
+        expect(res.data.required).toBe(true);
+        expect(res.data.sort_order).toBe(1);
+        expect(res.data.options).toHaveLength(2);
+      }
+    });
+
+    it("memvalidasi grup dengan tipe multiple", () => {
+      const valid = {
+        name: "Topping Tambahan",
+        type: "multiple",
+        options: [
+          { name: "Keju", price_delta: 3000 },
+          { name: "Cokelat", price_delta: 2000 },
+        ],
+      };
+      const res = optionGroupSchema.safeParse(valid);
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.type).toBe("multiple");
+      }
+    });
+
+    it("mengisi nilai default untuk required (false), sort_order (0), dan membiarkan id undefined", () => {
+      const res = optionGroupSchema.safeParse({
+        name: "Varian",
+        type: "single",
+        options: [validOption],
+      });
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.id).toBeUndefined();
+        expect(res.data.required).toBe(false);
+        expect(res.data.sort_order).toBe(0);
+      }
+    });
+
+    it("melakukan trim pada nama grup", () => {
+      const res = optionGroupSchema.safeParse({
+        name: "   Suhu Minuman   ",
+        type: "single",
+        options: [validOption],
+      });
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.name).toBe("Suhu Minuman");
+      }
+    });
+
+    it("menolak nama grup kosong atau melebihi 50 karakter", () => {
+      const resEmpty = optionGroupSchema.safeParse({
+        name: "   ",
+        type: "single",
+        options: [validOption],
+      });
+      expect(resEmpty.success).toBe(false);
+
+      const resTooLong = optionGroupSchema.safeParse({
+        name: "A".repeat(51),
+        type: "single",
+        options: [validOption],
+      });
+      expect(resTooLong.success).toBe(false);
+    });
+
+    it("menolak tipe grup selain single atau multiple", () => {
+      const res = optionGroupSchema.safeParse({
+        name: "Varian",
+        type: "dropdown",
+        options: [validOption],
+      });
+      expect(res.success).toBe(false);
+    });
+
+    it("menolak grup tanpa opsi (array kosong)", () => {
+      const res = optionGroupSchema.safeParse({
+        name: "Varian",
+        type: "single",
+        options: [],
+      });
+      expect(res.success).toBe(false);
+    });
+
+    it("menolak jika options tidak didefinisikan", () => {
+      const res = optionGroupSchema.safeParse({
+        name: "Varian",
+        type: "single",
+      });
+      expect(res.success).toBe(false);
+    });
+
+    it("menolak nama opsi duplikat dalam satu grup (case-insensitive & trim)", () => {
+      const resExact = optionGroupSchema.safeParse({
+        name: "Varian",
+        type: "single",
+        options: [
+          { name: "Manis" },
+          { name: "Manis" },
+        ],
+      });
+      expect(resExact.success).toBe(false);
+
+      const resCase = optionGroupSchema.safeParse({
+        name: "Varian",
+        type: "single",
+        options: [
+          { name: "Dingin" },
+          { name: "   dingin   " },
+        ],
+      });
+      expect(resCase.success).toBe(false);
+    });
+
+    it("menerima opsi dengan nama berbeda dalam satu grup", () => {
+      const res = optionGroupSchema.safeParse({
+        name: "Varian",
+        type: "single",
+        options: [
+          { name: "Dingin" },
+          { name: "Panas" },
+        ],
+      });
+      expect(res.success).toBe(true);
+    });
+
+    it("menolak properti asing yang tidak dikenal (strict mode)", () => {
+      const res = optionGroupSchema.safeParse({
+        name: "Varian",
+        type: "single",
+        options: [validOption],
+        extra: "not-allowed",
+      });
+      expect(res.success).toBe(false);
+    });
+  });
+
+  describe("menuItemWithGroupsSchema", () => {
+    const baseItem = {
+      category_id: "a0000000-0000-0000-0000-000000000001",
+      name: "Kopi Tubruk",
+      description: "Kopi hitam khas nusantara",
+      price: 10000,
+      is_available: true,
+      sort_order: 0,
+    };
+
+    it("memvalidasi menu tanpa option_groups dan memberi default array kosong", () => {
+      const res = menuItemWithGroupsSchema.safeParse(baseItem);
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.option_groups).toEqual([]);
+      }
+    });
+
+    it("memvalidasi menu dengan option_groups array kosong", () => {
+      const res = menuItemWithGroupsSchema.safeParse({
+        ...baseItem,
+        option_groups: [],
+      });
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.option_groups).toEqual([]);
+      }
+    });
+
+    it("memvalidasi menu lengkap dengan grup pilihan dan opsi", () => {
+      const res = menuItemWithGroupsSchema.safeParse({
+        ...baseItem,
+        option_groups: [
+          {
+            name: "Varian Suhu",
+            type: "single",
+            required: true,
+            options: [
+              { name: "Panas", price_delta: 0 },
+              { name: "Dingin", price_delta: 2000 },
+            ],
+          },
+          {
+            name: "Level Manis",
+            type: "single",
+            required: false,
+            options: [
+              { name: "Normal", price_delta: 0 },
+              { name: "Less Sugar", price_delta: 0 },
+            ],
+          },
+        ],
+      });
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.option_groups).toHaveLength(2);
+        expect(res.data.option_groups[0].options).toHaveLength(2);
+      }
+    });
+
+    it("menolak menu dengan nama grup pilihan duplikat (case-insensitive & trim)", () => {
+      const resExact = menuItemWithGroupsSchema.safeParse({
+        ...baseItem,
+        option_groups: [
+          {
+            name: "Level Pedas",
+            type: "single",
+            options: [{ name: "Sedang" }],
+          },
+          {
+            name: "Level Pedas",
+            type: "single",
+            options: [{ name: "Pedas Sekali" }],
+          },
+        ],
+      });
+      expect(resExact.success).toBe(false);
+
+      const resCase = menuItemWithGroupsSchema.safeParse({
+        ...baseItem,
+        option_groups: [
+          {
+            name: "Varian Suhu",
+            type: "single",
+            options: [{ name: "Panas" }],
+          },
+          {
+            name: "   varian suhu   ",
+            type: "single",
+            options: [{ name: "Dingin" }],
+          },
+        ],
+      });
+      expect(resCase.success).toBe(false);
+    });
+
+    it("mengizinkan nama opsi yang sama pada grup pilihan yang berbeda", () => {
+      const res = menuItemWithGroupsSchema.safeParse({
+        ...baseItem,
+        option_groups: [
+          {
+            name: "Level Pedas",
+            type: "single",
+            options: [{ name: "Sedang" }],
+          },
+          {
+            name: "Ukuran Porsi",
+            type: "single",
+            options: [{ name: "Sedang" }],
+          },
+        ],
+      });
+      expect(res.success).toBe(true);
+    });
+
+    it("menolak menu jika salah satu grup pilihannya tidak valid (misal tanpa opsi)", () => {
+      const res = menuItemWithGroupsSchema.safeParse({
+        ...baseItem,
+        option_groups: [
+          {
+            name: "Varian Kosong",
+            type: "single",
+            options: [],
+          },
+        ],
+      });
+      expect(res.success).toBe(false);
+    });
+
+    it("mempertahankan validasi dasar menu item (seperti harga negatif ditolak)", () => {
+      const res = menuItemWithGroupsSchema.safeParse({
+        ...baseItem,
+        price: -5000,
+        option_groups: [],
+      });
+      expect(res.success).toBe(false);
+    });
+
+    it("menolak properti asing pada menu item (strict mode)", () => {
+      const res = menuItemWithGroupsSchema.safeParse({
+        ...baseItem,
+        extra_root_prop: "not-allowed",
+      });
+      expect(res.success).toBe(false);
     });
   });
 });
