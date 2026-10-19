@@ -116,6 +116,149 @@ describe("admin-menu-schemas", () => {
       }
     });
 
+    it("menerima image_path yang valid (path relatif), null, atau undefined", () => {
+      const base = {
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+      };
+
+      const resValid = menuItemSchema.safeParse({
+        ...base,
+        image_path: "items/cotto.webp",
+      });
+      expect(resValid.success).toBe(true);
+      if (resValid.success) {
+        expect(resValid.data.image_path).toBe("items/cotto.webp");
+      }
+
+      const resNull = menuItemSchema.safeParse({
+        ...base,
+        image_path: null,
+      });
+      expect(resNull.success).toBe(true);
+      if (resNull.success) {
+        expect(resNull.data.image_path).toBeNull();
+      }
+
+      const resUndefined = menuItemSchema.safeParse({
+        ...base,
+      });
+      expect(resUndefined.success).toBe(true);
+      if (resUndefined.success) {
+        expect(resUndefined.data.image_path).toBeUndefined();
+      }
+    });
+
+    it("melakukan trim pada image_path", () => {
+      const res = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        image_path: "   items/cotto.webp   ",
+      });
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.image_path).toBe("items/cotto.webp");
+      }
+    });
+
+    it("menormalkan string kosong atau whitespace-only pada image_path menjadi null", () => {
+      const resEmpty = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        image_path: "",
+      });
+      expect(resEmpty.success).toBe(true);
+      if (resEmpty.success) {
+        expect(resEmpty.data.image_path).toBeNull();
+      }
+
+      const resWhitespace = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        image_path: "     ",
+      });
+      expect(resWhitespace.success).toBe(true);
+      if (resWhitespace.success) {
+        expect(resWhitespace.data.image_path).toBeNull();
+      }
+    });
+
+    it("menolak image_path yang melebihi 255 karakter", () => {
+      const res = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        image_path: "a".repeat(256),
+      });
+      expect(res.success).toBe(false);
+    });
+
+    it("menolak image_path dengan tipe data salah (bukan string atau null/undefined)", () => {
+      const resNumber = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        image_path: 12345,
+      });
+      expect(resNumber.success).toBe(false);
+
+      const resObject = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "Cotto",
+        price: 15000,
+        image_path: { url: "items/cotto.webp" },
+      });
+      expect(resObject.success).toBe(false);
+    });
+
+    it("menolak image_path berupa URL eksternal, path traversal, leading slash, atau folder luar items/", () => {
+      const invalidPaths = [
+        "https://external.com/photo.jpg",
+        "http://malicious.site/pic.png",
+        "//external.com/photo.webp",
+        "/items/cotto.webp",
+        "items/../secret.webp",
+        "../items/cotto.webp",
+        "uploads/cotto.webp",
+        "items/sub/cotto.webp",
+        "items/cotto.exe",
+        "items/cotto.php",
+      ];
+
+      for (const invalidPath of invalidPaths) {
+        const res = menuItemSchema.safeParse({
+          category_id: "a0000000-0000-0000-0000-000000000001",
+          name: "Cotto",
+          price: 15000,
+          image_path: invalidPath,
+        });
+        expect(res.success, `seharusnya menolak path: ${invalidPath}`).toBe(false);
+      }
+    });
+
+    it("menerima image_path format UUID webp dan ekstensi gambar yang diizinkan di items/", () => {
+      const validPaths = [
+        "items/550e8400-e29b-41d4-a716-446655440000.webp",
+        "items/cotto-spesial_01.jpg",
+        "items/es-teh.jpeg",
+        "items/pisang-goreng.png",
+      ];
+
+      for (const validPath of validPaths) {
+        const res = menuItemSchema.safeParse({
+          category_id: "a0000000-0000-0000-0000-000000000001",
+          name: "Cotto",
+          price: 15000,
+          image_path: validPath,
+        });
+        expect(res.success, `seharusnya menerima path: ${validPath}`).toBe(true);
+      }
+    });
+
     it("menolak properti asing yang tidak dikenal (strict mode)", () => {
       const res = menuItemSchema.safeParse({
         category_id: "a0000000-0000-0000-0000-000000000001",

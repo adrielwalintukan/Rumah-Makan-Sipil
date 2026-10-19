@@ -44,7 +44,7 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 
 ### M4 — Kelola menu & pengaturan (D6, D11)
 - [x] CRUD kategori & menu, urutan, toggle Habis
-- [ ] Upload foto (crop 4:3 + kompres di browser)
+- [x] Upload foto (crop 4:3 + kompres di browser)
 - [ ] Editor grup pilihan & opsi
 - [ ] Pengaturan: QRIS, WhatsApp, nama/tagline, harga Dos, ganti password
 

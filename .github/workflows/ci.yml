@@ -42,9 +42,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
-      # E2E butuh API Supabase sungguhan (migrasi + seed + realtime). Layanan yang tidak dipakai dimatikan agar cepat.
+      # E2E butuh API Supabase sungguhan (migrasi + seed + realtime + storage). Layanan yang tidak dipakai dimatikan agar cepat.
       - name: Jalankan Supabase lokal
-        run: npx supabase start -x storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+        run: npx supabase start -x mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
 
       - name: Env Supabase lokal
         run: |

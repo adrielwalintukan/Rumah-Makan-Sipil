@@ -1,6 +1,7 @@
 import "server-only";
 import { connection } from "next/server";
 import { createPublicClient } from "@/lib/supabase/public";
+import { getMenuPhotoUrl } from "@/lib/storage";
 
 export type MenuOption = { id: string; name: string; price_delta: number; is_available: boolean };
 export type OptionGroup = {
@@ -47,7 +48,6 @@ export async function getMenu(): Promise<Menu> {
   if (menu.error) throw menu.error;
   if (settings.error) throw settings.error;
 
-  const storageBase = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menu-photos/`;
   const categories = menu.data
     .sort(bySort)
     .map((c) => ({
@@ -58,7 +58,7 @@ export async function getMenu(): Promise<Menu> {
         name: m.name,
         description: m.description,
         price: m.price,
-        image_url: m.image_path ? storageBase + m.image_path : null,
+        image_url: getMenuPhotoUrl(m.image_path),
         is_available: m.is_available,
         option_groups: m.option_groups.sort(bySort).map((g) => ({
           id: g.id,

@@ -5,9 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
+  Camera,
   ChevronDown,
+  Crop,
   Loader2,
   Trash2,
+  UploadCloud,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +24,14 @@ import {
 } from "@/components/ui/dialog";
 import { formatRupiah } from "@/lib/format";
 import { UUID_REGEX } from "@/lib/schemas";
-import { cn } from "cn";
+import { validateImageFile } from "@/lib/image-compression";
+import { PhotoCropDialog } from "./photo-crop-dialog";
+import {
+  getMenuPhotoUrl,
+  saveMenuItemWithPhotoCleanup,
+} from "@/lib/storage";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
 export interface MenuItemFormData {
   id?: string;
@@ -29,6 +39,7 @@ export interface MenuItemFormData {
   name: string;
   description: string;
   price: number;
+  image_path?: string | null;
   is_available: boolean;
   sort_order?: number;
 }
@@ -73,6 +84,88 @@ export function MenuItemForm({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
+
+  const [photoFile, setPhotoFile] = React.useState<File | null>(null);
+  const [cropFile, setCropFile] = React.useState<File | null>(null);
+  const [isCropDialogOpen, setIsCropDialogOpen] = React.useState(false);
+  const [processedBlob, setProcessedBlob] = React.useState<Blob | null>(null);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(() =>
+    getMenuPhotoUrl(initialData?.image_path)
+  );
+  const [isPhotoRemoved, setIsPhotoRemoved] = React.useState<boolean>(false);
+  const [photoError, setPhotoError] = React.useState<string | null>(null);
+  const isProcessingPhoto = false;
+
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handleTriggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPhotoError(null);
+
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      setPhotoError(validation.error || "File gambar tidak valid.");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    setCropFile(file);
+    setIsCropDialogOpen(true);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleApplyCrop = (blob: Blob, newPreviewUrl: string) => {
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPhotoFile(cropFile);
+    setProcessedBlob(blob);
+    setPreviewUrl(newPreviewUrl);
+    setIsPhotoRemoved(false);
+    setPhotoError(null);
+  };
+
+  const handleOpenCropAdjust = () => {
+    if (photoFile) {
+      setCropFile(photoFile);
+      setIsCropDialogOpen(true);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPhotoFile(null);
+    setCropFile(null);
+    setProcessedBlob(null);
+    setPreviewUrl(null);
+    setIsPhotoRemoved(true);
+    setPhotoError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   // Preview format rupiah saat input harga valid
   const previewPrice = React.useMemo(() => {
@@ -142,6 +235,7 @@ export function MenuItemForm({
         name: name.trim(),
         description: description.trim(),
         price: numPrice,
+        image_path: isPhotoRemoved ? null : (initialData?.image_path ?? null),
         is_available: isAvailable,
         ...(initialData?.sort_order !== undefined && !isCategoryChanged
           ? { sort_order: initialData.sort_order }
@@ -154,15 +248,28 @@ export function MenuItemForm({
           : `/api/admin/menu/${initialData!.id}`;
       const method = mode === "create" ? "POST" : "PATCH";
 
-      const res = await fetch(endpoint, {
+      const supabase = createBrowserSupabaseClient();
+      const result = await saveMenuItemWithPhotoCleanup({
+        storage: supabase.storage,
+        processedBlob,
+        payload,
+        endpoint,
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        isReferenced: async (path: string) => {
+          const { data, error } = await supabase
+            .from("menu_items")
+            .select("id")
+            .eq("image_path", path)
+            .maybeSingle();
+          if (error) {
+            throw new Error(error.message);
+          }
+          return !!data;
+        },
       });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal menyimpan menu.");
+      if (!result.success) {
+        throw new Error(result.error || "Gagal menyimpan menu.");
       }
 
       router.push("/admin/menu");
@@ -256,7 +363,7 @@ export function MenuItemForm({
                   setErrors((prev) => ({ ...prev, categoryId: undefined }));
                 }
               }}
-              disabled={isSubmitting || isDeleting || categories.length === 0}
+              disabled={isSubmitting || isDeleting || isProcessingPhoto || categories.length === 0}
               aria-invalid={!!errors.categoryId}
               aria-describedby={
                 errors.categoryId ? "category-error" : undefined
@@ -323,7 +430,7 @@ export function MenuItemForm({
               }
             }}
             placeholder="Contoh: Paket Ayam Geprek"
-            disabled={isSubmitting || isDeleting}
+            disabled={isSubmitting || isDeleting || isProcessingPhoto}
             aria-invalid={!!errors.name}
             aria-describedby={errors.name ? "name-error" : undefined}
             className={cn(
@@ -376,7 +483,7 @@ export function MenuItemForm({
                 }
               }}
               placeholder="0"
-              disabled={isSubmitting || isDeleting}
+              disabled={isSubmitting || isDeleting || isProcessingPhoto}
               aria-invalid={!!errors.price}
               aria-describedby={errors.price ? "price-error" : undefined}
               className={cn(
@@ -426,7 +533,7 @@ export function MenuItemForm({
               }
             }}
             placeholder="Keterangan bahan, porsi, atau cara penyajian..."
-            disabled={isSubmitting || isDeleting}
+            disabled={isSubmitting || isDeleting || isProcessingPhoto}
             aria-invalid={!!errors.description}
             aria-describedby={
               errors.description ? "description-error" : undefined
@@ -450,6 +557,152 @@ export function MenuItemForm({
           )}
         </div>
 
+        {/* Foto Menu */}
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-0.5">
+            <span
+              id="photo-label"
+              className="text-sm font-semibold text-ink-900"
+            >
+              Foto Menu
+            </span>
+            <p id="photo-help-text" className="text-xs text-ink-600 leading-relaxed">
+              Opsional. Format JPG, PNG, atau WebP, maks. 5 MB. Posisi dan ukuran dapat disesuaikan ke rasio 4:3.
+            </p>
+          </div>
+
+          <input
+            id="menu-photo-input"
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            tabIndex={-1}
+            disabled={isSubmitting || isDeleting || isProcessingPhoto}
+            onChange={handleFileChange}
+            aria-hidden="true"
+          />
+
+          {previewUrl ? (
+            <div className="flex flex-col gap-3">
+              <div className="relative w-full max-w-xs sm:max-w-sm aspect-[4/3] overflow-hidden rounded-xl border border-line bg-cream-100 shadow-xs">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt="Pratinjau foto menu"
+                  className="size-full object-cover"
+                />
+
+                {isProcessingPhoto && (
+                  <div className="absolute inset-0 bg-ink-900/60 flex flex-col items-center justify-center gap-2 text-white p-4">
+                    <Loader2
+                      className="size-6 animate-spin motion-reduce:animate-none"
+                      aria-hidden="true"
+                    />
+                    <span className="text-xs font-semibold">
+                      Memproses foto...
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleTriggerFileInput}
+                  disabled={isSubmitting || isDeleting || isProcessingPhoto}
+                  className="min-h-[44px] gap-2 font-semibold"
+                >
+                  <Camera className="size-4 shrink-0" aria-hidden="true" />
+                  <span>Ganti Foto</span>
+                </Button>
+                {photoFile && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleOpenCropAdjust}
+                    disabled={isSubmitting || isDeleting || isProcessingPhoto}
+                    className="min-h-[44px] gap-2 font-semibold"
+                  >
+                    <Crop className="size-4 shrink-0" aria-hidden="true" />
+                    <span>Sesuaikan Posisi</span>
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleRemovePhoto}
+                  disabled={isSubmitting || isDeleting || isProcessingPhoto}
+                  className="min-h-[44px] gap-2 text-danger hover:bg-danger-bg/40 hover:text-danger focus-visible:ring-danger"
+                >
+                  <Trash2 className="size-4 shrink-0" aria-hidden="true" />
+                  <span>Hapus Foto</span>
+                </Button>
+              </div>
+
+              {photoFile && (
+                <p className="text-xs text-ink-500 truncate max-w-xs">
+                  Foto baru: {photoFile.name}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-line bg-cream-50/50 p-6 text-center transition-colors hover:border-green-700/50 hover:bg-cream-100/40 w-full max-w-xs sm:max-w-sm aspect-[4/3]",
+                photoError && "border-danger/60 bg-danger-bg/10"
+              )}
+            >
+              {isProcessingPhoto ? (
+                <div className="flex flex-col items-center justify-center gap-2 text-ink-700">
+                  <Loader2
+                    className="size-8 animate-spin text-green-700 motion-reduce:animate-none"
+                    aria-hidden="true"
+                  />
+                  <span className="text-sm font-semibold">
+                    Memproses foto...
+                  </span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <div className="flex size-12 items-center justify-center rounded-full bg-cream-100 text-ink-600">
+                    <Camera className="size-6" aria-hidden="true" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-semibold text-ink-900">
+                      Belum ada foto menu
+                    </span>
+                    <span className="text-xs text-ink-500">
+                      Rasio 4:3, maks. 5 MB
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTriggerFileInput}
+                    disabled={isSubmitting || isDeleting || isProcessingPhoto}
+                    className="min-h-[44px] gap-2 font-semibold mt-1"
+                  >
+                    <UploadCloud className="size-4 shrink-0" aria-hidden="true" />
+                    <span>Pilih Foto</span>
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {photoError && (
+            <p
+              role="alert"
+              className="text-xs text-danger font-medium flex items-center gap-1 mt-1"
+            >
+              <AlertCircle className="size-3.5 shrink-0" aria-hidden="true" />
+              <span>{photoError}</span>
+            </p>
+          )}
+        </div>
+
         {/* Status Ketersediaan */}
         <div className="flex flex-col gap-2">
           <span
@@ -463,7 +716,7 @@ export function MenuItemForm({
             role="switch"
             aria-checked={isAvailable}
             aria-labelledby="availability-label"
-            disabled={isSubmitting || isDeleting}
+            disabled={isSubmitting || isDeleting || isProcessingPhoto}
             onClick={() => setIsAvailable((prev) => !prev)}
             className={cn(
               "flex items-center justify-between gap-4 rounded-xl border p-3.5 min-h-[44px] transition-all motion-reduce:transition-none cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed",
@@ -515,22 +768,24 @@ export function MenuItemForm({
               type="button"
               variant="outline"
               asChild
-              disabled={isSubmitting}
+              disabled={isSubmitting || isProcessingPhoto}
               className={cn(
                 "min-h-[44px] h-11 w-full sm:w-auto",
-                isSubmitting && "pointer-events-none opacity-50"
+                (isSubmitting || isProcessingPhoto) && "pointer-events-none opacity-50"
               )}
             >
               <Link
                 href="/admin/menu"
-                className={cn(isSubmitting && "pointer-events-none opacity-50")}
+                className={cn(
+                  (isSubmitting || isProcessingPhoto) && "pointer-events-none opacity-50"
+                )}
               >
                 Batal
               </Link>
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || categories.length === 0}
+              disabled={isSubmitting || categories.length === 0 || isProcessingPhoto}
               className="min-h-[44px] h-11 w-full sm:w-auto font-semibold"
             >
               {isSubmitting ? (
@@ -553,7 +808,7 @@ export function MenuItemForm({
                 type="button"
                 variant="destructive"
                 onClick={() => setIsDeleteDialogOpen(true)}
-                disabled={isSubmitting || isDeleting}
+                disabled={isSubmitting || isDeleting || isProcessingPhoto}
                 className="min-h-[44px] h-11 w-full sm:w-auto"
               >
                 <Trash2 className="size-4" aria-hidden />
@@ -565,17 +820,17 @@ export function MenuItemForm({
                   type="button"
                   variant="outline"
                   asChild
-                  disabled={isSubmitting || isDeleting}
+                  disabled={isSubmitting || isDeleting || isProcessingPhoto}
                   className={cn(
                     "min-h-[44px] h-11 w-full sm:w-auto",
-                    (isSubmitting || isDeleting) &&
+                    (isSubmitting || isDeleting || isProcessingPhoto) &&
                       "pointer-events-none opacity-50"
                   )}
                 >
                   <Link
                     href="/admin/menu"
                     className={cn(
-                      (isSubmitting || isDeleting) &&
+                      (isSubmitting || isDeleting || isProcessingPhoto) &&
                         "pointer-events-none opacity-50"
                     )}
                   >
@@ -584,7 +839,7 @@ export function MenuItemForm({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSubmitting || isDeleting}
+                  disabled={isSubmitting || isDeleting || isProcessingPhoto}
                   className="min-h-[44px] h-11 w-full sm:w-auto font-semibold"
                 >
                   {isSubmitting ? (
@@ -672,6 +927,13 @@ export function MenuItemForm({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PhotoCropDialog
+        isOpen={isCropDialogOpen}
+        onClose={() => setIsCropDialogOpen(false)}
+        file={cropFile}
+        onApply={handleApplyCrop}
+      />
     </>
   );
 }
