@@ -78,8 +78,12 @@ begin
     v_image_path := nullif(trim(p_item->>'image_path'), '');
     v_is_available := coalesce((p_item->>'is_available')::boolean, true);
 
-    if p_item ? 'sort_order' and p_item->>'sort_order' is not null and trim(p_item->>'sort_order') != '' and (p_item->>'sort_order')::integer >= 0 then
+    if p_item ? 'sort_order' and p_item->>'sort_order' is not null and trim(p_item->>'sort_order') != '' then
       v_sort_order := (p_item->>'sort_order')::integer;
+      if v_sort_order is null or v_sort_order < 0 then
+        raise exception 'Urutan menu tidak boleh negatif'
+          using errcode = '22023';
+      end if;
     else
       select coalesce(max(sort_order), -1) + 1
       into v_max_sort
@@ -131,6 +135,14 @@ begin
       v_price := (p_item->>'price')::integer;
       if v_price is null or v_price < 0 then
         raise exception 'Harga tidak valid'
+          using errcode = '22023';
+      end if;
+    end if;
+
+    if p_item ? 'sort_order' and p_item->>'sort_order' is not null and trim(p_item->>'sort_order') != '' then
+      v_sort_order := (p_item->>'sort_order')::integer;
+      if v_sort_order is null or v_sort_order < 0 then
+        raise exception 'Urutan menu tidak boleh negatif'
           using errcode = '22023';
       end if;
     end if;

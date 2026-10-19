@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(30);
+select plan(32);
 
 -- 1. Verifikasi fungsi ada
 select has_function(
@@ -232,6 +232,34 @@ select throws_ok(
   '22023',
   'Nama menu maksimal 80 karakter',
   'Nama menu lebih dari 80 karakter ditolak di SQL'
+);
+
+-- Urutan menu negatif pada jalur CREATE ditolak
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      null,
+      '{"category_id":"%s","name":"Menu Urutan Negatif","price":10000,"sort_order":-1}'::jsonb,
+      null
+    )
+  $$, (select cat_id from _test_ctx)),
+  '22023',
+  'Urutan menu tidak boleh negatif',
+  'sort_order negatif pada CREATE menu ditolak di SQL'
+);
+
+-- Urutan menu negatif pada jalur UPDATE ditolak
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{"sort_order":-1}'::jsonb,
+      null
+    )
+  $$),
+  '22023',
+  'Urutan menu tidak boleh negatif',
+  'sort_order negatif pada UPDATE menu ditolak di SQL'
 );
 
 -- Nama grup kosong ditolak
