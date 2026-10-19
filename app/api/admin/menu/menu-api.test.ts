@@ -298,19 +298,9 @@ describe("Menu Items API: /api/admin/menu", () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
       const createdItem = { id: validMenuId, ...validPayload, is_active: true };
 
-      mockFrom.mockReturnValueOnce({
-        insert: (insertData: unknown) => {
-          expect(insertData).toMatchObject({
-            name: "Ayam Bakar Madu",
-            price: 28000,
-            is_active: true,
-          });
-          return {
-            select: () => ({
-              single: () => Promise.resolve({ data: createdItem, error: null }),
-            }),
-          };
-        },
+      mockRpc.mockResolvedValueOnce({
+        data: createdItem,
+        error: null,
       });
 
       const req = new Request("http://localhost/api/admin/menu", {
@@ -322,48 +312,51 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(res.status).toBe(201);
       const json = await res.json();
       expect(json.data.name).toBe("Ayam Bakar Madu");
+      expect(mockRpc).toHaveBeenCalledWith("save_menu_item_with_options", {
+        p_menu_id: null,
+        p_item: {
+          category_id: validCatId,
+          name: validPayload.name,
+          description: validPayload.description,
+          price: validPayload.price,
+          image_path: null,
+          is_available: true,
+          sort_order: 0,
+        },
+        p_groups: [],
+      });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/");
       expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/menu");
     });
 
-    it("menentukan sort_order otomatis di akhir daftar jika tidak disediakan pada menu baru", async () => {
+    it("meneruskan sort_order ke RPC jika disediakan pada menu baru (201)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const payloadWithSort = {
+        ...validPayload,
+        sort_order: 5,
+      };
 
-      // Query max sort_order yang sudah ada (misal 4)
-      mockFrom.mockReturnValueOnce({
-        select: () => ({
-          eq: () => ({
-            eq: () => ({
-              order: () => ({
-                limit: () => ({
-                  maybeSingle: () =>
-                    Promise.resolve({
-                      data: { sort_order: 4 },
-                      error: null,
-                    }),
-                }),
-              }),
-            }),
-          }),
-        }),
+      mockRpc.mockResolvedValueOnce({
+        data: { id: validMenuId, ...payloadWithSort, is_active: true },
+        error: null,
       });
 
-      let insertedPayload: Record<string, unknown> | null = null;
-      mockFrom.mockReturnValueOnce({
-        insert: (insertData: Record<string, unknown>) => {
-          insertedPayload = insertData;
-          return {
-            select: () => ({
-              single: () =>
-                Promise.resolve({
-                  data: { id: validMenuId, ...insertData, is_active: true },
-                  error: null,
-                }),
-            }),
-          };
-        },
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadWithSort),
       });
+      const res = await POST(req);
+      expect(res.status).toBe(201);
+      expect(mockRpc).toHaveBeenCalledWith("save_menu_item_with_options", {
+        p_menu_id: null,
+        p_item: expect.objectContaining({ sort_order: 5 }),
+        p_groups: [],
+      });
+    });
 
+    it("mengizinkan menu baru tanpa sort_order eksplisit (sort_order undefined ke RPC)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
       const payloadWithoutSortOrder = {
         category_id: validPayload.category_id,
         name: validPayload.name,
@@ -371,6 +364,12 @@ describe("Menu Items API: /api/admin/menu", () => {
         price: validPayload.price,
         is_available: validPayload.is_available,
       };
+
+      mockRpc.mockResolvedValueOnce({
+        data: { id: validMenuId, ...payloadWithoutSortOrder, sort_order: 0, is_active: true },
+        error: null,
+      });
+
       const req = new Request("http://localhost/api/admin/menu", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -378,94 +377,24 @@ describe("Menu Items API: /api/admin/menu", () => {
       });
       const res = await POST(req);
       expect(res.status).toBe(201);
-      expect(insertedPayload).not.toBeNull();
-      expect(insertedPayload!.sort_order).toBe(5);
+      expect(mockRpc).toHaveBeenCalledWith("save_menu_item_with_options", {
+        p_menu_id: null,
+        p_item: expect.objectContaining({ sort_order: undefined }),
+        p_groups: [],
+      });
     });
 
-    it("menentukan sort_order 0 jika kategori belum memiliki menu aktif", async () => {
+    it("mengembalikan 500 jika RPC save_menu_item_with_options gagal", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
-
-      // Kategori kosong (tidak ada menu aktif)
-      mockFrom.mockReturnValueOnce({
-        select: () => ({
-          eq: () => ({
-            eq: () => ({
-              order: () => ({
-                limit: () => ({
-                  maybeSingle: () => Promise.resolve({ data: null, error: null }),
-                }),
-              }),
-            }),
-          }),
-        }),
+      mockRpc.mockResolvedValueOnce({
+        data: null,
+        error: { message: "Database connection lost" },
       });
 
-      let insertedPayload: Record<string, unknown> | null = null;
-      mockFrom.mockReturnValueOnce({
-        insert: (insertData: Record<string, unknown>) => {
-          insertedPayload = insertData;
-          return {
-            select: () => ({
-              single: () =>
-                Promise.resolve({
-                  data: { id: validMenuId, ...insertData, is_active: true },
-                  error: null,
-                }),
-            }),
-          };
-        },
-      });
-
-      const payloadWithoutSortOrder = {
-        category_id: validPayload.category_id,
-        name: validPayload.name,
-        description: validPayload.description,
-        price: validPayload.price,
-        is_available: validPayload.is_available,
-      };
       const req = new Request("http://localhost/api/admin/menu", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloadWithoutSortOrder),
-      });
-      const res = await POST(req);
-      expect(res.status).toBe(201);
-      expect(insertedPayload).not.toBeNull();
-      expect(insertedPayload!.sort_order).toBe(0);
-    });
-
-    it("mengembalikan 500 jika query sort_order maksimum gagal saat tambah menu", async () => {
-      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
-
-      mockFrom.mockReturnValueOnce({
-        select: () => ({
-          eq: () => ({
-            eq: () => ({
-              order: () => ({
-                limit: () => ({
-                  maybeSingle: () =>
-                    Promise.resolve({
-                      data: null,
-                      error: { message: "Database connection lost" },
-                    }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      });
-
-      const payloadWithoutSortOrder = {
-        category_id: validPayload.category_id,
-        name: validPayload.name,
-        description: validPayload.description,
-        price: validPayload.price,
-        is_available: validPayload.is_available,
-      };
-      const req = new Request("http://localhost/api/admin/menu", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloadWithoutSortOrder),
+        body: JSON.stringify(validPayload),
       });
       const res = await POST(req);
       expect(res.status).toBe(500);
@@ -473,57 +402,29 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(json.error).toBe("Database connection lost");
     });
 
-    it("mengembalikan 403 jika query sort_order maksimum ditolak RLS saat tambah menu", async () => {
+    it("mengembalikan 400 jika RPC save_menu_item_with_options mengembalikan error validasi / constraint (22023)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
-
-      mockFrom.mockReturnValueOnce({
-        select: () => ({
-          eq: () => ({
-            eq: () => ({
-              order: () => ({
-                limit: () => ({
-                  maybeSingle: () =>
-                    Promise.resolve({
-                      data: null,
-                      error: { code: "42501", message: "permission denied" },
-                    }),
-                }),
-              }),
-            }),
-          }),
-        }),
+      mockRpc.mockResolvedValueOnce({
+        data: null,
+        error: { code: "22023", message: "Harga tidak valid" },
       });
 
-      const payloadWithoutSortOrder = {
-        category_id: validPayload.category_id,
-        name: validPayload.name,
-        description: validPayload.description,
-        price: validPayload.price,
-        is_available: validPayload.is_available,
-      };
       const req = new Request("http://localhost/api/admin/menu", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloadWithoutSortOrder),
+        body: JSON.stringify(validPayload),
       });
       const res = await POST(req);
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(400);
       const json = await res.json();
-      expect(json.error).toContain("hak akses pemilik");
+      expect(json.error).toBe("Harga tidak valid");
     });
 
-    it("mengembalikan 403 jika RLS menolak insert", async () => {
+    it("mengembalikan 403 jika RPC save_menu_item_with_options ditolak hak akses pemilik (42501)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
-      mockFrom.mockReturnValueOnce({
-        insert: () => ({
-          select: () => ({
-            single: () =>
-              Promise.resolve({
-                data: null,
-                error: { code: "42501", message: "permission denied" },
-              }),
-          }),
-        }),
+      mockRpc.mockResolvedValueOnce({
+        data: null,
+        error: { code: "42501", message: "Akses ditolak" },
       });
 
       const req = new Request("http://localhost/api/admin/menu", {
@@ -539,20 +440,14 @@ describe("Menu Items API: /api/admin/menu", () => {
 
     it("berhasil menambahkan menu baru dengan image_path (201)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
-      let insertedPayload: Record<string, unknown> | null = null;
-      mockFrom.mockReturnValueOnce({
-        insert: (insertData: Record<string, unknown>) => {
-          insertedPayload = insertData;
-          return {
-            select: () => ({
-              single: () =>
-                Promise.resolve({
-                  data: { id: validMenuId, ...insertData, is_active: true },
-                  error: null,
-                }),
-            }),
-          };
+      mockRpc.mockResolvedValueOnce({
+        data: {
+          id: validMenuId,
+          ...validPayload,
+          image_path: "items/menu-ayam.webp",
+          is_active: true,
         },
+        error: null,
       });
 
       const req = new Request("http://localhost/api/admin/menu", {
@@ -565,8 +460,13 @@ describe("Menu Items API: /api/admin/menu", () => {
       });
       const res = await POST(req);
       expect(res.status).toBe(201);
-      expect(insertedPayload).not.toBeNull();
-      expect(insertedPayload!.image_path).toBe("items/menu-ayam.webp");
+      expect(mockRpc).toHaveBeenCalledWith("save_menu_item_with_options", {
+        p_menu_id: null,
+        p_item: expect.objectContaining({
+          image_path: "items/menu-ayam.webp",
+        }),
+        p_groups: [],
+      });
     });
 
     it("menolak request jika image_path bukan format relatif items/ yang diizinkan (400)", async () => {
@@ -583,6 +483,149 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(res.status).toBe(400);
       const json = await res.json();
       expect(json.error).toContain("Format path foto tidak valid");
+    });
+
+    it("berhasil menambahkan menu baru dengan option_groups dan options bersarang via RPC (201)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const payloadWithOptions = {
+        category_id: validCatId,
+        name: "Kopi Susu Gula Aren",
+        description: "Kopi susu nikmat",
+        price: 18000,
+        is_available: true,
+        sort_order: 0,
+        option_groups: [
+          {
+            name: "Level Manis",
+            type: "single" as const,
+            required: true,
+            sort_order: 0,
+            options: [
+              { name: "Normal", price_delta: 0, is_available: true, sort_order: 0 },
+              { name: "Less Sugar", price_delta: 0, is_available: true, sort_order: 1 },
+            ],
+          },
+        ],
+      };
+
+      const createdItem = {
+        id: validMenuId,
+        ...payloadWithOptions,
+        is_active: true,
+      };
+
+      mockRpc.mockResolvedValueOnce({
+        data: createdItem,
+        error: null,
+      });
+
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadWithOptions),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(201);
+      const json = await res.json();
+      expect(json.data.name).toBe("Kopi Susu Gula Aren");
+      expect(json.data.option_groups).toHaveLength(1);
+      expect(mockRpc).toHaveBeenCalledWith("save_menu_item_with_options", {
+        p_menu_id: null,
+        p_item: {
+          category_id: validCatId,
+          name: "Kopi Susu Gula Aren",
+          description: "Kopi susu nikmat",
+          price: 18000,
+          image_path: null,
+          is_available: true,
+          sort_order: 0,
+        },
+        p_groups: payloadWithOptions.option_groups,
+      });
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/menu");
+    });
+
+    it("menolak jika grup pilihan tidak memiliki opsi pada menu baru (400)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...validPayload,
+          option_groups: [
+            {
+              name: "Suhu",
+              type: "single",
+              required: true,
+              sort_order: 0,
+              options: [],
+            },
+          ],
+        }),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toContain("Setiap grup pilihan wajib memiliki minimal 1 opsi");
+    });
+
+    it("menolak jika ada nama opsi duplikat dalam satu grup pada menu baru (400)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...validPayload,
+          option_groups: [
+            {
+              name: "Suhu",
+              type: "single",
+              required: true,
+              sort_order: 0,
+              options: [
+                { name: "Panas", price_delta: 0, is_available: true, sort_order: 0 },
+                { name: "panas", price_delta: 0, is_available: true, sort_order: 1 },
+              ],
+            },
+          ],
+        }),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toContain("tidak boleh duplikat");
+    });
+
+    it("menolak jika ada nama grup duplikat dalam satu menu pada menu baru (400)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request("http://localhost/api/admin/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...validPayload,
+          option_groups: [
+            {
+              name: "Varian",
+              type: "single",
+              required: true,
+              sort_order: 0,
+              options: [{ name: "A", price_delta: 0, is_available: true, sort_order: 0 }],
+            },
+            {
+              name: "varian",
+              type: "single",
+              required: false,
+              sort_order: 1,
+              options: [{ name: "B", price_delta: 0, is_available: true, sort_order: 0 }],
+            },
+          ],
+        }),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toContain("tidak boleh duplikat");
     });
   });
 
@@ -768,6 +811,64 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.data.name).toBe("Ayam Penyet");
+    });
+
+    it("berhasil mengambil detail menu aktif beserta option_groups dan options terurut sort_order asc, name asc (200)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const item = {
+        id: validMenuId,
+        name: "Kopi Tubruk",
+        price: 10000,
+        is_active: true,
+        category: { id: validCatId, name: "Minuman" },
+        option_groups: [
+          {
+            id: "g2",
+            name: "Topping",
+            type: "multiple",
+            required: false,
+            sort_order: 1,
+            options: [
+              { id: "o2", name: "Jelly", price_delta: 2000, is_available: true, sort_order: 1 },
+              { id: "o1", name: "Cincau", price_delta: 2000, is_available: true, sort_order: 0 },
+            ],
+          },
+          {
+            id: "g1",
+            name: "Suhu",
+            type: "single",
+            required: true,
+            sort_order: 0,
+            options: [
+              { id: "o4", name: "Panas", price_delta: 0, is_available: true, sort_order: 0 },
+            ],
+          },
+        ],
+      };
+
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () => Promise.resolve({ data: item, error: null }),
+            }),
+          }),
+        }),
+      });
+
+      const res = await getMenuItemHandler(new Request(`http://localhost/api/admin/menu/${validMenuId}`), {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.data.name).toBe("Kopi Tubruk");
+      expect(json.data.option_groups).toHaveLength(2);
+      // Terurut: sort_order 0 (Suhu) duluan baru sort_order 1 (Topping)
+      expect(json.data.option_groups[0].name).toBe("Suhu");
+      expect(json.data.option_groups[1].name).toBe("Topping");
+      // Di dalam Topping, Cincau (sort_order 0) duluan baru Jelly (sort_order 1)
+      expect(json.data.option_groups[1].options[0].name).toBe("Cincau");
+      expect(json.data.option_groups[1].options[1].name).toBe("Jelly");
     });
   });
 
@@ -1580,6 +1681,215 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(res.status).toBe(400);
       const json = await res.json();
       expect(json.error).toContain("Format path foto tidak valid");
+    });
+
+    it("berhasil memperbarui option_groups via RPC save_menu_item_with_options (200)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const groupsPayload = [
+        {
+          name: "Varian Rasa",
+          type: "single" as const,
+          required: true,
+          sort_order: 0,
+          options: [
+            { name: "Cokelat", price_delta: 0, is_available: true, sort_order: 0 },
+            { name: "Keju", price_delta: 2000, is_available: true, sort_order: 1 },
+          ],
+        },
+      ];
+
+      const rpcResult = {
+        id: validMenuId,
+        name: "Roti Bakar",
+        option_groups: groupsPayload,
+      };
+
+      mockRpc.mockResolvedValueOnce({
+        data: rpcResult,
+        error: null,
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ option_groups: groupsPayload }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.data.name).toBe("Roti Bakar");
+      expect(mockRpc).toHaveBeenCalledWith("save_menu_item_with_options", {
+        p_menu_id: validMenuId,
+        p_item: {},
+        p_groups: groupsPayload,
+      });
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/menu");
+    });
+
+    it("menolak update jika grup pilihan tidak memiliki opsi (400)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          option_groups: [
+            {
+              name: "Suhu",
+              type: "single",
+              required: true,
+              sort_order: 0,
+              options: [],
+            },
+          ],
+        }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toContain("Setiap grup pilihan wajib memiliki minimal 1 opsi");
+    });
+
+    it("menolak update jika nama opsi duplikat dalam satu grup (400)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          option_groups: [
+            {
+              name: "Suhu",
+              type: "single",
+              required: true,
+              sort_order: 0,
+              options: [
+                { name: "Panas", price_delta: 0, is_available: true, sort_order: 0 },
+                { name: "panas", price_delta: 0, is_available: true, sort_order: 1 },
+              ],
+            },
+          ],
+        }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toContain("tidak boleh duplikat");
+    });
+
+    it("menolak update jika nama grup duplikat dalam menu (400)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          option_groups: [
+            {
+              name: "Varian",
+              type: "single",
+              required: true,
+              sort_order: 0,
+              options: [{ name: "A", price_delta: 0, is_available: true, sort_order: 0 }],
+            },
+            {
+              name: "varian",
+              type: "single",
+              required: false,
+              sort_order: 1,
+              options: [{ name: "B", price_delta: 0, is_available: true, sort_order: 0 }],
+            },
+          ],
+        }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toContain("tidak boleh duplikat");
+    });
+
+    it("berhasil memperbarui image_path dan option_groups sekaligus serta membersihkan foto lama dari storage (200)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const oldImage = "items/foto-lama-options.webp";
+      const newImage = "items/foto-baru-options.webp";
+      const groupsPayload = [
+        {
+          name: "Suhu",
+          type: "single" as const,
+          required: true,
+          sort_order: 0,
+          options: [
+            { name: "Panas", price_delta: 0, is_available: true, sort_order: 0 },
+          ],
+        },
+      ];
+
+      // 1. Fetch oldImagePath
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { image_path: oldImage },
+                  error: null,
+                }),
+            }),
+          }),
+        }),
+      });
+
+      // 2. RPC call
+      mockRpc.mockResolvedValueOnce({
+        data: {
+          id: validMenuId,
+          name: "Kopi Baru",
+          image_path: newImage,
+          option_groups: groupsPayload,
+        },
+        error: null,
+      });
+
+      // 3. Count remaining references
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () =>
+            Promise.resolve({
+              count: 0,
+              error: null,
+            }),
+        }),
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image_path: newImage,
+          option_groups: groupsPayload,
+        }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockRpc).toHaveBeenCalledWith("save_menu_item_with_options", {
+        p_menu_id: validMenuId,
+        p_item: { image_path: newImage },
+        p_groups: groupsPayload,
+      });
+      expect(mockStorageFrom).toHaveBeenCalledWith(MENU_PHOTOS_BUCKET);
+      expect(mockStorageRemove).toHaveBeenCalledWith([oldImage]);
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/menu");
     });
   });
 
