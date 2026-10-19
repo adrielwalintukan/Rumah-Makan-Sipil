@@ -89,7 +89,7 @@ describe("admin-menu-schemas", () => {
       expect(res.success).toBe(false);
     });
 
-    it("menolak nama menu kosong atau melebihi 100 karakter", () => {
+    it("menolak nama menu kosong atau melebihi 80 karakter", () => {
       const resEmpty = menuItemSchema.safeParse({
         category_id: "a0000000-0000-0000-0000-000000000001",
         name: "   ",
@@ -97,12 +97,22 @@ describe("admin-menu-schemas", () => {
       });
       expect(resEmpty.success).toBe(false);
 
+      const resMaxLength = menuItemSchema.safeParse({
+        category_id: "a0000000-0000-0000-0000-000000000001",
+        name: "A".repeat(80),
+        price: 15000,
+      });
+      expect(resMaxLength.success).toBe(true);
+
       const resTooLong = menuItemSchema.safeParse({
         category_id: "a0000000-0000-0000-0000-000000000001",
-        name: "A".repeat(101),
+        name: "A".repeat(81),
         price: 15000,
       });
       expect(resTooLong.success).toBe(false);
+      if (!resTooLong.success) {
+        expect(resTooLong.error.issues[0]?.message).toBe("Nama menu maksimal 80 karakter");
+      }
     });
 
     it("mengisi nilai default untuk description dan is_available, serta membiarkan sort_order opsional", () => {

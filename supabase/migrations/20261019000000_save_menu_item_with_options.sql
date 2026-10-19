@@ -63,8 +63,8 @@ begin
         using errcode = '22023';
     end if;
 
-    if length(v_name) > 50 then
-      raise exception 'Nama menu maksimal 50 karakter'
+    if length(v_name) > 80 then
+      raise exception 'Nama menu maksimal 80 karakter'
         using errcode = '22023';
     end if;
 
@@ -121,8 +121,8 @@ begin
         raise exception 'Nama menu wajib diisi'
           using errcode = '22023';
       end if;
-      if length(v_name) > 50 then
-        raise exception 'Nama menu maksimal 50 karakter'
+      if length(v_name) > 80 then
+        raise exception 'Nama menu maksimal 80 karakter'
           using errcode = '22023';
       end if;
     end if;

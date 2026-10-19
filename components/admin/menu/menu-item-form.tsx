@@ -206,8 +206,8 @@ export function MenuItemForm({
     const trimmedName = name.trim();
     if (!trimmedName) {
       newErrors.name = "Nama menu wajib diisi.";
-    } else if (trimmedName.length > 100) {
-      newErrors.name = "Nama menu maksimal 100 karakter.";
+    } else if (trimmedName.length > 80) {
+      newErrors.name = "Nama menu maksimal 80 karakter.";
     }
 
     const trimmedPrice = price.trim();
@@ -471,13 +471,13 @@ export function MenuItemForm({
             <label htmlFor="name" className="text-sm font-semibold text-ink-900">
               Nama Menu <span className="text-danger">*</span>
             </label>
-            <span className="text-xs text-ink-500">{name.length}/100</span>
+            <span className="text-xs text-ink-500">{name.length}/80</span>
           </div>
           <Input
             id="name"
             name="name"
             type="text"
-            maxLength={100}
+            maxLength={80}
             value={name}
             onChange={(e) => {
               setName(e.target.value);

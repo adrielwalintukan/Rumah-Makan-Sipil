@@ -220,18 +220,18 @@ select throws_ok(
 -- ------------------------------------------------------------
 -- 13. Validasi Invariant SQL pada p_groups & options
 -- ------------------------------------------------------------
--- Nama menu > 50 karakter ditolak
+-- Nama menu > 80 karakter ditolak
 select throws_ok(
   format($$
     select public.save_menu_item_with_options(
       null,
-      '{"category_id":"%s","name":"Menu Yang Namanya Sengaja Dibuat Terlalu Panjang Melebihi Batas Maksimal Lima Puluh Karakter","price":10000}'::jsonb,
+      '{"category_id":"%s","name":"Menu Yang Namanya Sengaja Dibuat Terlalu Panjang Sekali Melebihi Batas Maksimal Delapan Puluh Karakter","price":10000}'::jsonb,
       null
     )
   $$, (select cat_id from _test_ctx)),
   '22023',
-  'Nama menu maksimal 50 karakter',
-  'Nama menu lebih dari 50 karakter ditolak di SQL'
+  'Nama menu maksimal 80 karakter',
+  'Nama menu lebih dari 80 karakter ditolak di SQL'
 );
 
 -- Nama grup kosong ditolak

@@ -18,7 +18,7 @@ export const MENU_PHOTO_PATH_REGEX = /^items\/[a-zA-Z0-9_-]+\.(webp|jpg|jpeg|png
 
 export const menuItemSchema = z.object({
   category_id: z.string().regex(UUID_REGEX, "Kategori tidak valid"),
-  name: z.string().trim().min(1, "Nama menu wajib diisi").max(100, "Nama menu maksimal 100 karakter"),
+  name: z.string().trim().min(1, "Nama menu wajib diisi").max(80, "Nama menu maksimal 80 karakter"),
   description: z.string().trim().max(500, "Deskripsi maksimal 500 karakter").optional().default(""),
   price: z
     .number("Harga harus berupa angka")
