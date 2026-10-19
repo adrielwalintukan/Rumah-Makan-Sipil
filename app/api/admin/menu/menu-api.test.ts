@@ -1227,6 +1227,17 @@ describe("Menu Items API: /api/admin/menu", () => {
         },
       });
 
+      // 3. Query count remaining references (tidak ada menu lain yang memakai foto ini)
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () =>
+            Promise.resolve({
+              count: 0,
+              error: null,
+            }),
+        }),
+      });
+
       const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -1286,6 +1297,17 @@ describe("Menu Items API: /api/admin/menu", () => {
             }),
           };
         },
+      });
+
+      // 3. Query count remaining references (tidak ada menu lain yang memakai foto ini)
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () =>
+            Promise.resolve({
+              count: 0,
+              error: null,
+            }),
+        }),
       });
 
       const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
@@ -1453,6 +1475,17 @@ describe("Menu Items API: /api/admin/menu", () => {
         }),
       });
 
+      // 3. Query count remaining references (tidak ada menu lain yang memakai foto ini)
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () =>
+            Promise.resolve({
+              count: 0,
+              error: null,
+            }),
+        }),
+      });
+
       const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -1466,6 +1499,72 @@ describe("Menu Items API: /api/admin/menu", () => {
       const json = await res.json();
       expect(json.data.image_path).toBe(newImage);
       expect(mockStorageRemove).toHaveBeenCalledWith([oldImage]);
+    });
+
+    it("tidak memicu penghapusan storage jika foto lama masih direferensikan oleh menu lain (remainingCount > 0)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const oldImage = "items/foto-bersama.webp";
+      const newImage = "items/foto-baru.webp";
+
+      // 1. Query fetch oldImagePath
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { image_path: oldImage },
+                  error: null,
+                }),
+            }),
+          }),
+        }),
+      });
+
+      // 2. Query update
+      mockFrom.mockReturnValueOnce({
+        update: () => ({
+          eq: () => ({
+            eq: () => ({
+              select: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: {
+                      id: validMenuId,
+                      name: "Ayam Goreng",
+                      image_path: newImage,
+                    },
+                    error: null,
+                  }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      // 3. Query count remaining references (masih ada 1 menu lain yang memakai foto ini)
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () =>
+            Promise.resolve({
+              count: 1,
+              error: null,
+            }),
+        }),
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_path: newImage }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+
+      expect(res.status).toBe(200);
+      // Memastikan storage.remove TIDAK dipanggil karena foto masih dipakai menu lain
+      expect(mockStorageRemove).not.toHaveBeenCalled();
     });
 
     it("menolak request jika image_path bukan format relatif items/ yang diizinkan (400)", async () => {

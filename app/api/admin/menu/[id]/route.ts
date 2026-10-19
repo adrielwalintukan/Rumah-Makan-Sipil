@@ -281,11 +281,19 @@ export async function PATCH(
 
     if (oldImagePath && oldImagePath !== updateData.image_path) {
       try {
-        const { error: storageErr } = await supabase.storage
-          .from(MENU_PHOTOS_BUCKET)
-          .remove([oldImagePath]);
-        if (storageErr) {
-          console.error("Gagal menghapus foto lama dari storage:", storageErr);
+        // Pastikan foto lama tidak lagi direferensikan oleh menu lain sebelum dihapus dari storage
+        const { count: remainingCount, error: countErr } = await supabase
+          .from("menu_items")
+          .select("id", { count: "exact", head: true })
+          .eq("image_path", oldImagePath);
+
+        if (!countErr && (remainingCount ?? 0) === 0) {
+          const { error: storageErr } = await supabase.storage
+            .from(MENU_PHOTOS_BUCKET)
+            .remove([oldImagePath]);
+          if (storageErr) {
+            console.error("Gagal menghapus foto lama dari storage:", storageErr);
+          }
         }
       } catch (err) {
         console.error("Gagal menghapus foto lama dari storage:", err);
