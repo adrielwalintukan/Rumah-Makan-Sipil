@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ALLOWED_IMAGE_MIME_TYPES,
   calculateCrop4x3,
+  calculateMaxOffset,
+  clampCropTransform,
   compressAndCropMenuPhoto,
   MAX_IMAGE_FILE_SIZE,
   MAX_OUTPUT_HEIGHT,
@@ -402,6 +404,131 @@ describe("image-compression", () => {
     });
   });
 
+  describe("calculateMaxOffset", () => {
+    it("mengembalikan 0 jika dimensi gambar sama persis dengan dimensi kanvas", () => {
+      expect(calculateMaxOffset(1200, 1200)).toBe(0);
+      expect(calculateMaxOffset(900, 900)).toBe(0);
+    });
+
+    it("mengembalikan setengah selisih jika dimensi gambar lebih besar dari kanvas", () => {
+      expect(calculateMaxOffset(1600, 1200)).toBe(200);
+      expect(calculateMaxOffset(2400, 1200)).toBe(600);
+      expect(calculateMaxOffset(1800, 900)).toBe(450);
+    });
+
+    it("mengembalikan setengah selisih jika dimensi gambar lebih kecil dari kanvas (zoom out)", () => {
+      expect(calculateMaxOffset(800, 1200)).toBe(200);
+      expect(calculateMaxOffset(600, 900)).toBe(150);
+    });
+
+    it("mengembalikan 0 untuk input non-finite atau non-positif", () => {
+      expect(calculateMaxOffset(0, 1200)).toBe(0);
+      expect(calculateMaxOffset(-100, 1200)).toBe(0);
+      expect(calculateMaxOffset(Number.NaN, 1200)).toBe(0);
+      expect(calculateMaxOffset(1200, 0)).toBe(0);
+      expect(calculateMaxOffset(Number.POSITIVE_INFINITY, 1200)).toBe(0);
+    });
+  });
+
+  describe("clampCropTransform", () => {
+    it("membatasi offset horizontal pada gambar landscape 16:9", () => {
+      // 1600x900 pada canvas 1200x900, zoom 1
+      // baseScale = 1.0, drawWidth = 1600, drawHeight = 900
+      // maxOffsetX = 200, maxOffsetY = 0
+      const clamped = clampCropTransform(
+        { zoom: 1, offsetX: 500, offsetY: 100 },
+        1600,
+        900,
+        1200,
+        900
+      );
+      expect(clamped).toEqual({ zoom: 1, offsetX: 200, offsetY: 0 });
+
+      const clampedNeg = clampCropTransform(
+        { zoom: 1, offsetX: -500, offsetY: -100 },
+        1600,
+        900,
+        1200,
+        900
+      );
+      expect(clampedNeg).toEqual({ zoom: 1, offsetX: -200, offsetY: 0 });
+    });
+
+    it("membatasi offset vertikal pada gambar portrait 900x1600", () => {
+      // 900x1600 pada canvas 1200x900, zoom 1
+      // baseScale = max(1200/900, 900/1600) = 4/3 = 1.3333333333
+      // drawWidth = 1200, drawHeight = 2133.3333
+      // maxOffsetX = 0, maxOffsetY = Math.round((2133.3333 - 900) / 2) = 617
+      const clamped = clampCropTransform(
+        { zoom: 1, offsetX: 50, offsetY: 2000 },
+        900,
+        1600,
+        1200,
+        900
+      );
+      expect(clamped).toEqual({ zoom: 1, offsetX: 0, offsetY: 617 });
+
+      const clampedNeg = clampCropTransform(
+        { zoom: 1, offsetX: -50, offsetY: -2000 },
+        900,
+        1600,
+        1200,
+        900
+      );
+      expect(clampedNeg).toEqual({ zoom: 1, offsetX: 0, offsetY: -617 });
+    });
+
+    it("membatasi kedua sumbu saat zoom in (zoom > 1)", () => {
+      // 1200x900 pada canvas 1200x900, zoom 2.0
+      // baseScale = 1.0, drawWidth = 2400, drawHeight = 1800
+      // maxOffsetX = 600, maxOffsetY = 450
+      const clamped = clampCropTransform(
+        { zoom: 2.0, offsetX: 1000, offsetY: -1000 },
+        1200,
+        900,
+        1200,
+        900
+      );
+      expect(clamped).toEqual({ zoom: 2.0, offsetX: 600, offsetY: -450 });
+    });
+
+    it("menjaga gambar tetap berada di dalam kanvas saat zoom out (zoom < 1)", () => {
+      // 1200x900 pada canvas 1200x900, zoom 0.5
+      // baseScale = 1.0, drawWidth = 600, drawHeight = 450
+      // maxOffsetX = (1200 - 600)/2 = 300, maxOffsetY = (900 - 450)/2 = 225
+      const clamped = clampCropTransform(
+        { zoom: 0.5, offsetX: 800, offsetY: -800 },
+        1200,
+        900,
+        1200,
+        900
+      );
+      expect(clamped).toEqual({ zoom: 0.5, offsetX: 300, offsetY: -225 });
+    });
+
+    it("mempertahankan offset jika masih berada dalam batas toleransi", () => {
+      // 1600x900 pada canvas 1200x900, zoom 1.0
+      // maxOffsetX = 200, maxOffsetY = 0
+      const clamped = clampCropTransform(
+        { zoom: 1.0, offsetX: 150, offsetY: 0 },
+        1600,
+        900,
+        1200,
+        900
+      );
+      expect(clamped).toEqual({ zoom: 1.0, offsetX: 150, offsetY: 0 });
+    });
+
+    it("mengembalikan default aman jika dimensi gambar tidak valid", () => {
+      expect(
+        clampCropTransform({ zoom: 1, offsetX: 100, offsetY: 100 }, 0, 900)
+      ).toEqual({ zoom: 1, offsetX: 0, offsetY: 0 });
+      expect(
+        clampCropTransform({ zoom: 1, offsetX: 100, offsetY: 100 }, 1200, -10)
+      ).toEqual({ zoom: 1, offsetX: 0, offsetY: 0 });
+    });
+  });
+
   describe("renderImageToCanvas", () => {
     it("menggambar gambar ke canvas dengan background putih bersih dan koordinat yang sesuai", () => {
       const drawMock = vi.fn();
@@ -427,14 +554,16 @@ describe("image-compression", () => {
       } as unknown as HTMLImageElement;
 
       // Base scale = max(1200/1000, 900/2000) = 1.2
-      // Zoom 1.0 -> currentScale = 1.2
-      // drawWidth = 1200, drawHeight = 2400
-      // drawX = (1200-1200)/2 + 20 = 20
-      // drawY = (900-2400)/2 - 50 = -750 - 50 = -800
-      renderImageToCanvas(canvas, img, { zoom: 1.0, offsetX: 20, offsetY: -50 }, "#FFFFFF");
+      // Zoom 1.2 -> currentScale = 1.44
+      // drawWidth = 1440, drawHeight = 2880
+      // maxOffsetX = (1440 - 1200)/2 = 120
+      // maxOffsetY = (2880 - 900)/2 = 990
+      // drawX = (1200 - 1440)/2 + 20 = -120 + 20 = -100
+      // drawY = (900 - 2880)/2 - 50 = -990 - 50 = -1040
+      renderImageToCanvas(canvas, img, { zoom: 1.2, offsetX: 20, offsetY: -50 }, "#FFFFFF");
 
       expect(fillMock).toHaveBeenCalledWith(0, 0, 1200, 900);
-      expect(drawMock).toHaveBeenCalledWith(img, 20, -800, 1200, 2400);
+      expect(drawMock).toHaveBeenCalledWith(img, -100, -1040, 1440, 2880);
     });
 
     it("mendukung zoom out untuk memuat seluruh gambar tinggi (fit)", () => {
@@ -465,6 +594,39 @@ describe("image-compression", () => {
       renderImageToCanvas(canvas, img, { zoom: 0.375, offsetX: 0, offsetY: 0 });
 
       expect(drawMock).toHaveBeenCalledWith(img, 375, 0, 450, 900);
+    });
+
+    it("membatasi (clamp) offset agar gambar tidak pernah digeser keluar kanvas", () => {
+      const drawMock = vi.fn();
+      const fillMock = vi.fn();
+
+      const canvas = {
+        width: 1200,
+        height: 900,
+        getContext: vi.fn().mockReturnValue({
+          drawImage: drawMock,
+          fillRect: fillMock,
+          save: vi.fn(),
+          restore: vi.fn(),
+          fillStyle: "",
+        }),
+      } as unknown as HTMLCanvasElement;
+
+      const img = {
+        naturalWidth: 1600,
+        naturalHeight: 900,
+      } as unknown as HTMLImageElement;
+
+      // Base scale = max(1200/1600, 900/900) = 1.0
+      // drawWidth = 1600, drawHeight = 900
+      // maxOffsetX = (1600 - 1200)/2 = 200, maxOffsetY = 0
+      // Kirim offset ekstrim yang jauh melebihi batas kanvas
+      renderImageToCanvas(canvas, img, { zoom: 1.0, offsetX: 99999, offsetY: -88888 });
+
+      // Harus di-clamp ke maxOffsetX: 200 dan maxOffsetY: 0
+      // drawX = (1200 - 1600)/2 + 200 = 0
+      // drawY = (900 - 900)/2 + 0 = 0
+      expect(drawMock).toHaveBeenCalledWith(img, 0, 0, 1600, 900);
     });
   });
 });

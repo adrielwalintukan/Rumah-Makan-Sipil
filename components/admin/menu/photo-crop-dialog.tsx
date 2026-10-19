@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
+  clampCropTransform,
   renderImageToCanvas,
   type CropTransform,
 } from "@/lib/image-compression";
@@ -102,11 +103,21 @@ export function PhotoCropDialog({
     const dx = (e.clientX - dragStartRef.current.x) * scaleRatio;
     const dy = (e.clientY - dragStartRef.current.y) * scaleRatio;
 
-    setTransform((prev) => ({
-      ...prev,
-      offsetX: Math.round(dragStartRef.current.initialOffsetX + dx),
-      offsetY: Math.round(dragStartRef.current.initialOffsetY + dy),
-    }));
+    const imgWidth = imageElement?.naturalWidth || imageElement?.width || 1200;
+    const imgHeight = imageElement?.naturalHeight || imageElement?.height || 900;
+
+    const unclampedX = Math.round(dragStartRef.current.initialOffsetX + dx);
+    const unclampedY = Math.round(dragStartRef.current.initialOffsetY + dy);
+
+    setTransform((prev) =>
+      clampCropTransform(
+        { ...prev, offsetX: unclampedX, offsetY: unclampedY },
+        imgWidth,
+        imgHeight,
+        1200,
+        900
+      )
+    );
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -122,14 +133,32 @@ export function PhotoCropDialog({
   const handleZoomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     if (!isNaN(val)) {
-      setTransform((prev) => ({ ...prev, zoom: val }));
+      const imgWidth = imageElement?.naturalWidth || imageElement?.width || 1200;
+      const imgHeight = imageElement?.naturalHeight || imageElement?.height || 900;
+      setTransform((prev) =>
+        clampCropTransform(
+          { ...prev, zoom: val },
+          imgWidth,
+          imgHeight,
+          1200,
+          900
+        )
+      );
     }
   };
 
   const handleZoomStep = (delta: number) => {
+    const imgWidth = imageElement?.naturalWidth || imageElement?.width || 1200;
+    const imgHeight = imageElement?.naturalHeight || imageElement?.height || 900;
     setTransform((prev) => {
       const nextZoom = Math.min(2.5, Math.max(0.4, Number((prev.zoom + delta).toFixed(2))));
-      return { ...prev, zoom: nextZoom };
+      return clampCropTransform(
+        { ...prev, zoom: nextZoom },
+        imgWidth,
+        imgHeight,
+        1200,
+        900
+      );
     });
   };
 

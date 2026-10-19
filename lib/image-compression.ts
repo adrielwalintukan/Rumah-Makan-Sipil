@@ -119,8 +119,79 @@ export interface CropTransform {
 }
 
 /**
+ * Menghitung batas offset maksimum (dalam piksel kanvas) untuk satu sumbu.
+ * Menggunakan rumus simetris: Math.round(Math.abs(drawDimension - canvasDimension) / 2).
+ * - Saat gambar lebih besar dari kanvas: batas offset memastikan gambar tetap 100% menutupi kanvas tanpa celah putih.
+ * - Saat gambar lebih kecil dari kanvas (zoom out): batas offset memastikan seluruh gambar tetap berada di dalam kanvas (tidak bisa digeser keluar).
+ */
+export function calculateMaxOffset(
+  drawDimension: number,
+  canvasDimension: number
+): number {
+  if (
+    !Number.isFinite(drawDimension) ||
+    !Number.isFinite(canvasDimension) ||
+    drawDimension <= 0 ||
+    canvasDimension <= 0
+  ) {
+    return 0;
+  }
+  return Math.max(0, Math.round(Math.abs(drawDimension - canvasDimension) / 2));
+}
+
+/**
+ * Membatasi (clamp) nilai transformasi pan (offsetX, offsetY) agar gambar
+ * tidak dapat digeser keluar dari batas kanvas pratinjau.
+ */
+export function clampCropTransform(
+  transform: CropTransform,
+  imgWidth: number,
+  imgHeight: number,
+  canvasWidth: number = MAX_OUTPUT_WIDTH,
+  canvasHeight: number = MAX_OUTPUT_HEIGHT
+): CropTransform {
+  const zoom =
+    Number.isFinite(transform.zoom) && transform.zoom > 0
+      ? transform.zoom
+      : 1;
+
+  if (
+    !Number.isFinite(imgWidth) ||
+    !Number.isFinite(imgHeight) ||
+    imgWidth <= 0 ||
+    imgHeight <= 0 ||
+    canvasWidth <= 0 ||
+    canvasHeight <= 0
+  ) {
+    return { zoom, offsetX: 0, offsetY: 0 };
+  }
+
+  const baseScale = Math.max(canvasWidth / imgWidth, canvasHeight / imgHeight);
+  const currentScale = baseScale * zoom;
+
+  const drawWidth = imgWidth * currentScale;
+  const drawHeight = imgHeight * currentScale;
+
+  const maxOffsetX = calculateMaxOffset(drawWidth, canvasWidth);
+  const maxOffsetY = calculateMaxOffset(drawHeight, canvasHeight);
+
+  const rawX = Number.isFinite(transform.offsetX) ? transform.offsetX : 0;
+  const rawY = Number.isFinite(transform.offsetY) ? transform.offsetY : 0;
+
+  const clampedX = Math.min(maxOffsetX, Math.max(-maxOffsetX, rawX));
+  const clampedY = Math.min(maxOffsetY, Math.max(-maxOffsetY, rawY));
+
+  return {
+    zoom,
+    offsetX: Math.round(clampedX) || 0,
+    offsetY: Math.round(clampedY) || 0,
+  };
+}
+
+/**
  * Menggambar gambar ke elemen canvas dengan skala zoom dan offset posisi yang ditentukan.
  * Area kosong diisi dengan warna putih (#FFFFFF) bersih sesuai desain SIPIL.
+ * Posisi offset dibatasi secara aman agar gambar tidak dapat digeser keluar dari batas kanvas.
  */
 export function renderImageToCanvas(
   canvas: HTMLCanvasElement,
@@ -137,18 +208,26 @@ export function renderImageToCanvas(
   const imgWidth = (img as HTMLImageElement).naturalWidth || img.width;
   const imgHeight = (img as HTMLImageElement).naturalHeight || img.height;
 
+  const clamped = clampCropTransform(
+    transform,
+    imgWidth,
+    imgHeight,
+    canvasWidth,
+    canvasHeight
+  );
+
   ctx.save();
   ctx.fillStyle = backgroundColor;
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
   const baseScale = Math.max(canvasWidth / imgWidth, canvasHeight / imgHeight);
-  const currentScale = baseScale * (transform.zoom || 1);
+  const currentScale = baseScale * clamped.zoom;
 
   const drawWidth = Math.round(imgWidth * currentScale);
   const drawHeight = Math.round(imgHeight * currentScale);
 
-  const drawX = Math.round((canvasWidth - drawWidth) / 2 + (transform.offsetX || 0));
-  const drawY = Math.round((canvasHeight - drawHeight) / 2 + (transform.offsetY || 0));
+  const drawX = Math.round((canvasWidth - drawWidth) / 2 + clamped.offsetX);
+  const drawY = Math.round((canvasHeight - drawHeight) / 2 + clamped.offsetY);
 
   ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
   ctx.restore();
