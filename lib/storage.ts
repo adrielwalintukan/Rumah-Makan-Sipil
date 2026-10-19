@@ -35,12 +35,37 @@ export interface SaveMenuItemParams {
   endpoint: string;
   method: "POST" | "PATCH";
   fetcher?: typeof fetch;
+  isReferenced?: (path: string) => Promise<boolean>;
+}
+
+async function executeCleanup(
+  storage: SaveMenuItemParams["storage"],
+  path: string
+) {
+  try {
+    const { error: cleanupError } = await storage
+      .from(MENU_PHOTOS_BUCKET)
+      .remove([path]);
+    if (cleanupError) {
+      console.error(
+        "Gagal membersihkan foto baru dari storage:",
+        cleanupError
+      );
+    }
+  } catch (cleanupException) {
+    console.error(
+      "Gagal membersihkan foto baru dari storage:",
+      cleanupException
+    );
+  }
 }
 
 /**
  * Menyimpan menu ke API sekaligus mengunggah foto baru jika ada.
- * Jika pengunggahan foto berhasil tetapi request penyimpanan menu gagal,
+ * Jika pengunggahan foto berhasil tetapi request penyimpanan menu gagal dengan respons error (HTTP 4xx/5xx),
  * fungsi ini melakukan pembersihan best-effort terhadap file baru tersebut agar tidak menjadi orphan.
+ * Pada kegagalan jaringan (network error) yang bersifat ambigu, file hanya dibersihkan jika dipastikan
+ * belum direferensikan oleh menu di database, mencegah terhapusnya foto yang sebenarnya sudah tersimpan.
  */
 export async function saveMenuItemWithPhotoCleanup({
   storage,
@@ -49,6 +74,7 @@ export async function saveMenuItemWithPhotoCleanup({
   endpoint,
   method,
   fetcher = fetch,
+  isReferenced,
 }: SaveMenuItemParams): Promise<{ success: boolean; error?: string }> {
   let uploadedNewPath: string | null = null;
 
@@ -72,37 +98,69 @@ export async function saveMenuItemWithPhotoCleanup({
       finalImagePath = fileName;
     }
 
-    const res = await fetcher(endpoint, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...payload, image_path: finalImagePath }),
-    });
+    let res: Response;
+    try {
+      res = await fetcher(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, image_path: finalImagePath }),
+      });
+    } catch (networkError) {
+      // Ambiguitas network error: request mungkin sudah di-commit oleh server,
+      // namun respons hilang/terputus sebelum sampai ke klien.
+      // Hanya bersihkan jika dipastikan foto BELUM direferensikan oleh menu apapun di database.
+      if (uploadedNewPath) {
+        let shouldCleanup = false;
+        if (isReferenced) {
+          try {
+            const referenced = await isReferenced(uploadedNewPath);
+            if (!referenced) {
+              shouldCleanup = true;
+            }
+          } catch (refCheckErr) {
+            console.error(
+              "Gagal memeriksa referensi foto setelah network error:",
+              refCheckErr
+            );
+            shouldCleanup = false;
+          }
+        }
+        if (shouldCleanup) {
+          await executeCleanup(storage, uploadedNewPath);
+        }
+      }
+
+      const msg =
+        networkError instanceof Error
+          ? networkError.message
+          : "Terjadi kesalahan saat menyimpan menu.";
+      return { success: false, error: msg };
+    }
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
+      // Server merespons dengan HTTP error (4xx/5xx): mutasi tidak berhasil di database
+      if (uploadedNewPath) {
+        let shouldCleanup = true;
+        if (isReferenced) {
+          try {
+            const referenced = await isReferenced(uploadedNewPath);
+            if (referenced) {
+              shouldCleanup = false;
+            }
+          } catch (refCheckErr) {
+            console.error("Gagal memeriksa referensi foto:", refCheckErr);
+          }
+        }
+        if (shouldCleanup) {
+          await executeCleanup(storage, uploadedNewPath);
+        }
+      }
       throw new Error(data.error || "Gagal menyimpan menu.");
     }
 
     return { success: true };
   } catch (err) {
-    if (uploadedNewPath) {
-      try {
-        const { error: cleanupError } = await storage
-          .from(MENU_PHOTOS_BUCKET)
-          .remove([uploadedNewPath]);
-        if (cleanupError) {
-          console.error(
-            "Gagal membersihkan foto baru dari storage:",
-            cleanupError
-          );
-        }
-      } catch (cleanupException) {
-        console.error(
-          "Gagal membersihkan foto baru dari storage:",
-          cleanupException
-        );
-      }
-    }
     const msg =
       err instanceof Error
         ? err.message

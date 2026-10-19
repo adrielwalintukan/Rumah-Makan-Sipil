@@ -141,7 +141,41 @@ describe("storage", () => {
       expect(mockRemove).toHaveBeenCalledWith([uploadedPath]);
     });
 
-    it("melakukan pembersihan file baru jika pemanggilan fetch API melempar error network", async () => {
+    it("tidak menghapus foto baru jika server commit sukses tetapi respons fetch gagal/hilang (isReferenced bernilai true)", async () => {
+      const mockUpload = vi.fn().mockResolvedValue({ error: null });
+      const mockRemove = vi.fn().mockResolvedValue({ error: null });
+      const mockStorage = {
+        from: vi.fn().mockReturnValue({
+          upload: mockUpload,
+          remove: mockRemove,
+        }),
+      };
+
+      // Simulasi: mutasi di server berhasil commit, tetapi respons fetch terputus di jaringan
+      const mockFetcher = vi.fn().mockRejectedValue(new Error("Network connection dropped"));
+      // isReferenced memverifikasi bahwa menu sudah tercatat di database dengan image_path tersebut
+      const mockIsReferenced = vi.fn().mockResolvedValue(true);
+
+      const res = await saveMenuItemWithPhotoCleanup({
+        storage: mockStorage,
+        processedBlob: dummyBlob,
+        payload: dummyPayload,
+        endpoint: "/api/admin/menu",
+        method: "POST",
+        fetcher: mockFetcher as unknown as typeof fetch,
+        isReferenced: mockIsReferenced,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toBe("Network connection dropped");
+      expect(mockUpload).toHaveBeenCalledTimes(1);
+      const uploadedPath = mockUpload.mock.calls[0][0];
+      expect(mockIsReferenced).toHaveBeenCalledWith(uploadedPath);
+      // Memastikan file foto TIDAK dihapus karena sudah aktif direferensikan oleh menu di database
+      expect(mockRemove).not.toHaveBeenCalled();
+    });
+
+    it("melakukan pembersihan file baru jika pemanggilan fetch API melempar error network dan foto dipastikan belum direferensikan (isReferenced bernilai false)", async () => {
       const mockUpload = vi.fn().mockResolvedValue({ error: null });
       const mockRemove = vi.fn().mockResolvedValue({ error: null });
       const mockStorage = {
@@ -152,6 +186,38 @@ describe("storage", () => {
       };
 
       const mockFetcher = vi.fn().mockRejectedValue(new Error("Network connection dropped"));
+      // isReferenced mengonfirmasi foto belum tersimpan di tabel menu manapun
+      const mockIsReferenced = vi.fn().mockResolvedValue(false);
+
+      const res = await saveMenuItemWithPhotoCleanup({
+        storage: mockStorage,
+        processedBlob: dummyBlob,
+        payload: dummyPayload,
+        endpoint: "/api/admin/menu",
+        method: "POST",
+        fetcher: mockFetcher as unknown as typeof fetch,
+        isReferenced: mockIsReferenced,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toBe("Network connection dropped");
+      const uploadedPath = mockUpload.mock.calls[0][0];
+      expect(mockIsReferenced).toHaveBeenCalledWith(uploadedPath);
+      // File baru yang belum tersimpan aman dibersihkan
+      expect(mockRemove).toHaveBeenCalledWith([uploadedPath]);
+    });
+
+    it("tidak menghapus foto baru jika terjadi error network ambigu tanpa fungsi isReferenced", async () => {
+      const mockUpload = vi.fn().mockResolvedValue({ error: null });
+      const mockRemove = vi.fn().mockResolvedValue({ error: null });
+      const mockStorage = {
+        from: vi.fn().mockReturnValue({
+          upload: mockUpload,
+          remove: mockRemove,
+        }),
+      };
+
+      const mockFetcher = vi.fn().mockRejectedValue(new Error("Connection reset by peer"));
 
       const res = await saveMenuItemWithPhotoCleanup({
         storage: mockStorage,
@@ -163,9 +229,44 @@ describe("storage", () => {
       });
 
       expect(res.success).toBe(false);
-      expect(res.error).toBe("Network connection dropped");
-      const uploadedPath = mockUpload.mock.calls[0][0];
-      expect(mockRemove).toHaveBeenCalledWith([uploadedPath]);
+      expect(res.error).toBe("Connection reset by peer");
+      // Karena status mutasi server ambigu dan tidak ada verifikasi referensi, jangan hapus foto
+      expect(mockRemove).not.toHaveBeenCalled();
+    });
+
+    it("tidak menghapus foto baru jika pengecekan referensi gagal saat terjadi network error", async () => {
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const mockUpload = vi.fn().mockResolvedValue({ error: null });
+      const mockRemove = vi.fn().mockResolvedValue({ error: null });
+      const mockStorage = {
+        from: vi.fn().mockReturnValue({
+          upload: mockUpload,
+          remove: mockRemove,
+        }),
+      };
+
+      const mockFetcher = vi.fn().mockRejectedValue(new Error("Network timeout"));
+      const mockIsReferenced = vi.fn().mockRejectedValue(new Error("Database check failed"));
+
+      const res = await saveMenuItemWithPhotoCleanup({
+        storage: mockStorage,
+        processedBlob: dummyBlob,
+        payload: dummyPayload,
+        endpoint: "/api/admin/menu",
+        method: "POST",
+        fetcher: mockFetcher as unknown as typeof fetch,
+        isReferenced: mockIsReferenced,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toBe("Network timeout");
+      expect(mockRemove).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Gagal memeriksa referensi foto setelah network error:",
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
     });
 
     it("tidak membiarkan kegagalan cleanup menutupi error utama API jika remove melempar exception", async () => {

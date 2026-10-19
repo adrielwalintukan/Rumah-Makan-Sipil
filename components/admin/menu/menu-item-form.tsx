@@ -255,6 +255,17 @@ export function MenuItemForm({
         payload,
         endpoint,
         method,
+        isReferenced: async (path: string) => {
+          const { data, error } = await supabase
+            .from("menu_items")
+            .select("id")
+            .eq("image_path", path)
+            .maybeSingle();
+          if (error) {
+            throw new Error(error.message);
+          }
+          return !!data;
+        },
       });
 
       if (!result.success) {
