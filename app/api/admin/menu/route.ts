@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getAdminUser } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { menuItemSchema, reorderSchema } from "@/lib/admin-menu-schemas";
+import {
+  menuItemWithGroupsSchema,
+  reorderSchema,
+} from "@/lib/admin-menu-schemas";
 import { UUID_REGEX } from "@/lib/schemas";
 
 export async function GET(request: Request) {
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const parseResult = menuItemSchema.safeParse(body);
+  const parseResult = menuItemWithGroupsSchema.safeParse(body);
   if (!parseResult.success) {
     const errorMsg =
       parseResult.error.issues[0]?.message ?? "Data menu tidak valid.";
@@ -88,46 +91,19 @@ export async function POST(request: Request) {
   try {
     const supabase = await createServerSupabaseClient();
 
-    let sortOrder = parseResult.data.sort_order;
-    if (sortOrder === undefined) {
-      // shortcut: penentuan max(sort_order) + 1 di server memadai untuk 1 akun pemilik (v1).
-      // Upgrade ke RPC/transaksi database jika warung mendukung multi-admin konkuren di masa depan.
-      const { data: maxItem, error: maxErr } = await supabase
-        .from("menu_items")
-        .select("sort_order")
-        .eq("category_id", parseResult.data.category_id)
-        .eq("is_active", true)
-        .order("sort_order", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (maxErr) {
-        if (maxErr.code === "42501") {
-          return NextResponse.json(
-            { error: "Akun ini tidak memiliki hak akses pemilik." },
-            { status: 403 }
-          );
-        }
-        return NextResponse.json({ error: maxErr.message }, { status: 500 });
-      }
-
-      sortOrder = maxItem?.sort_order !== undefined ? maxItem.sort_order + 1 : 0;
-    }
-
-    const { data, error } = await supabase
-      .from("menu_items")
-      .insert({
+    const { data, error } = await supabase.rpc("save_menu_item_with_options", {
+      p_menu_id: null,
+      p_item: {
         category_id: parseResult.data.category_id,
         name: parseResult.data.name,
-        description: parseResult.data.description,
+        description: parseResult.data.description ?? null,
         price: parseResult.data.price,
         image_path: parseResult.data.image_path ?? null,
         is_available: parseResult.data.is_available,
-        sort_order: sortOrder,
-        is_active: true,
-      })
-      .select("*, category:categories(id, name)")
-      .single();
+        sort_order: parseResult.data.sort_order,
+      },
+      p_groups: parseResult.data.option_groups,
+    });
 
     if (error) {
       if (error.code === "42501") {
@@ -135,6 +111,14 @@ export async function POST(request: Request) {
           { error: "Akun ini tidak memiliki hak akses pemilik." },
           { status: 403 }
         );
+      }
+      if (
+        error.code === "22023" ||
+        error.code === "P0001" ||
+        error.code === "23503" ||
+        error.code === "23514"
+      ) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
       }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }

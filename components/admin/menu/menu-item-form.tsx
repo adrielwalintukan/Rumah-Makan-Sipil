@@ -27,6 +27,11 @@ import { UUID_REGEX } from "@/lib/schemas";
 import { validateImageFile } from "@/lib/image-compression";
 import { PhotoCropDialog } from "./photo-crop-dialog";
 import {
+  OptionGroupEditor,
+  type OptionGroupFormData,
+} from "./option-group-editor";
+import { menuItemWithGroupsSchema } from "@/lib/admin-menu-schemas";
+import {
   getMenuPhotoUrl,
   saveMenuItemWithPhotoCleanup,
 } from "@/lib/storage";
@@ -42,6 +47,7 @@ export interface MenuItemFormData {
   image_path?: string | null;
   is_available: boolean;
   sort_order?: number;
+  option_groups?: OptionGroupFormData[];
 }
 
 export interface MenuItemFormProps {
@@ -71,12 +77,26 @@ export function MenuItemForm({
     initialData?.is_available ?? true
   );
 
-  const [errors, setErrors] = React.useState<{
-    categoryId?: string;
-    name?: string;
-    price?: string;
-    description?: string;
-  }>({});
+  const [optionGroups, setOptionGroups] = React.useState<OptionGroupFormData[]>(
+    initialData?.option_groups ?? []
+  );
+
+  const [errors, setErrors] = React.useState<Record<string, string | undefined>>({});
+
+  const handleOptionGroupsChange = (newGroups: OptionGroupFormData[]) => {
+    setOptionGroups(newGroups);
+    if (Object.keys(errors).some((k) => k.startsWith("option_groups"))) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((k) => {
+          if (k.startsWith("option_groups")) {
+            delete next[k];
+          }
+        });
+        return next;
+      });
+    }
+  };
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
@@ -177,12 +197,7 @@ export function MenuItemForm({
   }, [price]);
 
   const validate = (): boolean => {
-    const newErrors: {
-      categoryId?: string;
-      name?: string;
-      price?: string;
-      description?: string;
-    } = {};
+    const newErrors: Record<string, string | undefined> = {};
 
     if (!categoryId || !UUID_REGEX.test(categoryId)) {
       newErrors.categoryId = "Kategori wajib dipilih.";
@@ -191,8 +206,8 @@ export function MenuItemForm({
     const trimmedName = name.trim();
     if (!trimmedName) {
       newErrors.name = "Nama menu wajib diisi.";
-    } else if (trimmedName.length > 100) {
-      newErrors.name = "Nama menu maksimal 100 karakter.";
+    } else if (trimmedName.length > 80) {
+      newErrors.name = "Nama menu maksimal 80 karakter.";
     }
 
     const trimmedPrice = price.trim();
@@ -211,8 +226,45 @@ export function MenuItemForm({
       newErrors.description = "Deskripsi maksimal 500 karakter.";
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const numPrice = parseInt(trimmedPrice, 10);
+    const candidateData = {
+      category_id: categoryId,
+      name: trimmedName,
+      description: description.trim(),
+      price: isNaN(numPrice) ? 0 : numPrice,
+      image_path: isPhotoRemoved ? null : (initialData?.image_path ?? null),
+      is_available: isAvailable,
+      ...(initialData?.sort_order !== undefined ? { sort_order: initialData.sort_order } : {}),
+      option_groups: optionGroups,
+    };
+
+    const zodResult = menuItemWithGroupsSchema.safeParse(candidateData);
+    if (!zodResult.success) {
+      for (const issue of zodResult.error.issues) {
+        const pathKey = issue.path.join(".");
+        if (issue.path[0] === "category_id") {
+          if (!newErrors.categoryId) newErrors.categoryId = issue.message;
+        } else if (issue.path[0] === "name") {
+          if (!newErrors.name) newErrors.name = issue.message;
+        } else if (issue.path[0] === "price") {
+          if (!newErrors.price) newErrors.price = issue.message;
+        } else if (issue.path[0] === "description") {
+          if (!newErrors.description) newErrors.description = issue.message;
+        } else {
+          newErrors[pathKey] = issue.message;
+        }
+      }
+    }
+
+    const cleanErrors: Record<string, string> = {};
+    for (const [key, value] of Object.entries(newErrors)) {
+      if (value !== undefined) {
+        cleanErrors[key] = value;
+      }
+    }
+
+    setErrors(cleanErrors);
+    return Object.keys(cleanErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -220,6 +272,9 @@ export function MenuItemForm({
     setSubmitError(null);
 
     if (!validate()) {
+      setSubmitError(
+        "Mohon periksa kembali formulir. Terdapat data atau pilihan menu yang belum lengkap atau tidak valid."
+      );
       return;
     }
 
@@ -240,6 +295,7 @@ export function MenuItemForm({
         ...(initialData?.sort_order !== undefined && !isCategoryChanged
           ? { sort_order: initialData.sort_order }
           : {}),
+        option_groups: optionGroups,
       };
 
       const endpoint =
@@ -415,13 +471,13 @@ export function MenuItemForm({
             <label htmlFor="name" className="text-sm font-semibold text-ink-900">
               Nama Menu <span className="text-danger">*</span>
             </label>
-            <span className="text-xs text-ink-500">{name.length}/100</span>
+            <span className="text-xs text-ink-500">{name.length}/80</span>
           </div>
           <Input
             id="name"
             name="name"
             type="text"
-            maxLength={100}
+            maxLength={80}
             value={name}
             onChange={(e) => {
               setName(e.target.value);
@@ -759,6 +815,16 @@ export function MenuItemForm({
               />
             </div>
           </button>
+        </div>
+
+        {/* Grup Pilihan & Opsi Menu */}
+        <div className="pt-2">
+          <OptionGroupEditor
+            groups={optionGroups}
+            onChange={handleOptionGroupsChange}
+            disabled={isSubmitting || isDeleting || isProcessingPhoto}
+            errors={errors}
+          />
         </div>
 
         {/* Tombol Aksi */}

@@ -45,7 +45,7 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 ### M4 — Kelola menu & pengaturan (D6, D11)
 - [x] CRUD kategori & menu, urutan, toggle Habis
 - [x] Upload foto (crop 4:3 + kompres di browser)
-- [ ] Editor grup pilihan & opsi
+- [x] Editor grup pilihan & opsi
 - [ ] Pengaturan: QRIS, WhatsApp, nama/tagline, harga Dos, ganti password
 
 **Selesai jika**: pemilik bisa menambah jenis kopi baru dan langsung muncul di HP pelanggan.
