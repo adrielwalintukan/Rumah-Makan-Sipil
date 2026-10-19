@@ -4,7 +4,7 @@
 create or replace function public.save_menu_item_with_options(
   p_menu_id uuid,
   p_item jsonb,
-  p_groups jsonb default '[]'::jsonb
+  p_groups jsonb default null
 )
 returns jsonb
 language plpgsql
@@ -63,7 +63,7 @@ begin
     v_image_path := nullif(trim(p_item->>'image_path'), '');
     v_is_available := coalesce((p_item->>'is_available')::boolean, true);
 
-    if p_item->'sort_order' is not null and (p_item->>'sort_order')::integer > 0 then
+    if p_item ? 'sort_order' and p_item->>'sort_order' is not null and trim(p_item->>'sort_order') != '' and (p_item->>'sort_order')::integer >= 0 then
       v_sort_order := (p_item->>'sort_order')::integer;
     else
       select coalesce(max(sort_order), -1) + 1
