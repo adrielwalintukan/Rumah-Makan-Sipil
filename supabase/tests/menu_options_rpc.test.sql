@@ -137,26 +137,25 @@ select results_eq(
 select lives_ok(
   format($$
     with m as (select id from public.menu_items where name = 'Kopi RPC' limit 1),
-         g as (select id from public.option_groups where name = 'Suhu' limit 1),
-         opt as (select id from public.options where name = 'Dingin' limit 1)
+         g as (select id from public.option_groups where name = 'Suhu' and menu_item_id = (select id from m) limit 1),
+         opt as (select o.id from public.options o join g on o.group_id = g.id where o.name = 'Dingin' limit 1)
     select public.save_menu_item_with_options(
-      m.id,
+      (select id from m),
       '{"name":"Kopi RPC Updated","price":16000}'::jsonb,
       jsonb_build_array(
         jsonb_build_object(
-          'id', g.id,
+          'id', (select id from g),
           'name', 'Suhu Pilihan',
           'type', 'single',
           'required', true,
           'sort_order', 0,
           'options', jsonb_build_array(
-            jsonb_build_object('id', opt.id, 'name', 'Dingin Banget', 'price_delta', 3000, 'is_available', false, 'sort_order', 0),
+            jsonb_build_object('id', (select id from opt), 'name', 'Dingin Banget', 'price_delta', 3000, 'is_available', false, 'sort_order', 0),
             jsonb_build_object('name', 'Hangat Sedang', 'price_delta', 1000, 'is_available', true, 'sort_order', 1)
           )
         )
       )
     )
-    from m, g, opt
   $$),
   'Pemilik bisa mengupdate menu, grup, dan opsi yang ada'
 );
@@ -180,13 +179,11 @@ select results_eq(
 -- ------------------------------------------------------------
 select throws_ok(
   format($$
-    with m as (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1)
     select public.save_menu_item_with_options(
-      m.id,
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
       '{"name":"Kopi Invalid"}'::jsonb,
       '[{"name":"Invalid Group","type":"single","required":false,"sort_order":0,"options":[{"name":"Bad","price_delta":-500,"is_available":true,"sort_order":0}]}]'::jsonb
     )
-    from m
   $$),
   '22023',
   'Harga tambahan opsi tidak boleh negatif',
