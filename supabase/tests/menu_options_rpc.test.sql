@@ -22,6 +22,7 @@ select
   gen_random_uuid() as cat_id,
   gen_random_uuid() as other_menu_id,
   gen_random_uuid() as other_group_id,
+  gen_random_uuid() as second_group_id,
   gen_random_uuid() as other_option_id;
 
 grant select on _test_ctx to public;
@@ -45,6 +46,9 @@ select other_menu_id, cat_id, 'Menu Tetangga', 20000, 2 from _test_ctx;
 
 insert into public.option_groups (id, menu_item_id, name, type, required, sort_order)
 select other_group_id, other_menu_id, 'Grup Tetangga', 'single', false, 0 from _test_ctx;
+
+insert into public.option_groups (id, menu_item_id, name, type, required, sort_order)
+select second_group_id, other_menu_id, 'Grup Tetangga Kedua', 'single', false, 1 from _test_ctx;
 
 insert into public.options (id, group_id, name, price_delta, sort_order)
 select other_option_id, other_group_id, 'Opsi Tetangga', 1000, 0 from _test_ctx;
@@ -430,19 +434,19 @@ select throws_ok(
       '{}'::jsonb,
       jsonb_build_array(
         jsonb_build_object(
-          'id', (select other_group_id from _test_ctx),
-          'name', 'Grup Tetangga Asli',
+          'id', (select second_group_id from _test_ctx),
+          'name', 'Grup Tetangga Kedua',
           'type', 'single',
           'options', jsonb_build_array(
-            jsonb_build_object('id', gen_random_uuid(), 'name', 'Opsi Asing Tak Dikenal')
+            jsonb_build_object('id', (select other_option_id from _test_ctx), 'name', 'Opsi Milik Grup Lain')
           )
         )
       )
     )
   $$),
   'P0002',
-  null,
-  'ID opsi yang tidak ada pada grup target ditolak dengan error P0002'
+  format('Opsi dengan id %s tidak ditemukan pada grup ini', (select other_option_id from _test_ctx)),
+  'ID opsi milik grup lain ditolak dengan error P0002'
 );
 
 select * from finish();
