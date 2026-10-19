@@ -154,7 +154,7 @@ test("alur kelola grup pilihan dan opsi menu: buat menu beropsi, pesan di pelang
 
   // Tambah Grup 1: "Varian Suhu" (Pilih Satu / Single, Wajib)
   await page.getByRole("button", { name: "Tambah Grup Pilihan" }).click();
-  const group1Card = page.locator("div.rounded-xl.border").filter({ has: page.locator("#group-name-0") });
+  const group1Card = page.locator('[data-testid="option-group-card"]').filter({ has: page.locator("#group-name-0") });
   await expect(group1Card).toBeVisible();
 
   await group1Card.locator("#group-name-0").fill("Varian Suhu");
@@ -174,7 +174,7 @@ test("alur kelola grup pilihan dan opsi menu: buat menu beropsi, pesan di pelang
 
   // Tambah Grup 2: "Topping Ekstra" (Boleh Lebih dari Satu / Multiple, Opsional)
   await page.getByRole("button", { name: "Tambah Grup Pilihan" }).click();
-  const group2Card = page.locator("div.rounded-xl.border").filter({ has: page.locator("#group-name-1") });
+  const group2Card = page.locator('[data-testid="option-group-card"]').filter({ has: page.locator("#group-name-1") });
   await expect(group2Card).toBeVisible();
 
   await group2Card.locator("#group-name-1").fill("Topping Ekstra");
@@ -283,7 +283,7 @@ test("alur kelola grup pilihan dan opsi menu: buat menu beropsi, pesan di pelang
   await expect(page.getByRole("heading", { level: 1, name: "Ubah Menu" })).toBeVisible();
 
   // Tambah opsi "Es Batu (+Rp 1.000)" pada grup "Varian Suhu" (Grup #1)
-  const editGroup1Card = page.locator("div.rounded-xl.border").filter({ has: page.locator("#group-name-0") });
+  const editGroup1Card = page.locator('[data-testid="option-group-card"]').filter({ has: page.locator("#group-name-0") });
   await editGroup1Card.getByRole("button", { name: "Tambah Opsi" }).click();
 
   // Opsi ke-3 (indeks 2: Panas, Dingin, Es Batu)

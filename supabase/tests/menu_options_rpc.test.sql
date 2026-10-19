@@ -21,6 +21,8 @@ select
   'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::uuid as stranger_id,
   gen_random_uuid() as cat_id;
 
+grant select on _test_ctx to public;
+
 insert into auth.users (id, email)
 values
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid, 'owner-rpc@warung.local'),

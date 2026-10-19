@@ -324,6 +324,7 @@ export function OptionGroupEditor({
             return (
               <div
                 key={group.id || `group-${groupIndex}`}
+                data-testid="option-group-card"
                 className={cn(
                   "rounded-xl border border-line bg-white p-4 sm:p-5 shadow-xs flex flex-col gap-4 transition-all",
                   (groupNameError || groupOptionsError) &&
