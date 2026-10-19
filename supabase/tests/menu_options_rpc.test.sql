@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(12);
+select plan(30);
 
 -- 1. Verifikasi fungsi ada
 select has_function(
@@ -13,13 +13,16 @@ select has_function(
 );
 
 -- ------------------------------------------------------------
--- Fixture Data: User Pemilik, User Biasa, Kategori
+-- Fixture Data: User Pemilik, User Biasa, Kategori, Menu Lain
 -- ------------------------------------------------------------
 create temp table _test_ctx as
 select
   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid as admin_id,
   'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::uuid as stranger_id,
-  gen_random_uuid() as cat_id;
+  gen_random_uuid() as cat_id,
+  gen_random_uuid() as other_menu_id,
+  gen_random_uuid() as other_group_id,
+  gen_random_uuid() as other_option_id;
 
 grant select on _test_ctx to public;
 
@@ -35,6 +38,16 @@ on conflict (user_id) do nothing;
 
 insert into public.categories (id, name, sort_order)
 select cat_id, 'Kategori Uji RPC', 1 from _test_ctx;
+
+-- Buat menu lain untuk pengujian kepemilikan ID grup & opsi asing
+insert into public.menu_items (id, category_id, name, price, sort_order)
+select other_menu_id, cat_id, 'Menu Tetangga', 20000, 2 from _test_ctx;
+
+insert into public.option_groups (id, menu_item_id, name, type, required, sort_order)
+select other_group_id, other_menu_id, 'Grup Tetangga', 'single', false, 0 from _test_ctx;
+
+insert into public.options (id, group_id, name, price_delta, sort_order)
+select other_option_id, other_group_id, 'Opsi Tetangga', 1000, 0 from _test_ctx;
 
 -- ------------------------------------------------------------
 -- 2. Hak Akses: Role anonim ditolak
@@ -175,9 +188,22 @@ select throws_ok(
     )
     from m
   $$),
-  null,
-  null,
+  '22023',
+  'Harga tambahan opsi tidak boleh negatif',
   'Transaksi harus gagal dan rollback jika price_delta negatif'
+);
+
+-- Verifikasi rollback: nama menu tetap Kopi RPC Updated
+select results_eq(
+  $$ select name from public.menu_items where name = 'Kopi RPC Updated' $$,
+  $$ values ('Kopi RPC Updated'::text) $$,
+  'Nama menu tidak berubah karena rollback berhasil'
+);
+
+-- Verifikasi rollback: grup Invalid Group tidak tersimpan ke database
+select is_empty(
+  $$ select 1 from public.option_groups where name = 'Invalid Group' $$,
+  'Grup Invalid Group tidak tersimpan ke database karena rollback'
 );
 
 -- ------------------------------------------------------------
@@ -188,6 +214,238 @@ select throws_ok(
   'P0002',
   'Menu tidak ditemukan atau sudah tidak aktif',
   'Update menu yang tidak ada melempar error P0002'
+);
+
+-- ------------------------------------------------------------
+-- 13. Validasi Invariant SQL pada p_groups & options
+-- ------------------------------------------------------------
+-- Nama menu > 50 karakter ditolak
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      null,
+      '{"category_id":"%s","name":"Menu Yang Namanya Sengaja Dibuat Terlalu Panjang Melebihi Batas Maksimal Lima Puluh Karakter","price":10000}'::jsonb,
+      null
+    )
+  $$, (select cat_id from _test_ctx)),
+  '22023',
+  'Nama menu maksimal 50 karakter',
+  'Nama menu lebih dari 50 karakter ditolak di SQL'
+);
+
+-- Nama grup kosong ditolak
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{}'::jsonb,
+      '[{"name":"","type":"single","options":[{"name":"Opsi 1"}]}]'::jsonb
+    )
+  $$),
+  '22023',
+  'Nama grup pilihan wajib diisi',
+  'Nama grup pilihan kosong ditolak di SQL'
+);
+
+-- Nama grup > 50 karakter ditolak
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{}'::jsonb,
+      '[{"name":"Grup Pilihan Yang Namanya Sengaja Dibuat Terlalu Panjang Melebihi Batas","type":"single","options":[{"name":"Opsi 1"}]}]'::jsonb
+    )
+  $$),
+  '22023',
+  'Nama grup pilihan maksimal 50 karakter',
+  'Nama grup pilihan lebih dari 50 karakter ditolak di SQL'
+);
+
+-- Duplikat nama grup case-insensitive ditolak
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{}'::jsonb,
+      '[
+        {"name":"Level","type":"single","options":[{"name":"Sedang"}]},
+        {"name":"level","type":"single","options":[{"name":"Pedas"}]}
+      ]'::jsonb
+    )
+  $$),
+  '22023',
+  'Nama grup pilihan tidak boleh duplikat: level',
+  'Duplikasi nama grup pilihan (case-insensitive) ditolak di SQL'
+);
+
+-- Tipe grup tidak valid ditolak
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{}'::jsonb,
+      '[{"name":"Varian","type":"invalid_type","options":[{"name":"Opsi 1"}]}]'::jsonb
+    )
+  $$),
+  '22023',
+  'Tipe grup pilihan harus single atau multiple',
+  'Tipe grup selain single/multiple ditolak di SQL'
+);
+
+-- Grup tanpa opsi (options kosong) ditolak
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{}'::jsonb,
+      '[{"name":"Varian","type":"single","options":[]}]'::jsonb
+    )
+  $$),
+  '22023',
+  'Grup pilihan Varian harus memiliki minimal 1 opsi',
+  'Grup tanpa opsi ditolak di SQL'
+);
+
+-- Nama opsi kosong ditolak
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{}'::jsonb,
+      '[{"name":"Varian","type":"single","options":[{"name":""}]}]'::jsonb
+    )
+  $$),
+  '22023',
+  'Nama opsi wajib diisi',
+  'Nama opsi kosong ditolak di SQL'
+);
+
+-- Nama opsi > 50 karakter ditolak
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{}'::jsonb,
+      '[{"name":"Varian","type":"single","options":[{"name":"Nama Opsi Ini Sengaja Dibuat Panjang Sekali Lebih Dari Lima Puluh Karakter"}]}]'::jsonb
+    )
+  $$),
+  '22023',
+  'Nama opsi maksimal 50 karakter',
+  'Nama opsi lebih dari 50 karakter ditolak di SQL'
+);
+
+-- Duplikat nama opsi dalam satu grup case-insensitive ditolak
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{}'::jsonb,
+      '[{"name":"Varian","type":"single","options":[{"name":"Manis"},{"name":"manis"}]}]'::jsonb
+    )
+  $$),
+  '22023',
+  'Nama opsi tidak boleh duplikat dalam satu grup: manis',
+  'Duplikasi nama opsi dalam satu grup (case-insensitive) ditolak di SQL'
+);
+
+-- ------------------------------------------------------------
+-- 14. Validasi p_groups (non-array, null, empty array)
+-- ------------------------------------------------------------
+-- p_groups bukan array ditolak
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{"price":17000}'::jsonb,
+      '{"bukan":"array"}'::jsonb
+    )
+  $$),
+  '22023',
+  'p_groups harus berupa array JSON',
+  'p_groups berupa object/non-array ditolak eksplisit'
+);
+
+-- p_groups = null adalah no-op (tidak mengubah grup yang ada)
+select lives_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{"price":17500}'::jsonb,
+      null
+    )
+  $$),
+  'p_groups null berhasil dieksekusi tanpa error'
+);
+
+select results_eq(
+  $$ select count(*)::integer from public.option_groups g join public.menu_items m on m.id = g.menu_item_id where m.name = 'Kopi RPC Updated' $$,
+  $$ values (1::integer) $$,
+  'Grup pilihan tidak terhapus jika p_groups null (no-op)'
+);
+
+-- p_groups = '[]'::jsonb menghapus semua grup pada menu
+select lives_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{}'::jsonb,
+      '[]'::jsonb
+    )
+  $$),
+  'p_groups array kosong berhasil dieksekusi untuk menghapus semua grup'
+);
+
+select results_eq(
+  $$ select count(*)::integer from public.option_groups g join public.menu_items m on m.id = g.menu_item_id where m.name = 'Kopi RPC Updated' $$,
+  $$ values (0::integer) $$,
+  'Semua grup pilihan terhapus jika p_groups array kosong'
+);
+
+-- ------------------------------------------------------------
+-- 15. Validasi Kepemilikan ID Grup dan Opsi Asing
+-- ------------------------------------------------------------
+-- Payload menyertakan ID grup dari menu lain ditolak P0002
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select id from public.menu_items where name = 'Kopi RPC Updated' limit 1),
+      '{}'::jsonb,
+      jsonb_build_array(
+        jsonb_build_object(
+          'id', (select other_group_id from _test_ctx),
+          'name', 'Coba Ambil Grup Tetangga',
+          'type', 'single',
+          'options', jsonb_build_array(jsonb_build_object('name', 'Opsi 1'))
+        )
+      )
+    )
+  $$),
+  'P0002',
+  format('Grup pilihan dengan id %s tidak ditemukan pada menu ini', (select other_group_id from _test_ctx)),
+  'ID grup dari menu lain ditolak dengan error P0002'
+);
+
+-- Payload menyertakan ID opsi dari grup lain ditolak P0002
+select throws_ok(
+  format($$
+    select public.save_menu_item_with_options(
+      (select other_menu_id from _test_ctx),
+      '{}'::jsonb,
+      jsonb_build_array(
+        jsonb_build_object(
+          'id', (select other_group_id from _test_ctx),
+          'name', 'Grup Tetangga Asli',
+          'type', 'single',
+          'options', jsonb_build_array(
+            jsonb_build_object('id', gen_random_uuid(), 'name', 'Opsi Asing Tak Dikenal')
+          )
+        )
+      )
+    )
+  $$),
+  'P0002',
+  null,
+  'ID opsi yang tidak ada pada grup target ditolak dengan error P0002'
 );
 
 select * from finish();
