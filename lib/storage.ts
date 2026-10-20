@@ -219,9 +219,9 @@ export async function saveMenuItemWithPhotoCleanup({
  * Menyimpan pengaturan toko ke API (/api/admin/settings) sekaligus mengunggah gambar QRIS baru jika ada.
  * Jika pengunggahan QRIS berhasil tetapi request penyimpanan pengaturan gagal dengan respons error (HTTP 4xx/5xx),
  * fungsi ini melakukan pembersihan best-effort terhadap file baru tersebut agar tidak menjadi orphan.
- * Pada kegagalan jaringan (network error) yang bersifat ambigu, file hanya dibersihkan jika dipastikan
- * belum direferensikan oleh database (settings.qris_image_path), mencegah terhapusnya QRIS yang sebenarnya
- * sudah tersimpan di server.
+ * Pada kegagalan jaringan (network error) yang bersifat ambigu, file tidak dibersihkan oleh klien
+ * guna mencegah race condition jika mutasi di server masih in-flight dan baru selesai commit kemudian.
+ * Mempertahankan file (orphan sementara) jauh lebih aman daripada menghapus file QRIS yang aktif.
  */
 export async function saveStoreSettingsWithQrisCleanup({
   storage,
@@ -262,30 +262,11 @@ export async function saveStoreSettingsWithQrisCleanup({
         body: JSON.stringify(patchBody),
       });
     } catch (networkError) {
-      // Ambiguitas network error: request mungkin sudah di-commit oleh server,
-      // namun respons hilang/terputus sebelum sampai ke klien.
-      // Hanya bersihkan jika dipastikan path baru BELUM direferensikan oleh settings di database.
-      if (uploadedNewPath) {
-        let shouldCleanup = false;
-        if (isReferenced) {
-          try {
-            const referenced = await isReferenced(uploadedNewPath);
-            if (!referenced) {
-              shouldCleanup = true;
-            }
-          } catch (refCheckErr) {
-            console.error(
-              "Gagal memeriksa referensi QRIS setelah network error:",
-              refCheckErr
-            );
-            shouldCleanup = false;
-          }
-        }
-        if (shouldCleanup) {
-          await executeCleanup(storage, STORE_BUCKET, uploadedNewPath);
-        }
-      }
-
+      // Ambiguitas network error: request PATCH mungkin masih in-flight di server dan baru akan di-commit,
+      // atau sudah di-commit namun respons terputus sebelum sampai ke klien.
+      // Jangan pernah menghapus file baru pada network error yang ambigu meskipun pemeriksaan sesaat
+      // membaca belum direferensikan (isReferenced === false). Mempertahankan file (orphan sementara)
+      // jauh lebih aman daripada memutus gambar pembayaran QRIS aktif akibat race condition request in-flight.
       const msg =
         networkError instanceof Error
           ? networkError.message

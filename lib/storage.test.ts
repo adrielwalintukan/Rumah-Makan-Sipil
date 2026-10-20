@@ -563,12 +563,12 @@ describe("storage", () => {
       expect(res.error).toBe("Network connection dropped");
       expect(mockUpload).toHaveBeenCalledTimes(1);
       const uploadedPath = mockUpload.mock.calls[0][0];
-      expect(mockIsReferenced).toHaveBeenCalledWith(uploadedPath);
-      // Memastikan file QRIS TIDAK dihapus dari storage karena sudah aktif direferensikan oleh database
+      expect(uploadedPath).toMatch(/^qris\/[a-zA-Z0-9-]+\.webp$/);
+      // Memastikan file QRIS TIDAK dihapus dari storage pada network error
       expect(mockRemove).not.toHaveBeenCalled();
     });
 
-    it("melakukan pembersihan file QRIS baru jika fetch melempar network error dan file dipastikan belum direferensikan (isReferenced bernilai false)", async () => {
+    it("TIDAK menghapus file QRIS jika fetch melempar network error, mencegah race condition saat request server masih in-flight dan referensi baru muncul setelah request selesai", async () => {
       const mockUpload = vi.fn().mockResolvedValue({ error: null });
       const mockRemove = vi.fn().mockResolvedValue({ error: null });
       const mockStorage = {
@@ -578,8 +578,19 @@ describe("storage", () => {
         }),
       };
 
-      const mockFetcher = vi.fn().mockRejectedValue(new Error("Network connection dropped"));
-      const mockIsReferenced = vi.fn().mockResolvedValue(false);
+      // Model simulasi in-flight:
+      // Client mengalami timeout/network-drop saat fetch berlangsung
+      let serverDatabaseHasCommitted = false;
+      const mockFetcher = vi.fn().mockImplementation(async () => {
+        // Simulasi: mutasi di server sedang berjalan di background
+        setTimeout(() => {
+          serverDatabaseHasCommitted = true;
+        }, 10);
+        throw new Error("Network connection dropped / timeout");
+      });
+
+      // Pada snapshot saat error di client terjadi, referensi belum ada di DB
+      const mockIsReferenced = vi.fn().mockImplementation(async () => serverDatabaseHasCommitted);
 
       const res = await saveStoreSettingsWithQrisCleanup({
         storage: mockStorage,
@@ -590,11 +601,16 @@ describe("storage", () => {
       });
 
       expect(res.success).toBe(false);
-      expect(res.error).toBe("Network connection dropped");
+      expect(res.error).toBe("Network connection dropped / timeout");
       expect(mockUpload).toHaveBeenCalledTimes(1);
-      const uploadedPath = mockUpload.mock.calls[0][0];
-      expect(mockIsReferenced).toHaveBeenCalledWith(uploadedPath);
-      expect(mockRemove).toHaveBeenCalledWith([uploadedPath]);
+
+      // Memastikan storage remove TIDAK dipanggil sama sekali pada jalur network error
+      expect(mockRemove).not.toHaveBeenCalled();
+
+      // Tunggu hingga request in-flight di server selesai commit
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(serverDatabaseHasCommitted).toBe(true);
+      // File di storage tetap utuh untuk referensi yang baru selesai di-commit
     });
 
     it("TIDAK menghapus file QRIS jika fetch melempar network error dan pemeriksaan isReferenced melempar error (fallback aman)", async () => {
