@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { OrderTracker } from "@/components/pelanggan/order-tracker";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getQrisImageUrl } from "@/lib/storage";
 
 export const metadata: Metadata = { title: "Status Pesanan · Rumah Makan Sipil" };
 
@@ -44,14 +45,7 @@ async function OrderTrackContent({
   }
 
   const rawQrisPath = settingsRes.data?.qris_image_path;
-  let qrisImageUrl: string | null = null;
-  if (rawQrisPath) {
-    if (rawQrisPath.startsWith("http://") || rawQrisPath.startsWith("https://")) {
-      qrisImageUrl = rawQrisPath;
-    } else {
-      qrisImageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/store/${rawQrisPath}`;
-    }
-  }
+  const qrisImageUrl = getQrisImageUrl(rawQrisPath);
 
   return <OrderTracker initialOrder={order} qrisImageUrl={qrisImageUrl} />;
 }

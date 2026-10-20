@@ -112,6 +112,44 @@ export function calculateCrop4x3(width: number, height: number): CropResult {
   return { sx, sy, sw, sh, outWidth, outHeight };
 }
 
+export interface AspectPreservedDimensions {
+  width: number;
+  height: number;
+}
+
+/**
+ * Menghitung dimensi gambar dengan mempertahankan rasio aspek asli (tanpa crop).
+ * Jika salah satu dimensi melebihi maxDimension, kedua dimensi diskalakan secara proporsional.
+ */
+export function calculateAspectPreservedDimensions(
+  width: number,
+  height: number,
+  maxDimension = 1200
+): AspectPreservedDimensions {
+  if (
+    !Number.isFinite(width) ||
+    !Number.isFinite(height) ||
+    width <= 0 ||
+    height <= 0
+  ) {
+    throw new Error("Dimensi gambar harus angka positif yang valid.");
+  }
+
+  if (!Number.isFinite(maxDimension) || maxDimension <= 0) {
+    throw new Error("maxDimension harus angka positif yang valid.");
+  }
+
+  if (width <= maxDimension && height <= maxDimension) {
+    return { width: Math.round(width), height: Math.round(height) };
+  }
+
+  const scale = maxDimension / Math.max(width, height);
+  return {
+    width: Math.round(width * scale),
+    height: Math.round(height * scale),
+  };
+}
+
 export interface CropTransform {
   zoom: number;
   offsetX: number;
@@ -322,6 +360,85 @@ export async function compressAndCropMenuPhoto(
       width: outWidth,
       height: outHeight,
     };
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+export interface CompressQrisPhotoOptions {
+  maxDimension?: number;
+  quality?: number;
+}
+
+/**
+ * Mengompresi foto QRIS ke format WebP dengan mempertahankan aspek rasio asli (tanpa crop),
+ * agar kode barcode QRIS tidak terpotong. Skala maksimal proporsional ke maxDimension (default 1200px)
+ * dan kualitas kompresi default 0.85 (85%).
+ */
+export async function compressQrisPhoto(
+  file: File,
+  options?: CompressQrisPhotoOptions
+): Promise<Blob> {
+  const validation = validateImageFile(file);
+  if (!validation.valid) {
+    throw new Error(validation.error || "File gambar tidak valid.");
+  }
+
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    throw new Error(
+      "compressQrisPhoto hanya dapat dijalankan di lingkungan browser."
+    );
+  }
+
+  const maxDimension = options?.maxDimension ?? 1200;
+  const quality = options?.quality ?? 0.85;
+
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () =>
+        reject(
+          new Error("Gagal memuat gambar. Pastikan file gambar tidak korup.")
+        );
+      image.src = objectUrl;
+    });
+
+    const { width: outWidth, height: outHeight } =
+      calculateAspectPreservedDimensions(
+        img.naturalWidth || img.width,
+        img.naturalHeight || img.height,
+        maxDimension
+      );
+
+    const canvas = document.createElement("canvas");
+    canvas.width = outWidth;
+    canvas.height = outHeight;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("Gagal menginisialisasi canvas 2D context.");
+    }
+
+    ctx.drawImage(img, 0, 0, outWidth, outHeight);
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => {
+          if (b) {
+            resolve(b);
+          } else {
+            reject(new Error("Gagal mengonversi canvas ke blob WebP."));
+          }
+        },
+        "image/webp",
+        quality
+      );
+    });
+
+    return blob;
   } finally {
     URL.revokeObjectURL(objectUrl);
   }

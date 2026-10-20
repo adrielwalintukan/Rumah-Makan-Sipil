@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ALLOWED_IMAGE_MIME_TYPES,
+  calculateAspectPreservedDimensions,
   calculateCrop4x3,
   calculateMaxOffset,
   clampCropTransform,
   compressAndCropMenuPhoto,
+  compressQrisPhoto,
   MAX_IMAGE_FILE_SIZE,
   MAX_OUTPUT_HEIGHT,
   MAX_OUTPUT_WIDTH,
@@ -184,6 +186,72 @@ describe("image-compression", () => {
       );
       expect(() => calculateCrop4x3(Number.NaN, 500)).toThrow(
         "Dimensi gambar harus angka positif yang valid."
+      );
+    });
+  });
+
+  describe("calculateAspectPreservedDimensions", () => {
+    it("mempertahankan ukuran jika gambar sudah <= maxDimension", () => {
+      expect(calculateAspectPreservedDimensions(800, 600, 1200)).toEqual({
+        width: 800,
+        height: 600,
+      });
+      expect(calculateAspectPreservedDimensions(1200, 900, 1200)).toEqual({
+        width: 1200,
+        height: 900,
+      });
+    });
+
+    it("menskala landscape besar proporsional sehingga lebar = maxDimension", () => {
+      expect(calculateAspectPreservedDimensions(2400, 1600, 1200)).toEqual({
+        width: 1200,
+        height: 800,
+      });
+    });
+
+    it("menskala portrait besar proporsional sehingga tinggi = maxDimension", () => {
+      expect(calculateAspectPreservedDimensions(1500, 3000, 1200)).toEqual({
+        width: 600,
+        height: 1200,
+      });
+    });
+
+    it("menskala gambar bujur sangkar besar proporsional", () => {
+      expect(calculateAspectPreservedDimensions(2000, 2000, 1200)).toEqual({
+        width: 1200,
+        height: 1200,
+      });
+    });
+
+    it("menggunakan default maxDimension = 1200 jika tidak diberikan", () => {
+      expect(calculateAspectPreservedDimensions(2400, 1200)).toEqual({
+        width: 1200,
+        height: 600,
+      });
+    });
+
+    it("mendukung maxDimension kustom", () => {
+      expect(calculateAspectPreservedDimensions(1600, 1200, 800)).toEqual({
+        width: 800,
+        height: 600,
+      });
+    });
+
+    it("melempar error jika dimensi gambar atau maxDimension tidak valid, non-positif, atau non-finite", () => {
+      expect(() => calculateAspectPreservedDimensions(0, 500)).toThrow(
+        "Dimensi gambar harus angka positif yang valid."
+      );
+      expect(() => calculateAspectPreservedDimensions(500, -10)).toThrow(
+        "Dimensi gambar harus angka positif yang valid."
+      );
+      expect(() => calculateAspectPreservedDimensions(Number.NaN, 500)).toThrow(
+        "Dimensi gambar harus angka positif yang valid."
+      );
+      expect(() => calculateAspectPreservedDimensions(500, 500, 0)).toThrow(
+        "maxDimension harus angka positif yang valid."
+      );
+      expect(() => calculateAspectPreservedDimensions(500, 500, -100)).toThrow(
+        "maxDimension harus angka positif yang valid."
       );
     });
   });
@@ -627,6 +695,195 @@ describe("image-compression", () => {
       // drawX = (1200 - 1600)/2 + 200 = 0
       // drawY = (900 - 900)/2 + 0 = 0
       expect(drawMock).toHaveBeenCalledWith(img, 0, 0, 1600, 900);
+    });
+  });
+
+  describe("compressQrisPhoto", () => {
+    let originalWindow: typeof globalThis.window;
+    let originalDocument: typeof globalThis.document;
+    let originalImage: typeof globalThis.Image;
+    let originalCreateObjectURL: typeof URL.createObjectURL;
+    let originalRevokeObjectURL: typeof URL.revokeObjectURL;
+
+    let mockCanvas: {
+      width: number;
+      height: number;
+      getContext: ReturnType<typeof vi.fn>;
+      toBlob: ReturnType<typeof vi.fn>;
+    };
+    let drawImageMock: ReturnType<typeof vi.fn>;
+    let toBlobMock: ReturnType<typeof vi.fn>;
+    let createObjectURLMock: ReturnType<typeof vi.fn>;
+    let revokeObjectURLMock: ReturnType<typeof vi.fn>;
+
+    class MockImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      naturalWidth = 1600;
+      naturalHeight = 900;
+      width = 1600;
+      height = 900;
+      private _src = "";
+
+      get src() {
+        return this._src;
+      }
+      set src(value: string) {
+        this._src = value;
+        setTimeout(() => {
+          if (value.includes("corrupt")) {
+            this.onerror?.();
+          } else {
+            this.onload?.();
+          }
+        }, 0);
+      }
+    }
+
+    beforeEach(() => {
+      originalWindow = globalThis.window;
+      originalDocument = globalThis.document;
+      originalImage = globalThis.Image;
+      originalCreateObjectURL = URL.createObjectURL;
+      originalRevokeObjectURL = URL.revokeObjectURL;
+
+      drawImageMock = vi.fn();
+      toBlobMock = vi.fn((callback: (blob: Blob | null) => void) => {
+        callback(new Blob(["qris-webp"], { type: "image/webp" }));
+      });
+
+      mockCanvas = {
+        width: 0,
+        height: 0,
+        getContext: vi.fn().mockReturnValue({
+          drawImage: drawImageMock,
+        }),
+        toBlob: toBlobMock,
+      };
+
+      createObjectURLMock = vi.fn().mockReturnValue("blob:http://localhost/test-uuid");
+      revokeObjectURLMock = vi.fn();
+      URL.createObjectURL = createObjectURLMock as unknown as typeof URL.createObjectURL;
+      URL.revokeObjectURL = revokeObjectURLMock as unknown as typeof URL.revokeObjectURL;
+
+      globalThis.window = {} as unknown as Window & typeof globalThis;
+      globalThis.document = {
+        createElement: vi.fn((tag: string) => {
+          if (tag === "canvas") return mockCanvas;
+          return {};
+        }),
+      } as unknown as Document;
+      globalThis.Image = MockImage as unknown as typeof Image;
+    });
+
+    afterEach(() => {
+      globalThis.window = originalWindow;
+      globalThis.document = originalDocument;
+      globalThis.Image = originalImage;
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+      vi.restoreAllMocks();
+    });
+
+    it("menolak file dengan MIME type atau ukuran tidak valid sebelum memproses", async () => {
+      const invalidFile = new File(["dummy"], "qris.txt", {
+        type: "text/plain",
+      });
+      await expect(compressQrisPhoto(invalidFile)).rejects.toThrow(
+        "Format file harus JPG, PNG, atau WebP."
+      );
+      expect(createObjectURLMock).not.toHaveBeenCalled();
+    });
+
+    it("menolak eksekusi di luar lingkungan browser (SSR)", async () => {
+      // @ts-expect-error simulasi environment SSR
+      delete globalThis.window;
+      const validFile = new File(["photo-bytes"], "qris.png", {
+        type: "image/png",
+      });
+
+      await expect(compressQrisPhoto(validFile)).rejects.toThrow(
+        "compressQrisPhoto hanya dapat dijalankan di lingkungan browser."
+      );
+    });
+
+    it("mempertahankan rasio aspek asli (tanpa crop 4:3), skala proporsional, dan kompres ke WebP 85%", async () => {
+      const validFile = new File(["photo-bytes"], "qris.jpg", {
+        type: "image/jpeg",
+      });
+
+      const blob = await compressQrisPhoto(validFile);
+
+      expect(createObjectURLMock).toHaveBeenCalledWith(validFile);
+      // MockImage naturalWidth 1600, naturalHeight 900 -> ratio 16:9
+      // maxDimension 1200 -> width 1200, height 675 (bukan 1200x900 atau 4:3)
+      expect(mockCanvas.width).toBe(1200);
+      expect(mockCanvas.height).toBe(675);
+      expect(drawImageMock).toHaveBeenCalledWith(expect.any(MockImage), 0, 0, 1200, 675);
+      expect(toBlobMock).toHaveBeenCalledWith(
+        expect.any(Function),
+        "image/webp",
+        0.85
+      );
+      expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:http://localhost/test-uuid");
+      expect(blob).toBeInstanceOf(Blob);
+      expect(blob.type).toBe("image/webp");
+    });
+
+    it("mendukung kustomisasi maxDimension dan quality", async () => {
+      const validFile = new File(["photo-bytes"], "qris.png", {
+        type: "image/png",
+      });
+
+      await compressQrisPhoto(validFile, { maxDimension: 800, quality: 0.9 });
+
+      // 1600x900 dengan maxDimension 800 -> 800x450
+      expect(mockCanvas.width).toBe(800);
+      expect(mockCanvas.height).toBe(450);
+      expect(drawImageMock).toHaveBeenCalledWith(expect.any(MockImage), 0, 0, 800, 450);
+      expect(toBlobMock).toHaveBeenCalledWith(
+        expect.any(Function),
+        "image/webp",
+        0.9
+      );
+    });
+
+    it("membersihkan object URL dan melempar error jika gambar korup", async () => {
+      createObjectURLMock.mockReturnValue("blob:http://localhost/corrupt-qris");
+      const corruptFile = new File(["bad data"], "corrupt.jpg", {
+        type: "image/jpeg",
+      });
+
+      await expect(compressQrisPhoto(corruptFile)).rejects.toThrow(
+        "Gagal memuat gambar. Pastikan file gambar tidak korup."
+      );
+      expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:http://localhost/corrupt-qris");
+    });
+
+    it("membersihkan object URL dan melempar error jika context 2D null", async () => {
+      mockCanvas.getContext.mockReturnValue(null);
+      const validFile = new File(["photo-bytes"], "qris.webp", {
+        type: "image/webp",
+      });
+
+      await expect(compressQrisPhoto(validFile)).rejects.toThrow(
+        "Gagal menginisialisasi canvas 2D context."
+      );
+      expect(revokeObjectURLMock).toHaveBeenCalled();
+    });
+
+    it("membersihkan object URL dan melempar error jika toBlob menghasilkan null", async () => {
+      toBlobMock.mockImplementation((callback: (blob: Blob | null) => void) => {
+        callback(null);
+      });
+      const validFile = new File(["photo-bytes"], "qris.png", {
+        type: "image/png",
+      });
+
+      await expect(compressQrisPhoto(validFile)).rejects.toThrow(
+        "Gagal mengonversi canvas ke blob WebP."
+      );
+      expect(revokeObjectURLMock).toHaveBeenCalled();
     });
   });
 });
