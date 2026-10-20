@@ -148,11 +148,15 @@ export async function PATCH(request: Request) {
 
     const updatePayload: Record<string, unknown> = {
       store_name: parsedData.store_name,
-      tagline: parsedData.tagline ?? null,
       whatsapp_number: parsedData.whatsapp_number,
       dos_price: parsedData.dos_price,
-      qris_image_path: parsedData.qris_image_path ?? null,
     };
+    if (parsedData.tagline !== undefined) {
+      updatePayload.tagline = parsedData.tagline;
+    }
+    if (parsedData.qris_image_path !== undefined) {
+      updatePayload.qris_image_path = parsedData.qris_image_path;
+    }
     if (parsedData.is_open !== undefined) {
       updatePayload.is_open = parsedData.is_open;
     }
@@ -176,24 +180,26 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
 
-    // Pembersihan foto QRIS lama secara defensif (storage cleanup failure tidak menggagalkan DB update)
-    const newQrisPath = parsedData.qris_image_path ?? null;
-    if (oldQrisPath && oldQrisPath !== newQrisPath) {
-      try {
-        const { error: storageErr } = await supabase.storage
-          .from(STORE_BUCKET)
-          .remove([oldQrisPath]);
-        if (storageErr) {
+    // Pembersihan foto QRIS lama secara defensif jika field qris_image_path disertakan
+    if (parsedData.qris_image_path !== undefined) {
+      const newQrisPath = parsedData.qris_image_path;
+      if (oldQrisPath && oldQrisPath !== newQrisPath) {
+        try {
+          const { error: storageErr } = await supabase.storage
+            .from(STORE_BUCKET)
+            .remove([oldQrisPath]);
+          if (storageErr) {
+            console.error(
+              "Gagal membersihkan foto QRIS lama dari storage:",
+              storageErr
+            );
+          }
+        } catch (storageException) {
           console.error(
             "Gagal membersihkan foto QRIS lama dari storage:",
-            storageErr
+            storageException
           );
         }
-      } catch (storageException) {
-        console.error(
-          "Gagal membersihkan foto QRIS lama dari storage:",
-          storageException
-        );
       }
     }
 

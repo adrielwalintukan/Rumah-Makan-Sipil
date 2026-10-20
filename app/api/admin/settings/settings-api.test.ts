@@ -368,6 +368,49 @@ describe("Admin Settings API: /api/admin/settings", () => {
         expect(mockStorageRemove).toHaveBeenCalledWith(["qris/old-qris.webp"]);
       });
 
+      it("mempertahankan qris_image_path dan tidak memanggil storage remove jika field qris_image_path tidak dikirim", async () => {
+        mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+
+        const fetchChain = createQueryChain({
+          data: { qris_image_path: "qris/old-qris.webp" },
+          error: null,
+        });
+        const updateChain = createQueryChain({
+          data: {
+            ...sampleSettings,
+            store_name: "Nama Toko Baru",
+            qris_image_path: "qris/old-qris.webp",
+          },
+          error: null,
+        });
+
+        mockFrom.mockReturnValueOnce(fetchChain).mockReturnValueOnce(updateChain);
+
+        const req = new Request("http://localhost/api/admin/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            store_name: "Nama Toko Baru",
+            whatsapp_number: "62895806567230",
+            dos_price: 25000,
+          }),
+        });
+
+        const res = await PATCH(req);
+        expect(res.status).toBe(200);
+        const json = await res.json();
+        expect(json.store_name).toBe("Nama Toko Baru");
+        expect(json.qris_image_path).toBe("qris/old-qris.webp");
+
+        // Memastikan updatePayload tidak memasukkan kolom qris_image_path
+        expect(updateChain.update).toHaveBeenCalledWith({
+          store_name: "Nama Toko Baru",
+          whatsapp_number: "62895806567230",
+          dos_price: 25000,
+        });
+        expect(mockStorageRemove).not.toHaveBeenCalled();
+      });
+
       it("tetap sukses (200) jika pembersihan storage gagal (defensive cleanup)", async () => {
         const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
         mockGetAdminUser.mockResolvedValueOnce(validAdmin);
