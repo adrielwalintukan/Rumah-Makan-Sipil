@@ -136,6 +136,7 @@ test("alur pengaturan toko: ubah profil, upload QRIS natural ratio, validasi gan
   await page.getByRole("button", { name: "Masuk ke Dashboard" }).click();
 
   await expect(page).toHaveURL(/\/admin/);
+  await expect(page.getByRole("heading", { level: 1, name: "Pesanan Live" })).toBeVisible();
 
   await page.goto("/admin/pengaturan");
   await expect(page).toHaveURL(/\/admin\/pengaturan$/);
