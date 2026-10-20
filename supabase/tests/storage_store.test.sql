@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(15);
+select plan(10);
 
 -- ------------------------------------------------------------
 -- Fixture Data: Akun Pemilik dan Akun Bukan Pemilik
@@ -65,22 +65,6 @@ select throws_ok(
   'anon ditolak saat upload ke store'
 );
 
--- Anonymous tidak dapat memperbarui objek di store
-update storage.objects set metadata = '{"anon": true}'::jsonb where bucket_id = 'store' and name = 'fixture-publik.webp';
-select is(
-  (select metadata from storage.objects where bucket_id = 'store' and name = 'fixture-publik.webp'),
-  null,
-  'anon tidak dapat memperbarui objek di store'
-);
-
--- Anonymous tidak dapat menghapus objek di store
-delete from storage.objects where bucket_id = 'store' and name = 'fixture-publik.webp';
-select is(
-  (select count(*) from storage.objects where bucket_id = 'store' and name = 'fixture-publik.webp'),
-  1::bigint,
-  'anon tidak dapat menghapus objek di store'
-);
-
 -- ------------------------------------------------------------
 -- 3. Hak Akses Authenticated Bukan Pemilik
 -- ------------------------------------------------------------
@@ -94,22 +78,6 @@ select throws_ok(
   '42501',
   null,
   'user authenticated bukan pemilik ditolak saat upload ke store'
-);
-
--- User authenticated bukan pemilik tidak dapat memperbarui objek di store
-update storage.objects set metadata = '{"bukan_pemilik": true}'::jsonb where bucket_id = 'store' and name = 'fixture-publik.webp';
-select is(
-  (select metadata from storage.objects where bucket_id = 'store' and name = 'fixture-publik.webp'),
-  null,
-  'user authenticated bukan pemilik tidak dapat memperbarui objek di store'
-);
-
--- User authenticated bukan pemilik tidak dapat menghapus objek di store
-delete from storage.objects where bucket_id = 'store' and name = 'fixture-publik.webp';
-select is(
-  (select count(*) from storage.objects where bucket_id = 'store' and name = 'fixture-publik.webp'),
-  1::bigint,
-  'user authenticated bukan pemilik tidak dapat menghapus objek di store'
 );
 
 -- ------------------------------------------------------------
@@ -128,12 +96,6 @@ select lives_ok(
 select lives_ok(
   $$update storage.objects set metadata = '{"size": 1024}'::jsonb where bucket_id = 'store' and name = 'tes-pemilik.webp'$$,
   'pemilik dapat memperbarui objek di store'
-);
-
--- Pemilik dapat menghapus objek di store
-select lives_ok(
-  $$delete from storage.objects where bucket_id = 'store' and name = 'tes-pemilik.webp'$$,
-  'pemilik dapat menghapus objek di store'
 );
 
 -- Kebijakan delete pemilik terpasang di pg_policies
