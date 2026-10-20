@@ -20,7 +20,7 @@ import {
   compressQrisPhoto,
   validateImageFile,
 } from "@/lib/image-compression";
-import { STORE_BUCKET, getQrisImageUrl } from "@/lib/storage";
+import { getQrisImageUrl, saveStoreSettingsWithQrisCleanup } from "@/lib/storage";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -180,85 +180,41 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
     const validData = validation.data;
     setIsSubmitting(true);
 
-    let uploadedNewPath: string | null = null;
     const supabase = createBrowserSupabaseClient();
 
     try {
-      // 1. Unggah file baru ke Supabase Storage bucket store jika ada blob hasil kompresi
-      if (compressedBlob) {
-        const newPath = `qris/${crypto.randomUUID()}.webp`;
-        const { error: uploadError } = await supabase.storage
-          .from(STORE_BUCKET)
-          .upload(newPath, compressedBlob, {
-            contentType: "image/webp",
-            upsert: true,
-          });
-
-        if (uploadError) {
-          throw new Error(
-            `Gagal mengunggah gambar QRIS ke penyimpanan: ${uploadError.message}`
-          );
-        }
-        uploadedNewPath = newPath;
-      }
-
-      // 2. Kirim PATCH ke /api/admin/settings
-      const patchPayload = {
-        store_name: validData.store_name,
-        tagline: validData.tagline,
-        whatsapp_number: validData.whatsapp_number,
-        dos_price: validData.dos_price,
-        qris_image_path: uploadedNewPath ?? currentQrisPath,
-      };
-
-      let response: Response;
-      try {
-        response = await fetch("/api/admin/settings", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(patchPayload),
-        });
-      } catch (networkErr) {
-        // Pembersihan defensif jika request jaringan terputus setelah upload berhasil
-        if (uploadedNewPath) {
-          try {
-            await supabase.storage.from(STORE_BUCKET).remove([uploadedNewPath]);
-          } catch (cleanupErr) {
-            console.error(
-              "Gagal membersihkan file QRIS setelah network error:",
-              cleanupErr
-            );
+      const result = await saveStoreSettingsWithQrisCleanup({
+        storage: supabase.storage,
+        compressedBlob,
+        payload: {
+          store_name: validData.store_name,
+          tagline: validData.tagline,
+          whatsapp_number: validData.whatsapp_number,
+          dos_price: validData.dos_price,
+          qris_image_path: currentQrisPath,
+        },
+        isReferenced: async (path: string) => {
+          const { data, error } = await supabase
+            .from("settings")
+            .select("qris_image_path")
+            .eq("id", 1)
+            .maybeSingle();
+          if (error) {
+            throw new Error(error.message);
           }
-        }
-        const msg =
-          networkErr instanceof Error
-            ? networkErr.message
-            : "Terjadi kesalahan jaringan saat menyimpan pengaturan.";
-        throw new Error(msg);
-      }
+          return data?.qris_image_path === path;
+        },
+      });
 
-      if (!response.ok) {
-        // Pembersihan defensif jika API merespons dengan kode error
-        if (uploadedNewPath) {
-          try {
-            await supabase.storage.from(STORE_BUCKET).remove([uploadedNewPath]);
-          } catch (cleanupErr) {
-            console.error(
-              "Gagal membersihkan file QRIS setelah request API gagal:",
-              cleanupErr
-            );
-          }
-        }
-        const result = await response.json().catch(() => ({}));
+      if (!result.success) {
         throw new Error(result.error || "Gagal menyimpan pengaturan toko.");
       }
 
-      // 3. Perbarui state setelah penyimpanan sukses
-      if (uploadedNewPath) {
-        setCurrentQrisPath(uploadedNewPath);
+      if (result.uploadedPath) {
+        setCurrentQrisPath(result.uploadedPath);
         setCompressedBlob(null);
         setSelectedFileName(null);
-        const permanentUrl = getQrisImageUrl(uploadedNewPath);
+        const permanentUrl = getQrisImageUrl(result.uploadedPath);
         if (permanentUrl) {
           if (previewUrl && previewUrl.startsWith("blob:")) {
             URL.revokeObjectURL(previewUrl);
