@@ -14,6 +14,29 @@ import { Input } from "@/components/ui/input";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
+function translateAuthError(message?: string): string {
+  if (!message) return "Gagal memperbarui password akun pemilik.";
+  const lower = message.toLowerCase();
+  if (lower.includes("should be different") || lower.includes("same as old")) {
+    return "Password baru harus berbeda dengan password lama.";
+  }
+  if (
+    lower.includes("at least 6 characters") ||
+    lower.includes("at least 8 characters") ||
+    lower.includes("weak password")
+  ) {
+    return "Password terlalu lemah atau kurang panjang (minimal 8 karakter).";
+  }
+  if (
+    lower.includes("reauthenticate") ||
+    lower.includes("jwt") ||
+    lower.includes("session")
+  ) {
+    return "Sesi login telah berakhir. Silakan login ulang.";
+  }
+  return message;
+}
+
 export function ChangePasswordForm() {
   const [newPassword, setNewPassword] = React.useState<string>("");
   const [confirmPassword, setConfirmPassword] = React.useState<string>("");
@@ -62,9 +85,7 @@ export function ChangePasswordForm() {
       });
 
       if (error) {
-        setErrorMessage(
-          error.message || "Gagal memperbarui password akun pemilik."
-        );
+        setErrorMessage(translateAuthError(error.message));
         return;
       }
 
