@@ -676,5 +676,34 @@ describe("storage", () => {
       expect(mockFetcher).not.toHaveBeenCalled();
       expect(mockRemove).not.toHaveBeenCalled();
     });
+
+    it("TIDAK menghapus file QRIS jika API merespons dengan HTTP error (4xx/5xx) dan pemeriksaan isReferenced melempar error (fallback aman)", async () => {
+      const mockUpload = vi.fn().mockResolvedValue({ error: null });
+      const mockRemove = vi.fn().mockResolvedValue({ error: null });
+      const mockStorage = {
+        from: vi.fn().mockReturnValue({
+          upload: mockUpload,
+          remove: mockRemove,
+        }),
+      };
+
+      const mockFetcher = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Internal server error" }),
+      } as unknown as Response);
+
+      const mockIsReferenced = vi.fn().mockRejectedValue(new Error("Database connection lost"));
+
+      const res = await saveStoreSettingsWithQrisCleanup({
+        storage: mockStorage,
+        compressedBlob: dummyBlob,
+        payload: dummyPayload,
+        fetcher: mockFetcher as unknown as typeof fetch,
+        isReferenced: mockIsReferenced,
+      });
+
+      expect(res.success).toBe(false);
+      expect(mockRemove).not.toHaveBeenCalled();
+    });
   });
 });

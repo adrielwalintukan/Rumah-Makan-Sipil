@@ -195,6 +195,7 @@ export async function saveMenuItemWithPhotoCleanup({
             }
           } catch (refCheckErr) {
             console.error("Gagal memeriksa referensi foto:", refCheckErr);
+            shouldCleanup = false;
           }
         }
         if (shouldCleanup) {
@@ -305,6 +306,7 @@ export async function saveStoreSettingsWithQrisCleanup({
             }
           } catch (refCheckErr) {
             console.error("Gagal memeriksa referensi QRIS:", refCheckErr);
+            shouldCleanup = false;
           }
         }
         if (shouldCleanup) {
