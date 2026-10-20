@@ -1,4 +1,5 @@
 export const MENU_PHOTOS_BUCKET = "menu-photos";
+export const STORE_BUCKET = "store";
 
 /**
  * Menghasilkan URL publik untuk foto menu berdasarkan image_path dari database.
@@ -17,6 +18,25 @@ export function getMenuPhotoUrl(imagePath?: string | null): string | null {
     return `${baseUrl}/storage/v1/object/public/${MENU_PHOTOS_BUCKET}/${cleanPath}`;
   }
   return `/${MENU_PHOTOS_BUCKET}/${trimmed}`;
+}
+
+/**
+ * Menghasilkan URL publik untuk foto QRIS toko berdasarkan image_path dari database/pengaturan.
+ * Mendukung path relatif Supabase Storage, URL absolut (http/https), atau path publik lokal.
+ */
+export function getQrisImageUrl(imagePath?: string | null): string | null {
+  if (!imagePath || !imagePath.trim()) return null;
+  const trimmed = imagePath.trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/")) {
+    return trimmed;
+  }
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (supabaseUrl) {
+    const baseUrl = supabaseUrl.replace(/\/+$/, "");
+    const cleanPath = trimmed.replace(/^\/+/, "");
+    return `${baseUrl}/storage/v1/object/public/${STORE_BUCKET}/${cleanPath}`;
+  }
+  return `/${STORE_BUCKET}/${trimmed}`;
 }
 
 export interface SaveMenuItemParams {

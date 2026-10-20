@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getMenuPhotoUrl,
   MENU_PHOTOS_BUCKET,
+  getQrisImageUrl,
   saveMenuItemWithPhotoCleanup,
+  STORE_BUCKET,
 } from "./storage";
 
 describe("storage", () => {
@@ -18,6 +20,10 @@ describe("storage", () => {
 
   it("mengekspor MENU_PHOTOS_BUCKET yang benar", () => {
     expect(MENU_PHOTOS_BUCKET).toBe("menu-photos");
+  });
+
+  it("mengekspor STORE_BUCKET yang benar", () => {
+    expect(STORE_BUCKET).toBe("store");
   });
 
   describe("getMenuPhotoUrl", () => {
@@ -66,6 +72,55 @@ describe("storage", () => {
       delete process.env.NEXT_PUBLIC_SUPABASE_URL;
       const url = getMenuPhotoUrl("items/ayam-bakar.webp");
       expect(url).toBe("/menu-photos/items/ayam-bakar.webp");
+    });
+  });
+
+  describe("getQrisImageUrl", () => {
+    it("mengembalikan null untuk null, undefined, string kosong, atau spasi saja", () => {
+      expect(getQrisImageUrl(null)).toBeNull();
+      expect(getQrisImageUrl(undefined)).toBeNull();
+      expect(getQrisImageUrl("")).toBeNull();
+      expect(getQrisImageUrl("   ")).toBeNull();
+    });
+
+    it("mengembalikan URL publik Supabase Storage lengkap untuk path relatif", () => {
+      const url = getQrisImageUrl("qris/dana-2026.webp");
+      expect(url).toBe(
+        "https://example.supabase.co/storage/v1/object/public/store/qris/dana-2026.webp"
+      );
+    });
+
+    it("menghapus whitespace di awal dan akhir path relatif", () => {
+      const url = getQrisImageUrl("   qris/dana-2026.webp   ");
+      expect(url).toBe(
+        "https://example.supabase.co/storage/v1/object/public/store/qris/dana-2026.webp"
+      );
+    });
+
+    it("menangani trailing slash pada NEXT_PUBLIC_SUPABASE_URL", () => {
+      process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co/";
+      const url = getQrisImageUrl("qris/dana-2026.webp");
+      expect(url).toBe(
+        "https://example.supabase.co/storage/v1/object/public/store/qris/dana-2026.webp"
+      );
+    });
+
+    it("mengembalikan path apa adanya jika sudah diawali http://, https://, atau /", () => {
+      expect(getQrisImageUrl("https://images.example.com/qris.jpg")).toBe(
+        "https://images.example.com/qris.jpg"
+      );
+      expect(getQrisImageUrl("http://images.example.com/qris.jpg")).toBe(
+        "http://images.example.com/qris.jpg"
+      );
+      expect(getQrisImageUrl("/custom/static/qris.webp")).toBe(
+        "/custom/static/qris.webp"
+      );
+    });
+
+    it("mengembalikan fallback path jika NEXT_PUBLIC_SUPABASE_URL tidak didefinisikan", () => {
+      delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const url = getQrisImageUrl("qris/dana-2026.webp");
+      expect(url).toBe("/store/qris/dana-2026.webp");
     });
   });
 
