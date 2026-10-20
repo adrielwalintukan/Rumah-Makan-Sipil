@@ -169,8 +169,8 @@ test("alur pengaturan toko: ubah profil, upload QRIS natural ratio, validasi gan
   await whatsappInput.fill(NEW_WHATSAPP);
   await dosPriceInput.fill(NEW_DOS_PRICE_STR);
 
-  // Verifikasi pratinjau format Rupiah dinamis muncul (Rp 3.500)
-  await expect(page.getByText("Rp 3.500")).toBeVisible();
+  // Verifikasi pratinjau format Rupiah dinamis muncul (Rp3.500)
+  await expect(page.getByText("Rp3.500")).toBeVisible();
 
   // Simpan pengaturan profil
   await page.getByRole("button", { name: "Simpan Pengaturan" }).click();
@@ -255,10 +255,10 @@ test("alur pengaturan toko: ubah profil, upload QRIS natural ratio, validasi gan
   // Verifikasi tagline baru di header toko
   await expect(page.getByText(NEW_TAGLINE)).toBeVisible();
 
-  // Verifikasi bagian Paket Dos merefleksikan harga baru (Rp 3.500 / dos)
+  // Verifikasi bagian Paket Dos merefleksikan harga baru (Rp3.500 / dos)
   const paketDosSection = page.locator("section[aria-labelledby='paket-dos']");
   await expect(paketDosSection).toBeVisible();
-  await expect(paketDosSection.getByText("Rp 3.500 / dos")).toBeVisible();
+  await expect(paketDosSection.getByText("Rp3.500 / dos")).toBeVisible();
 
   // Verifikasi tautan WhatsApp paket dos memuat nomor WhatsApp baru, nama toko baru, dan harga baru
   const waOrderLink = paketDosSection.getByRole("link", { name: /Pesan via WhatsApp/i });
@@ -268,5 +268,5 @@ test("alur pengaturan toko: ubah profil, upload QRIS natural ratio, validasi gan
   expect(waHref).not.toBeNull();
   expect(waHref).toContain(NEW_WHATSAPP);
   expect(waHref).toContain(encodeURIComponent(NEW_STORE_NAME));
-  expect(waHref).toContain(encodeURIComponent("Rp 3.500"));
+  expect(waHref).toContain(encodeURIComponent("Rp3.500"));
 });
