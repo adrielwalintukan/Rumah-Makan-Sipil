@@ -215,8 +215,8 @@ test.describe.serial("Pengujian End-to-End Riwayat Pesanan Admin", () => {
     await expect(revenueSummaryCard).toBeVisible();
 
     // Verifikasi angka ringkasan
-    await expect(ordersSummaryCard.getByText(initialExpectedOrdersCount.toLocaleString("id-ID"))).toBeVisible();
-    await expect(revenueSummaryCard.getByText(formatRupiah(initialExpectedRevenue))).toBeVisible();
+    await expect(ordersSummaryCard.getByText(initialExpectedOrdersCount.toLocaleString("id-ID"), { exact: true })).toBeVisible();
+    await expect(revenueSummaryCard.getByText(formatRupiah(initialExpectedRevenue), { exact: true })).toBeVisible();
 
     // Verifikasi kartu pesanan hari ini tampil
     await expect(page.getByText("E2E Pelanggan Satu")).toBeVisible();
@@ -260,7 +260,7 @@ test.describe.serial("Pengujian End-to-End Riwayat Pesanan Admin", () => {
     await expect(dialog.getByText("Stok habis")).toBeVisible();
 
     // Tutup detail sheet
-    await dialog.getByRole("button", { name: "Tutup" }).click();
+    await dialog.getByRole("button", { name: "Tutup", exact: true }).click();
     await expect(dialog).not.toBeVisible();
 
     // 3. Cek preset 7 Hari: pesanan hari ini dan kemarin tampil
@@ -314,7 +314,7 @@ test.describe.serial("Pengujian End-to-End Riwayat Pesanan Admin", () => {
 
     // Pastikan nilai omzet lunas awal
     const revenueCard = page.locator("div.rounded-xl").filter({ hasText: "Omzet Lunas" });
-    await expect(revenueCard.getByText(formatRupiah(initialExpectedRevenue))).toBeVisible();
+    await expect(revenueCard.getByText(formatRupiah(initialExpectedRevenue), { exact: true })).toBeVisible();
 
     // 1. Klik pesanan yang belum lunas: 'E2E Pelanggan Satu'
     const orderCard1 = page.locator("button.group").filter({ hasText: "E2E Pelanggan Satu" });
@@ -341,13 +341,13 @@ test.describe.serial("Pengujian End-to-End Riwayat Pesanan Admin", () => {
     await expect(markPaidBtn).not.toBeVisible();
 
     // 5. Tutup dialog dan verifikasi pembaruan di daftar kartu & ringkasan omzet
-    await dialog.getByRole("button", { name: "Tutup" }).click();
+    await dialog.getByRole("button", { name: "Tutup", exact: true }).click();
     await expect(dialog).not.toBeVisible();
 
     // Badge di kartu pesanan sekarang Lunas
     await expect(orderCard1.getByText("Lunas")).toBeVisible();
 
     // Omzet Lunas terupdate secara reaktif
-    await expect(revenueCard.getByText(formatRupiah(finalExpectedRevenue))).toBeVisible();
+    await expect(revenueCard.getByText(formatRupiah(finalExpectedRevenue), { exact: true })).toBeVisible();
   });
 });
