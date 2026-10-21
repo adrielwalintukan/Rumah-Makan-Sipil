@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   adminOrderActionSchema,
   getLiveOrders,
+  getOrderHistory,
   getOrderItems,
   getWitaDateRange,
   getWitaTodayDateString,
@@ -229,6 +230,374 @@ describe("admin-orders", () => {
 
       expect(mockSupabase.from).toHaveBeenCalledWith("order_items");
       expect(result).toEqual(mockItems);
+    });
+  });
+
+  describe("getOrderHistory", () => {
+    function createMockSupabase(options?: {
+      summaryRows?: Array<Record<string, unknown>>;
+      summaryError?: Error | null;
+      ordersData?: Array<Record<string, unknown>>;
+      ordersError?: Error | null;
+    }) {
+      const gteMock = vi.fn().mockReturnThis();
+      const lteMock = vi.fn().mockReturnThis();
+      const eqMock = vi.fn().mockReturnThis();
+      const orMock = vi.fn().mockReturnThis();
+      const ilikeMock = vi.fn().mockReturnThis();
+      const orderMock = vi.fn().mockReturnThis();
+      const rangeMock = vi.fn().mockReturnThis();
+
+      const selectMock = vi.fn((fields: string) => {
+        const isSummary = fields.includes("payment_method");
+        const builder = {
+          gte: gteMock,
+          lte: lteMock,
+          eq: eqMock,
+          or: orMock,
+          ilike: ilikeMock,
+          order: orderMock,
+          range: rangeMock,
+          then: (resolve: (val: { data: unknown; error: unknown }) => void) => {
+            if (isSummary) {
+              resolve({
+                data: options?.summaryRows ?? [],
+                error: options?.summaryError ?? null,
+              });
+            } else {
+              resolve({
+                data: options?.ordersData ?? [],
+                error: options?.ordersError ?? null,
+              });
+            }
+          },
+        };
+
+        gteMock.mockReturnValue(builder);
+        lteMock.mockReturnValue(builder);
+        eqMock.mockReturnValue(builder);
+        orMock.mockReturnValue(builder);
+        ilikeMock.mockReturnValue(builder);
+        orderMock.mockReturnValue(builder);
+        rangeMock.mockReturnValue(builder);
+
+        return builder;
+      });
+
+      const fromMock = vi.fn().mockReturnValue({ select: selectMock });
+
+      const client = {
+        from: fromMock,
+      } as unknown as SupabaseClient;
+
+      return {
+        client,
+        spies: {
+          from: fromMock,
+          select: selectMock,
+          gte: gteMock,
+          lte: lteMock,
+          eq: eqMock,
+          or: orMock,
+          ilike: ilikeMock,
+          order: orderMock,
+          range: rangeMock,
+        },
+      };
+    }
+
+    it("mengambil data pesanan dan menghitung ringkasan omzet lunas dengan tepat", async () => {
+      const mockOrdersData = [
+        {
+          id: "order-1",
+          public_token: "token-abc-1234567890123",
+          order_date: "2026-10-21",
+          daily_number: 1,
+          customer_name: "Budi Santoso",
+          customer_phone: "08123456789",
+          order_type: "dine_in",
+          payment_method: "cash",
+          payment_status: "lunas",
+          status: "selesai",
+          total: 50000,
+          cancel_reason: null,
+          created_at: "2026-10-21T02:00:00Z",
+          paid_at: "2026-10-21T02:05:00Z",
+          order_items: [],
+        },
+        {
+          id: "order-2",
+          public_token: "token-def-1234567890123",
+          order_date: "2026-10-21",
+          daily_number: 2,
+          customer_name: "Siti Rahma",
+          customer_phone: null,
+          order_type: "takeaway",
+          payment_method: "qris",
+          payment_status: "lunas",
+          status: "selesai",
+          total: 35000,
+          cancel_reason: null,
+          created_at: "2026-10-21T03:00:00Z",
+          paid_at: "2026-10-21T03:02:00Z",
+          order_items: [],
+        },
+      ];
+
+      const mockSummaryRows = [
+        { payment_method: "cash", payment_status: "lunas", status: "selesai", total: 50000 },
+        { payment_method: "qris", payment_status: "lunas", status: "selesai", total: 35000 },
+        { payment_method: "cash", payment_status: "belum_bayar", status: "batal", total: 20000 },
+        // Pesanan batal meskipun status bayar lunas tidak dihitung ke omzet
+        { payment_method: "qris", payment_status: "lunas", status: "batal", total: 15000 },
+        // Pesanan belum lunas tidak dihitung ke omzet
+        { payment_method: "cash", payment_status: "menunggu_verifikasi", status: "dimasak", total: 25000 },
+      ];
+
+      const { client, spies } = createMockSupabase({
+        summaryRows: mockSummaryRows,
+        ordersData: mockOrdersData,
+      });
+
+      const res = await getOrderHistory(client, {
+        preset: "today",
+        status: "all",
+        page: 1,
+        limit: 50,
+      });
+
+      expect(spies.from).toHaveBeenCalledWith("orders");
+      expect(res.orders).toHaveLength(2);
+      expect(res.totalCount).toBe(5);
+      expect(res.totalPages).toBe(1);
+      expect(res.summary.totalOrders).toBe(5);
+      // Omzet lunas: hanya order lunas dan tidak batal (50.000 + 35.000 = 85.000)
+      expect(res.summary.totalRevenue).toBe(85000);
+      expect(res.summary.totalCash).toBe(50000);
+      expect(res.summary.totalQris).toBe(35000);
+    });
+
+    it("menerapkan filter status selesai dan batal ke builder query", async () => {
+      const { client, spies } = createMockSupabase();
+
+      await getOrderHistory(client, {
+        preset: "today",
+        status: "selesai",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.eq).toHaveBeenCalledWith("status", "selesai");
+
+      vi.clearAllMocks();
+
+      await getOrderHistory(client, {
+        preset: "today",
+        status: "batal",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.eq).toHaveBeenCalledWith("status", "batal");
+
+      vi.clearAllMocks();
+
+      await getOrderHistory(client, {
+        preset: "today",
+        status: "all",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.eq).not.toHaveBeenCalled();
+    });
+
+    it("menerapkan pencarian nama pelanggan dan nomor antrean (angka atau diawali #)", async () => {
+      const { client, spies } = createMockSupabase();
+
+      // Pencarian berbasis teks nama biasa
+      await getOrderHistory(client, {
+        preset: "today",
+        status: "all",
+        search: "Budi",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.ilike).toHaveBeenCalledWith("customer_name", "%Budi%");
+      expect(spies.or).not.toHaveBeenCalled();
+
+      vi.clearAllMocks();
+
+      // Pencarian angka murni (nomor antrean)
+      await getOrderHistory(client, {
+        preset: "today",
+        status: "all",
+        search: "12",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.or).toHaveBeenCalledWith("customer_name.ilike.%12%,daily_number.eq.12");
+
+      vi.clearAllMocks();
+
+      // Pencarian diawali karakter #
+      await getOrderHistory(client, {
+        preset: "today",
+        status: "all",
+        search: "#5",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.or).toHaveBeenCalledWith("customer_name.ilike.%#5%,daily_number.eq.5");
+
+      vi.clearAllMocks();
+
+      // Search hanya spasi tidak memanggil filter pencarian
+      await getOrderHistory(client, {
+        preset: "today",
+        status: "all",
+        search: "   ",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.ilike).not.toHaveBeenCalled();
+      expect(spies.or).not.toHaveBeenCalled();
+    });
+
+    it("menentukan rentang tanggal yang benar untuk preset dan custom", async () => {
+      const { client, spies } = createMockSupabase();
+
+      // Preset kustom dengan from dan to lengkap
+      await getOrderHistory(client, {
+        preset: "custom",
+        from: "2026-10-01",
+        to: "2026-10-15",
+        status: "all",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.gte).toHaveBeenCalledWith("order_date", "2026-10-01");
+      expect(spies.lte).toHaveBeenCalledWith("order_date", "2026-10-15");
+
+      vi.clearAllMocks();
+
+      // Preset kustom hanya from
+      await getOrderHistory(client, {
+        preset: "custom",
+        from: "2026-10-05",
+        status: "all",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.gte).toHaveBeenCalledWith("order_date", "2026-10-05");
+      expect(spies.lte).toHaveBeenCalledWith("order_date", "2026-10-05");
+
+      vi.clearAllMocks();
+
+      // Preset kustom hanya to
+      await getOrderHistory(client, {
+        preset: "custom",
+        to: "2026-10-08",
+        status: "all",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.gte).toHaveBeenCalledWith("order_date", "2026-10-08");
+      expect(spies.lte).toHaveBeenCalledWith("order_date", "2026-10-08");
+
+      vi.clearAllMocks();
+
+      // Preset kustom tanggal terbalik (from > to) otomatis dibalik dengan aman
+      await getOrderHistory(client, {
+        preset: "custom",
+        from: "2026-10-20",
+        to: "2026-10-10",
+        status: "all",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.gte).toHaveBeenCalledWith("order_date", "2026-10-10");
+      expect(spies.lte).toHaveBeenCalledWith("order_date", "2026-10-20");
+
+      vi.clearAllMocks();
+
+      // Preset today
+      await getOrderHistory(client, {
+        preset: "today",
+        status: "all",
+        page: 1,
+        limit: 50,
+      });
+      const todayStr = getWitaTodayDateString();
+      expect(spies.gte).toHaveBeenCalledWith("order_date", todayStr);
+      expect(spies.lte).toHaveBeenCalledWith("order_date", todayStr);
+    });
+
+    it("menghitung paginasi dan offset limit dengan tepat", async () => {
+      // 25 pesanan, limit 10, page 2 -> offset 10..19, totalPages 3
+      const mockSummaryRows = Array.from({ length: 25 }, () => ({
+        payment_method: "cash",
+        payment_status: "lunas",
+        status: "selesai",
+        total: 10000,
+      }));
+
+      const { client, spies } = createMockSupabase({
+        summaryRows: mockSummaryRows,
+      });
+
+      const res = await getOrderHistory(client, {
+        preset: "today",
+        status: "all",
+        page: 2,
+        limit: 10,
+      });
+
+      expect(res.totalCount).toBe(25);
+      expect(res.totalPages).toBe(3);
+      expect(res.page).toBe(2);
+      expect(spies.range).toHaveBeenCalledWith(10, 19);
+      expect(spies.order).toHaveBeenCalledWith("created_at", { ascending: false });
+    });
+
+    it("menangani error query pesanan dan summary secara aman", async () => {
+      // Kasus 1: orders error
+      const { client: clientOrdersError } = createMockSupabase({
+        summaryRows: [{ payment_method: "cash", payment_status: "lunas", status: "selesai", total: 10000 }],
+        ordersError: new Error("DB Orders Error"),
+      });
+
+      const res1 = await getOrderHistory(clientOrdersError, {
+        preset: "today",
+        status: "all",
+        page: 1,
+        limit: 50,
+      });
+
+      expect(res1).toEqual({
+        orders: [],
+        totalCount: 0,
+        summary: { totalOrders: 0, totalRevenue: 0, totalCash: 0, totalQris: 0 },
+        page: 1,
+        totalPages: 1,
+      });
+
+      // Kasus 2: summary error
+      const { client: clientSummaryError } = createMockSupabase({
+        summaryError: new Error("DB Summary Error"),
+      });
+
+      const res2 = await getOrderHistory(clientSummaryError, {
+        preset: "today",
+        status: "all",
+        page: 1,
+        limit: 50,
+      });
+
+      expect(res2).toEqual({
+        orders: [],
+        totalCount: 0,
+        summary: { totalOrders: 0, totalRevenue: 0, totalCash: 0, totalQris: 0 },
+        page: 1,
+        totalPages: 1,
+      });
     });
   });
 });

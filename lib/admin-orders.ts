@@ -91,7 +91,7 @@ export function getWitaDateRange(
 ): { from: string; to: string } {
   const todayStr = getWitaTodayDateString(now);
   const [year, month, day] = todayStr.split("-").map(Number);
-  // Buat objek tanggal tengah hari dalam zona lokal untuk perhitungan offset aman
+  // Buat objek tanggal UTC tengah hari untuk perhitungan offset tanggal yang aman tanpa bias DST
   const baseDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 
   const formatOffset = (offsetDays: number): string => {
@@ -150,6 +150,174 @@ export const orderHistoryQuerySchema = z.object({
 });
 
 export type OrderHistoryQuery = z.infer<typeof orderHistoryQuerySchema>;
+
+export interface OrderHistorySummary {
+  totalOrders: number;
+  totalRevenue: number;
+  totalCash: number;
+  totalQris: number;
+}
+
+export interface OrderHistoryResult {
+  orders: AdminOrder[];
+  totalCount: number;
+  summary: OrderHistorySummary;
+  page: number;
+  totalPages: number;
+}
+
+/**
+ * Mengambil riwayat pesanan dengan filter tanggal (WITA), status, pencarian, dan paginasi,
+ * beserta agregasi metrik ringkasan (omzet lunas, cash, qris, total orders).
+ */
+export async function getOrderHistory(
+  supabase: SupabaseClient,
+  query: OrderHistoryQuery
+): Promise<OrderHistoryResult> {
+  const preset = query.preset ?? "today";
+  const status = query.status ?? "all";
+  const search = query.search;
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 50;
+
+  let fromDate: string;
+  let toDate: string;
+
+  if (preset === "custom" && query.from && query.to) {
+    fromDate = query.from;
+    toDate = query.to;
+  } else if (preset === "custom" && query.from) {
+    fromDate = query.from;
+    toDate = query.from;
+  } else if (preset === "custom" && query.to) {
+    fromDate = query.to;
+    toDate = query.to;
+  } else {
+    const range = getWitaDateRange(preset === "custom" ? "today" : preset);
+    fromDate = range.from;
+    toDate = range.to;
+  }
+
+  if (fromDate > toDate) {
+    const temp = fromDate;
+    fromDate = toDate;
+    toDate = temp;
+  }
+
+  // 1. Ambil data agregasi ringkasan (seluruh dataset yang cocok dengan filter)
+  let summaryQuery = supabase
+    .from("orders")
+    .select("payment_method, payment_status, status, total")
+    .gte("order_date", fromDate)
+    .lte("order_date", toDate);
+
+  if (status === "selesai") {
+    summaryQuery = summaryQuery.eq("status", "selesai");
+  } else if (status === "batal") {
+    summaryQuery = summaryQuery.eq("status", "batal");
+  }
+
+  if (search && search.trim().length > 0) {
+    const q = search.trim();
+    const cleanQ = q.replace(/^#/, "");
+    const isDailyNumber = /^\d+$/.test(cleanQ);
+    const dailyNum = isDailyNumber ? parseInt(cleanQ, 10) : NaN;
+    if (!isNaN(dailyNum) && dailyNum > 0) {
+      summaryQuery = summaryQuery.or(`customer_name.ilike.%${q}%,daily_number.eq.${dailyNum}`);
+    } else {
+      summaryQuery = summaryQuery.ilike("customer_name", `%${q}%`);
+    }
+  }
+
+  const { data: summaryRows, error: summaryError } = await summaryQuery;
+
+  if (summaryError || !summaryRows) {
+    return {
+      orders: [],
+      totalCount: 0,
+      summary: { totalOrders: 0, totalRevenue: 0, totalCash: 0, totalQris: 0 },
+      page,
+      totalPages: 1,
+    };
+  }
+
+  const totalOrders = summaryRows.length;
+  let totalRevenue = 0;
+  let totalCash = 0;
+  let totalQris = 0;
+
+  for (const row of summaryRows) {
+    if (row.payment_status === "lunas" && row.status !== "batal") {
+      const amount = row.total || 0;
+      totalRevenue += amount;
+      if (row.payment_method === "cash") {
+        totalCash += amount;
+      } else if (row.payment_method === "qris") {
+        totalQris += amount;
+      }
+    }
+  }
+
+  // 2. Ambil total count untuk paginasi
+  const totalCount = totalOrders;
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+  const offset = (page - 1) * limit;
+
+  // 3. Ambil data pesanan terpaginasi beserta item-itemnya
+  let ordersQuery = supabase
+    .from("orders")
+    .select(`
+      *,
+      order_items (*)
+    `)
+    .gte("order_date", fromDate)
+    .lte("order_date", toDate);
+
+  if (status === "selesai") {
+    ordersQuery = ordersQuery.eq("status", "selesai");
+  } else if (status === "batal") {
+    ordersQuery = ordersQuery.eq("status", "batal");
+  }
+
+  if (search && search.trim().length > 0) {
+    const q = search.trim();
+    const cleanQ = q.replace(/^#/, "");
+    const isDailyNumber = /^\d+$/.test(cleanQ);
+    const dailyNum = isDailyNumber ? parseInt(cleanQ, 10) : NaN;
+    if (!isNaN(dailyNum) && dailyNum > 0) {
+      ordersQuery = ordersQuery.or(`customer_name.ilike.%${q}%,daily_number.eq.${dailyNum}`);
+    } else {
+      ordersQuery = ordersQuery.ilike("customer_name", `%${q}%`);
+    }
+  }
+
+  const { data: ordersData, error: ordersError } = await ordersQuery
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (ordersError || !ordersData) {
+    return {
+      orders: [],
+      totalCount: 0,
+      summary: { totalOrders: 0, totalRevenue: 0, totalCash: 0, totalQris: 0 },
+      page,
+      totalPages: 1,
+    };
+  }
+
+  return {
+    orders: ordersData as AdminOrder[],
+    totalCount,
+    summary: {
+      totalOrders,
+      totalRevenue,
+      totalCash,
+      totalQris,
+    },
+    page,
+    totalPages,
+  };
+}
 
 /**
  * Mengambil seluruh pesanan aktif (baru, dimasak, siap, atau selesai tapi belum lunas) beserta item-itemnya.
