@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(8);
+select plan(7);
 
 -- ------------------------------------------------------------
 -- Fixture Data: Admin & User Non-Admin
