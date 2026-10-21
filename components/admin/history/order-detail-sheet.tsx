@@ -129,7 +129,9 @@ export function OrderDetailSheet({
       }
 
       if (data.order) {
-        setCurrentOrder(data.order);
+        setCurrentOrder((prev) =>
+          prev ? { ...prev, ...data.order, order_items: prev.order_items } : data.order
+        );
       } else {
         setCurrentOrder((prev) =>
           prev ? { ...prev, payment_status: "lunas" } : null
@@ -452,7 +454,7 @@ export function OrderDetailSheet({
             <button
               type="button"
               onClick={() => setMutationError(null)}
-              className="text-danger font-semibold underline hover:no-underline shrink-0"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-danger font-semibold underline hover:no-underline shrink-0"
             >
               Tutup
             </button>

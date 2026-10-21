@@ -256,7 +256,6 @@ export function HistoryOrderList({
           isOpen={isSheetOpen}
           onClose={() => {
             setIsSheetOpen(false);
-            setInternalSelectedOrder(null);
           }}
           onOrderUpdated={() => {
             if (internalSelectedOrder) {
