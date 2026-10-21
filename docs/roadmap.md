@@ -51,7 +51,7 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 **Selesai jika**: pemilik bisa menambah jenis kopi baru dan langsung muncul di HP pelanggan.
 
 ### M5 — Riwayat, laporan, keuangan (D7–D9)
-- [ ] Riwayat dengan filter tanggal + detail
+- [x] Riwayat dengan filter tanggal + detail
 - [ ] Fungsi SQL laporan + halaman Laporan (hari ini / bulan ini, terlaris, Cash vs QRIS)
 - [ ] Catatan keuangan: CRUD pengeluaran, buku kas per tanggal, ringkasan bulan (laba kotor)
 
