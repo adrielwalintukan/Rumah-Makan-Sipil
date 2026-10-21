@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(7);
+select plan(9);
 
 -- ------------------------------------------------------------
 -- Fixture Data: Admin & User Non-Admin
@@ -98,6 +98,59 @@ insert into public.orders (
   'dev-s5', 'hash-s5', 'idem-s5', now()
 );
 
+-- Fixture Uji Wildcard LIKE (% dan _) pada 5 hari lalu (terisolasi dari tes tanggal lain)
+-- Pesanan 6: Nama mengandung literal '%' ('Pelanggan 100% Promo'), cash, lunas, total 15.000
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '66666666-6666-6666-6666-666666666666'::uuid,
+  'tokensummary0000000000006',
+  current_date - interval '5 days', 1, 'Pelanggan 100% Promo',
+  'dine_in', 'cash', 'lunas', 'selesai', 15000,
+  'dev-s6', 'hash-s6', 'idem-s6', now()
+);
+
+-- Pesanan 7: Nama serupa tanpa '%' ('Pelanggan 1000 Biasa'), cash, lunas, total 25.000
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '77777777-7777-7777-7777-777777777777'::uuid,
+  'tokensummary0000000000007',
+  current_date - interval '5 days', 2, 'Pelanggan 1000 Biasa',
+  'dine_in', 'cash', 'lunas', 'selesai', 25000,
+  'dev-s7', 'hash-s7', 'idem-s7', now()
+);
+
+-- Pesanan 8: Nama mengandung literal '_' ('Warung_Kopi Enak'), qris, lunas, total 18.000
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '88888888-8888-8888-8888-888888888888'::uuid,
+  'tokensummary0000000000008',
+  current_date - interval '5 days', 3, 'Warung_Kopi Enak',
+  'takeaway', 'qris', 'lunas', 'selesai', 18000,
+  'dev-s8', 'hash-s8', 'idem-s8', now()
+);
+
+-- Pesanan 9: Nama serupa tanpa '_' ('Warung Kopi Biasa'), qris, lunas, total 12.000
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '99999999-9999-9999-9999-999999999999'::uuid,
+  'tokensummary0000000000009',
+  current_date - interval '5 days', 4, 'Warung Kopi Biasa',
+  'takeaway', 'qris', 'lunas', 'selesai', 12000,
+  'dev-s9', 'hash-s9', 'idem-s9', now()
+);
+
 -- ------------------------------------------------------------
 -- 3. Agregasi Hari Ini (Status = 'all')
 -- ------------------------------------------------------------
@@ -169,7 +222,35 @@ select is(
 );
 
 -- ------------------------------------------------------------
--- 8. Pengujian Skala: Melewati Batas Default 1.000 Baris PostgREST
+-- 8. Filter Pencarian Wildcard LIKE: '%' (Pencarian Literal '100%')
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary((current_date - interval '5 days')::date, (current_date - interval '5 days')::date, 'all', '100%'),
+  jsonb_build_object(
+    'totalOrders', 1,
+    'totalRevenue', 15000,
+    'totalCash', 15000,
+    'totalQris', 0
+  ),
+  'filter pencarian dengan karakter wildcard % (100%) hanya mencocokkan literal 100%, bukan 1000'
+);
+
+-- ------------------------------------------------------------
+-- 9. Filter Pencarian Wildcard LIKE: '_' (Pencarian Literal 'Warung_Kopi')
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary((current_date - interval '5 days')::date, (current_date - interval '5 days')::date, 'all', 'Warung_Kopi'),
+  jsonb_build_object(
+    'totalOrders', 1,
+    'totalRevenue', 18000,
+    'totalCash', 0,
+    'totalQris', 18000
+  ),
+  'filter pencarian dengan karakter wildcard _ (Warung_Kopi) hanya mencocokkan literal _, bukan spasi'
+);
+
+-- ------------------------------------------------------------
+-- 10. Pengujian Skala: Melewati Batas Default 1.000 Baris PostgREST
 -- ------------------------------------------------------------
 -- Sisipkan 1.050 pesanan sintetis tambahan pada tanggal 2 hari lalu
 insert into public.orders (

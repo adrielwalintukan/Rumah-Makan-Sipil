@@ -19,6 +19,7 @@ declare
   v_total_cash bigint := 0;
   v_total_qris bigint := 0;
   v_clean_search text;
+  v_escaped_search text;
   v_daily_num int := null;
 begin
   -- 1. Validasi hak akses akun pemilik (AGENTS.md §8.3, docs/architecture.md §6)
@@ -27,12 +28,21 @@ begin
       using errcode = '42501';
   end if;
 
-  -- 2. Parsing kata kunci pencarian
+  -- 2. Parsing kata kunci pencarian & escaping wildcard SQL LIKE (\, %, _)
   if p_search is not null and trim(p_search) <> '' then
     v_clean_search := trim(p_search);
     if v_clean_search ~ '^#?[0-9]+$' then
       v_daily_num := regexp_replace(v_clean_search, '^#', '')::int;
     end if;
+    -- Escape karakter khusus LIKE (\, %, _) agar diperlakukan sebagai literal teks,
+    -- konsisten dengan escapeLikePattern di lib/admin-orders.ts
+    v_escaped_search := replace(
+      replace(
+        replace(v_clean_search, '\', '\\'),
+        '%', '\%'
+      ),
+      '_', '\_'
+    );
   end if;
 
   -- 3. Agregasi langsung di Postgres
@@ -56,7 +66,7 @@ begin
     )
     and (
       v_clean_search is null
-      or customer_name ilike ('%' || v_clean_search || '%')
+      or customer_name ilike ('%' || v_escaped_search || '%') escape '\'
       or (v_daily_num is not null and daily_number = v_daily_num)
     );
 

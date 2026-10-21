@@ -537,6 +537,10 @@ describe("admin-orders", () => {
         limit: 50,
       });
       expect(spies.ilike).toHaveBeenCalledWith("customer_name", "%Diskon 50\\%\\_Promo%");
+      expect(spies.rpc).toHaveBeenCalledWith(
+        "admin_get_order_history_summary",
+        expect.objectContaining({ p_search: "Diskon 50%_Promo" })
+      );
 
       vi.clearAllMocks();
 
