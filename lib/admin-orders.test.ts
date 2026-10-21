@@ -556,6 +556,44 @@ describe("admin-orders", () => {
       expect(spies.or).not.toHaveBeenCalled();
     });
 
+    it("menangani pencarian string numerik yang melebihi batas integer tanpa overflow", async () => {
+      const { client, spies } = createMockSupabase();
+
+      // String numerik 20 digit tanpa tanda #
+      await getOrderHistory(client, {
+        preset: "today",
+        status: "all",
+        search: "99999999999999999999",
+        page: 1,
+        limit: 50,
+      });
+
+      expect(spies.ilike).toHaveBeenCalledWith("customer_name", "%99999999999999999999%");
+      expect(spies.or).not.toHaveBeenCalled();
+      expect(spies.rpc).toHaveBeenCalledWith(
+        "admin_get_order_history_summary",
+        expect.objectContaining({ p_search: "99999999999999999999" })
+      );
+
+      vi.clearAllMocks();
+
+      // String numerik 20 digit dengan tanda #
+      await getOrderHistory(client, {
+        preset: "today",
+        status: "all",
+        search: "#99999999999999999999",
+        page: 1,
+        limit: 50,
+      });
+
+      expect(spies.ilike).toHaveBeenCalledWith("customer_name", "%#99999999999999999999%");
+      expect(spies.or).not.toHaveBeenCalled();
+      expect(spies.rpc).toHaveBeenCalledWith(
+        "admin_get_order_history_summary",
+        expect.objectContaining({ p_search: "#99999999999999999999" })
+      );
+    });
+
     it("menentukan rentang tanggal yang benar untuk preset dan custom", async () => {
       const { client, spies } = createMockSupabase();
 

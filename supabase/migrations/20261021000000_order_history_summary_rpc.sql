@@ -31,8 +31,17 @@ begin
   -- 2. Parsing kata kunci pencarian & escaping wildcard SQL LIKE (\, %, _)
   if p_search is not null and trim(p_search) <> '' then
     v_clean_search := trim(p_search);
-    if v_clean_search ~ '^#?[0-9]+$' then
-      v_daily_num := regexp_replace(v_clean_search, '^#', '')::int;
+    -- Hanya konversi ke daily_number jika pola numerik berada dalam batas aman integer (1-9 digit)
+    if v_clean_search ~ '^#?[0-9]{1,9}$' then
+      begin
+        v_daily_num := regexp_replace(v_clean_search, '^#', '')::int;
+        if v_daily_num <= 0 then
+          v_daily_num := null;
+        end if;
+      exception
+        when numeric_value_out_of_range then
+          v_daily_num := null;
+      end;
     end if;
     -- Escape karakter khusus LIKE (\, %, _) agar diperlakukan sebagai literal teks,
     -- konsisten dengan escapeLikePattern di lib/admin-orders.ts

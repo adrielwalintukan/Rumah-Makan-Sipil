@@ -273,9 +273,10 @@ export async function getOrderHistory(
 
   if (cleanSearch) {
     const cleanQ = cleanSearch.replace(/^#/, "");
-    const isDailyNumber = /^\d+$/.test(cleanQ);
+    // Batasi pengecekan daily_number pada rentang integer valid (1-9 digit)
+    const isDailyNumber = /^\d{1,9}$/.test(cleanQ);
     const dailyNum = isDailyNumber ? parseInt(cleanQ, 10) : NaN;
-    if (!isNaN(dailyNum) && dailyNum > 0) {
+    if (!isNaN(dailyNum) && dailyNum > 0 && dailyNum <= 2147483647) {
       const safeIlike = buildSafeOrIlikeFilter("customer_name", cleanSearch);
       ordersQuery = ordersQuery.or(`${safeIlike},daily_number.eq.${dailyNum}`);
     } else {

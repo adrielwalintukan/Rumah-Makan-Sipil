@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(9);
+select plan(11);
 
 -- ------------------------------------------------------------
 -- Fixture Data: Admin & User Non-Admin
@@ -151,6 +151,19 @@ insert into public.orders (
   'dev-s9', 'hash-s9', 'idem-s9', now()
 );
 
+-- Pesanan 10: Nama mengandung string angka panjang 20 digit ('No 99999999999999999999'), cash, lunas, total 10.000
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  'aaaaaaaa-bbbb-cccc-dddd-000000000010'::uuid,
+  'tokensummary0000000000010',
+  current_date - interval '5 days', 5, 'No 99999999999999999999',
+  'dine_in', 'cash', 'lunas', 'selesai', 10000,
+  'dev-s10', 'hash-s10', 'idem-s10', now()
+);
+
 -- ------------------------------------------------------------
 -- 3. Agregasi Hari Ini (Status = 'all')
 -- ------------------------------------------------------------
@@ -250,7 +263,35 @@ select is(
 );
 
 -- ------------------------------------------------------------
--- 10. Pengujian Skala: Melewati Batas Default 1.000 Baris PostgREST
+-- 10. Filter Pencarian String Numerik Melebihi Batas Integer (20 digit)
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary((current_date - interval '5 days')::date, (current_date - interval '5 days')::date, 'all', '99999999999999999999'),
+  jsonb_build_object(
+    'totalOrders', 1,
+    'totalRevenue', 10000,
+    'totalCash', 10000,
+    'totalQris', 0
+  ),
+  'pencarian string numerik melebihi batas integer (20 digit) tidak overflow dan mencocokkan nama pelanggan'
+);
+
+-- ------------------------------------------------------------
+-- 11. Filter Pencarian '#' dengan Angka Melebihi Batas Integer
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary((current_date - interval '5 days')::date, (current_date - interval '5 days')::date, 'all', '#99999999999999999999'),
+  jsonb_build_object(
+    'totalOrders', 0,
+    'totalRevenue', 0,
+    'totalCash', 0,
+    'totalQris', 0
+  ),
+  'pencarian # dengan angka melebihi batas integer tidak error dan mengembalikan ringkasan kosong'
+);
+
+-- ------------------------------------------------------------
+-- 12. Pengujian Skala: Melewati Batas Default 1.000 Baris PostgREST
 -- ------------------------------------------------------------
 -- Sisipkan 1.050 pesanan sintetis tambahan pada tanggal 2 hari lalu
 insert into public.orders (
