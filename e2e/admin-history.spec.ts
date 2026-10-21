@@ -195,7 +195,8 @@ async function loginAsAdmin(page: import("@playwright/test").Page) {
   await page.getByLabel(/Email Pemilik/i).fill(ADMIN_EMAIL);
   await page.getByLabel(/Kata Sandi/i).fill(PASSWORD);
   await page.getByRole("button", { name: "Masuk ke Dashboard" }).click();
-  await expect(page).toHaveURL(/\/admin/);
+  await expect(page).toHaveURL(/\/admin(?!\/login)/);
+  await expect(page.getByRole("heading", { level: 1, name: "Pesanan Live" })).toBeVisible();
 }
 
 test.describe.serial("Pengujian End-to-End Riwayat Pesanan Admin", () => {
