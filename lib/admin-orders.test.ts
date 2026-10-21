@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   adminOrderActionSchema,
+  buildSafeOrIlikeFilter,
+  escapeLikePattern,
   getLiveOrders,
   getOrderHistory,
   getOrderItems,
@@ -233,11 +235,40 @@ describe("admin-orders", () => {
     });
   });
 
+  describe("escapeLikePattern & buildSafeOrIlikeFilter", () => {
+    it("meng-escape karakter wildcard SQL LIKE (% _ \\)", () => {
+      expect(escapeLikePattern("100%")).toBe("100\\%");
+      expect(escapeLikePattern("nama_user")).toBe("nama\\_user");
+      expect(escapeLikePattern("c:\\folder")).toBe("c:\\\\folder");
+      expect(escapeLikePattern("normal text")).toBe("normal text");
+    });
+
+    it("menghasilkan filter ilike aman yang membungkus tanda kutip dan meng-escape koma, kurung, dan tanda kutip", () => {
+      // Input dengan koma (delimiter umum PostgREST or)
+      const commaFilter = buildSafeOrIlikeFilter("customer_name", "Budi, Santoso");
+      expect(commaFilter).toBe('customer_name.ilike."%Budi, Santoso%"');
+
+      // Input dengan tanda kurung
+      const parenFilter = buildSafeOrIlikeFilter("customer_name", "Cotto (Mie)");
+      expect(parenFilter).toBe('customer_name.ilike."%Cotto (Mie)%"');
+
+      // Input dengan tanda kutip ganda
+      const quoteFilter = buildSafeOrIlikeFilter("customer_name", 'Pak "Haji"');
+      expect(quoteFilter).toBe('customer_name.ilike."%Pak \\"Haji\\"%"');
+
+      // Input dengan wildcard LIKE dan delimiter sekaligus
+      const complexFilter = buildSafeOrIlikeFilter("customer_name", 'Diskon 50%, (Vip_1)');
+      expect(complexFilter).toBe('customer_name.ilike."%Diskon 50\\%, (Vip\\_1)%"');
+    });
+  });
+
   describe("getOrderHistory", () => {
     function createMockSupabase(options?: {
       summaryRows?: Array<Record<string, unknown>>;
+      rpcData?: Record<string, unknown>;
       summaryError?: Error | null;
       ordersData?: Array<Record<string, unknown>>;
+      count?: number;
       ordersError?: Error | null;
     }) {
       const gteMock = vi.fn().mockReturnThis();
@@ -248,8 +279,48 @@ describe("admin-orders", () => {
       const orderMock = vi.fn().mockReturnThis();
       const rangeMock = vi.fn().mockReturnThis();
 
-      const selectMock = vi.fn((fields: string) => {
-        const isSummary = fields.includes("payment_method");
+      let defaultRpcData = options?.rpcData;
+      if (!defaultRpcData && options?.summaryRows) {
+        let totalRev = 0;
+        let totalCash = 0;
+        let totalQris = 0;
+        for (const row of options.summaryRows as Array<Record<string, unknown>>) {
+          if (row.payment_status === "lunas" && row.status !== "batal") {
+            const amt = Number(row.total || 0);
+            totalRev += amt;
+            if (row.payment_method === "cash") totalCash += amt;
+            else if (row.payment_method === "qris") totalQris += amt;
+          }
+        }
+        defaultRpcData = {
+          totalOrders: options.summaryRows.length,
+          totalRevenue: totalRev,
+          totalCash,
+          totalQris,
+        };
+      } else if (!defaultRpcData) {
+        defaultRpcData = {
+          totalOrders: 5,
+          totalRevenue: 85000,
+          totalCash: 50000,
+          totalQris: 35000,
+        };
+      }
+
+      const defaultCount =
+        options?.count ??
+        (options?.summaryRows
+          ? options.summaryRows.length
+          : options?.ordersData
+          ? options.ordersData.length
+          : 5);
+
+      const rpcMock = vi.fn().mockResolvedValue({
+        data: options?.summaryError ? null : defaultRpcData,
+        error: options?.summaryError ?? null,
+      });
+
+      const selectMock = vi.fn(() => {
         const builder = {
           gte: gteMock,
           lte: lteMock,
@@ -258,18 +329,12 @@ describe("admin-orders", () => {
           ilike: ilikeMock,
           order: orderMock,
           range: rangeMock,
-          then: (resolve: (val: { data: unknown; error: unknown }) => void) => {
-            if (isSummary) {
-              resolve({
-                data: options?.summaryRows ?? [],
-                error: options?.summaryError ?? null,
-              });
-            } else {
-              resolve({
-                data: options?.ordersData ?? [],
-                error: options?.ordersError ?? null,
-              });
-            }
+          then: (resolve: (val: { data: unknown; count?: number; error: unknown }) => void) => {
+            resolve({
+              data: options?.ordersData ?? [],
+              count: defaultCount,
+              error: options?.ordersError ?? null,
+            });
           },
         };
 
@@ -288,12 +353,14 @@ describe("admin-orders", () => {
 
       const client = {
         from: fromMock,
+        rpc: rpcMock,
       } as unknown as SupabaseClient;
 
       return {
         client,
         spies: {
           from: fromMock,
+          rpc: rpcMock,
           select: selectMock,
           gte: gteMock,
           lte: lteMock,
@@ -433,7 +500,7 @@ describe("admin-orders", () => {
         page: 1,
         limit: 50,
       });
-      expect(spies.or).toHaveBeenCalledWith("customer_name.ilike.%12%,daily_number.eq.12");
+      expect(spies.or).toHaveBeenCalledWith('customer_name.ilike."%12%",daily_number.eq.12');
 
       vi.clearAllMocks();
 
@@ -445,7 +512,31 @@ describe("admin-orders", () => {
         page: 1,
         limit: 50,
       });
-      expect(spies.or).toHaveBeenCalledWith("customer_name.ilike.%#5%,daily_number.eq.5");
+      expect(spies.or).toHaveBeenCalledWith('customer_name.ilike."%#5%",daily_number.eq.5');
+
+      vi.clearAllMocks();
+
+      // Pencarian nama mengandung koma dan tanda kurung (karakter khusus delimiter PostgREST)
+      await getOrderHistory(client, {
+        preset: "today",
+        status: "all",
+        search: "Cotto (Mie), Spesial",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.ilike).toHaveBeenCalledWith("customer_name", "%Cotto (Mie), Spesial%");
+
+      vi.clearAllMocks();
+
+      // Pencarian mengandung wildcard SQL LIKE (% dan _)
+      await getOrderHistory(client, {
+        preset: "today",
+        status: "all",
+        search: "Diskon 50%_Promo",
+        page: 1,
+        limit: 50,
+      });
+      expect(spies.ilike).toHaveBeenCalledWith("customer_name", "%Diskon 50\\%\\_Promo%");
 
       vi.clearAllMocks();
 
@@ -598,6 +689,58 @@ describe("admin-orders", () => {
         page: 1,
         totalPages: 1,
       });
+    });
+
+    it("menghitung metrik ringkasan dan paginasi secara akurat saat dataset melampaui limit bawaan 1.000 baris PostgREST", async () => {
+      // Simulasi dataset 1.250 pesanan dengan omzet total 12.500.000 (melewati batas 1.000 PostgREST)
+      const mockRpcLargeData = {
+        totalOrders: 1250,
+        totalRevenue: 12500000,
+        totalCash: 7500000,
+        totalQris: 5000000,
+      };
+
+      const mockPageOrders = Array.from({ length: 50 }, (_, i) => ({
+        id: `order-bulk-${i}`,
+        daily_number: i + 1,
+        customer_name: `Pelanggan Bulk ${i + 1}`,
+        total: 10000,
+        status: "selesai",
+        payment_status: "lunas",
+      }));
+
+      const { client, spies } = createMockSupabase({
+        rpcData: mockRpcLargeData,
+        ordersData: mockPageOrders,
+        count: 1250,
+      });
+
+      const res = await getOrderHistory(client, {
+        preset: "last30days",
+        status: "all",
+        page: 1,
+        limit: 50,
+      });
+
+      // Verifikasi RPC dipanggil dengan parameter tanggal 30 hari
+      expect(spies.rpc).toHaveBeenCalledWith("admin_get_order_history_summary", {
+        p_from_date: expect.any(String),
+        p_to_date: expect.any(String),
+        p_status: "all",
+        p_search: null,
+      });
+
+      // Verifikasi select menyertakan opsi { count: "exact" }
+      expect(spies.select).toHaveBeenCalledWith(expect.any(String), { count: "exact" });
+
+      // Verifikasi hasil tidak terpotong oleh limit 1.000:
+      expect(res.orders).toHaveLength(50);
+      expect(res.totalCount).toBe(1250);
+      expect(res.totalPages).toBe(25); // 1250 / 50 = 25 halaman
+      expect(res.summary.totalOrders).toBe(1250);
+      expect(res.summary.totalRevenue).toBe(12500000);
+      expect(res.summary.totalCash).toBe(7500000);
+      expect(res.summary.totalQris).toBe(5000000);
     });
   });
 });

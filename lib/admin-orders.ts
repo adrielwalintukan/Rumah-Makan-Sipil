@@ -167,6 +167,24 @@ export interface OrderHistoryResult {
 }
 
 /**
+ * Meng-escape karakter khusus LIKE (% dan _ dan \) agar diperlakukan sebagai literal teks.
+ */
+export function escapeLikePattern(pattern: string): string {
+  return pattern.replace(/[\\%_]/g, "\\$&");
+}
+
+/**
+ * Menyiapkan query filter ilike yang aman di PostgREST .or()
+ * Meng-escape wildcard SQL LIKE (% _ \), double quotes, dan membungkus dengan tanda kutip
+ * agar tanda koma atau tanda kurung tidak memecah parser grammar PostgREST.
+ */
+export function buildSafeOrIlikeFilter(column: string, term: string): string {
+  const escapedLike = escapeLikePattern(term);
+  const escapedPostgrest = escapedLike.replace(/"/g, '\\"');
+  return `${column}.ilike."%${escapedPostgrest}%"`;
+}
+
+/**
  * Mengambil riwayat pesanan dengan filter tanggal (WITA), status, pencarian, dan paginasi,
  * beserta agregasi metrik ringkasan (omzet lunas, cash, qris, total orders).
  */
@@ -204,34 +222,20 @@ export async function getOrderHistory(
     toDate = temp;
   }
 
-  // 1. Ambil data agregasi ringkasan (seluruh dataset yang cocok dengan filter)
-  let summaryQuery = supabase
-    .from("orders")
-    .select("payment_method, payment_status, status, total")
-    .gte("order_date", fromDate)
-    .lte("order_date", toDate);
+  const cleanSearch = search && search.trim().length > 0 ? search.trim() : null;
 
-  if (status === "selesai") {
-    summaryQuery = summaryQuery.eq("status", "selesai");
-  } else if (status === "batal") {
-    summaryQuery = summaryQuery.eq("status", "batal");
-  }
-
-  if (search && search.trim().length > 0) {
-    const q = search.trim();
-    const cleanQ = q.replace(/^#/, "");
-    const isDailyNumber = /^\d+$/.test(cleanQ);
-    const dailyNum = isDailyNumber ? parseInt(cleanQ, 10) : NaN;
-    if (!isNaN(dailyNum) && dailyNum > 0) {
-      summaryQuery = summaryQuery.or(`customer_name.ilike.%${q}%,daily_number.eq.${dailyNum}`);
-    } else {
-      summaryQuery = summaryQuery.ilike("customer_name", `%${q}%`);
+  // 1. Ambil data agregasi ringkasan via RPC SQL di database (bebas dari limit 1.000 PostgREST)
+  const { data: summaryData, error: summaryError } = await supabase.rpc(
+    "admin_get_order_history_summary",
+    {
+      p_from_date: fromDate,
+      p_to_date: toDate,
+      p_status: status,
+      p_search: cleanSearch,
     }
-  }
+  );
 
-  const { data: summaryRows, error: summaryError } = await summaryQuery;
-
-  if (summaryError || !summaryRows) {
+  if (summaryError || !summaryData) {
     return {
       orders: [],
       totalCount: 0,
@@ -241,35 +245,23 @@ export async function getOrderHistory(
     };
   }
 
-  const totalOrders = summaryRows.length;
-  let totalRevenue = 0;
-  let totalCash = 0;
-  let totalQris = 0;
+  const summary: OrderHistorySummary = {
+    totalOrders: Number(summaryData.totalOrders ?? 0),
+    totalRevenue: Number(summaryData.totalRevenue ?? 0),
+    totalCash: Number(summaryData.totalCash ?? 0),
+    totalQris: Number(summaryData.totalQris ?? 0),
+  };
 
-  for (const row of summaryRows) {
-    if (row.payment_status === "lunas" && row.status !== "batal") {
-      const amount = row.total || 0;
-      totalRevenue += amount;
-      if (row.payment_method === "cash") {
-        totalCash += amount;
-      } else if (row.payment_method === "qris") {
-        totalQris += amount;
-      }
-    }
-  }
-
-  // 2. Ambil total count untuk paginasi
-  const totalCount = totalOrders;
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
-  const offset = (page - 1) * limit;
-
-  // 3. Ambil data pesanan terpaginasi beserta item-itemnya
+  // 2. Ambil data pesanan terpaginasi beserta item-itemnya dengan count database eksak
   let ordersQuery = supabase
     .from("orders")
-    .select(`
+    .select(
+      `
       *,
       order_items (*)
-    `)
+    `,
+      { count: "exact" }
+    )
     .gte("order_date", fromDate)
     .lte("order_date", toDate);
 
@@ -279,19 +271,20 @@ export async function getOrderHistory(
     ordersQuery = ordersQuery.eq("status", "batal");
   }
 
-  if (search && search.trim().length > 0) {
-    const q = search.trim();
-    const cleanQ = q.replace(/^#/, "");
+  if (cleanSearch) {
+    const cleanQ = cleanSearch.replace(/^#/, "");
     const isDailyNumber = /^\d+$/.test(cleanQ);
     const dailyNum = isDailyNumber ? parseInt(cleanQ, 10) : NaN;
     if (!isNaN(dailyNum) && dailyNum > 0) {
-      ordersQuery = ordersQuery.or(`customer_name.ilike.%${q}%,daily_number.eq.${dailyNum}`);
+      const safeIlike = buildSafeOrIlikeFilter("customer_name", cleanSearch);
+      ordersQuery = ordersQuery.or(`${safeIlike},daily_number.eq.${dailyNum}`);
     } else {
-      ordersQuery = ordersQuery.ilike("customer_name", `%${q}%`);
+      ordersQuery = ordersQuery.ilike("customer_name", `%${escapeLikePattern(cleanSearch)}%`);
     }
   }
 
-  const { data: ordersData, error: ordersError } = await ordersQuery
+  const offset = (page - 1) * limit;
+  const { data: ordersData, count: exactCount, error: ordersError } = await ordersQuery
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -305,15 +298,13 @@ export async function getOrderHistory(
     };
   }
 
+  const totalCount = exactCount ?? summary.totalOrders;
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+
   return {
     orders: ordersData as AdminOrder[],
     totalCount,
-    summary: {
-      totalOrders,
-      totalRevenue,
-      totalCash,
-      totalQris,
-    },
+    summary,
     page,
     totalPages,
   };
