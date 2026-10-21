@@ -33,69 +33,69 @@ select throws_ok(
 -- ------------------------------------------------------------
 set local "request.jwt.claims" = '{"sub": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "role": "authenticated"}';
 
--- Pesanan 1: Hari ini, selesai, cash, lunas, total 35.000
+-- Pesanan 1: Hari ini, selesai, cash, lunas, total 35.000 (paid_at diisi)
 insert into public.orders (
   id, public_token, order_date, daily_number, customer_name,
   order_type, payment_method, payment_status, status, total,
-  device_id, ip_hash, idempotency_key
+  device_id, ip_hash, idempotency_key, paid_at
 ) values (
   '11111111-1111-1111-1111-111111111111'::uuid,
   'tokensummary0000000000001',
   current_date, 1, 'Budi Santoso',
   'dine_in', 'cash', 'lunas', 'selesai', 35000,
-  'dev-s1', 'hash-s1', 'idem-s1'
+  'dev-s1', 'hash-s1', 'idem-s1', now()
 );
 
--- Pesanan 2: Hari ini, selesai, qris, lunas, total 50.000
+-- Pesanan 2: Hari ini, selesai, qris, lunas, total 50.000 (paid_at diisi)
 insert into public.orders (
   id, public_token, order_date, daily_number, customer_name,
   order_type, payment_method, payment_status, status, total,
-  device_id, ip_hash, idempotency_key
+  device_id, ip_hash, idempotency_key, paid_at
 ) values (
   '22222222-2222-2222-2222-222222222222'::uuid,
   'tokensummary0000000000002',
   current_date, 2, 'Siti Rahma',
   'takeaway', 'qris', 'lunas', 'selesai', 50000,
-  'dev-s2', 'hash-s2', 'idem-s2'
+  'dev-s2', 'hash-s2', 'idem-s2', now()
 );
 
--- Pesanan 3: Hari ini, selesai, cash, belum_bayar, total 20.000 (tidak boleh masuk omzet)
+-- Pesanan 3: Hari ini, selesai, cash, belum_bayar, total 20.000 (paid_at null, tidak boleh masuk omzet)
 insert into public.orders (
   id, public_token, order_date, daily_number, customer_name,
   order_type, payment_method, payment_status, status, total,
-  device_id, ip_hash, idempotency_key
+  device_id, ip_hash, idempotency_key, paid_at
 ) values (
   '33333333-3333-3333-3333-333333333333'::uuid,
   'tokensummary0000000000003',
   current_date, 3, 'Ahmad Belum Bayar',
   'dine_in', 'cash', 'belum_bayar', 'selesai', 20000,
-  'dev-s3', 'hash-s3', 'idem-s3'
+  'dev-s3', 'hash-s3', 'idem-s3', null
 );
 
--- Pesanan 4: Hari ini, batal, qris, lunas, total 40.000 (tidak boleh masuk omzet karena batal)
+-- Pesanan 4: Hari ini, batal, qris, lunas, total 40.000 (paid_at diisi, tidak boleh masuk omzet karena status batal)
 insert into public.orders (
   id, public_token, order_date, daily_number, customer_name,
   order_type, payment_method, payment_status, status, total,
-  device_id, ip_hash, idempotency_key
+  device_id, ip_hash, idempotency_key, paid_at
 ) values (
   '44444444-4444-4444-4444-444444444444'::uuid,
   'tokensummary0000000000004',
   current_date, 4, 'Dewi Batal',
   'takeaway', 'qris', 'lunas', 'batal', 40000,
-  'dev-s4', 'hash-s4', 'idem-s4'
+  'dev-s4', 'hash-s4', 'idem-s4', now()
 );
 
--- Pesanan 5: Kemarin, selesai, cash, lunas, total 60.000
+-- Pesanan 5: Kemarin, selesai, cash, lunas, total 60.000 (paid_at diisi)
 insert into public.orders (
   id, public_token, order_date, daily_number, customer_name,
   order_type, payment_method, payment_status, status, total,
-  device_id, ip_hash, idempotency_key
+  device_id, ip_hash, idempotency_key, paid_at
 ) values (
   '55555555-5555-5555-5555-555555555555'::uuid,
   'tokensummary0000000000005',
   current_date - interval '1 day', 1, 'Kemarin Customer',
   'dine_in', 'cash', 'lunas', 'selesai', 60000,
-  'dev-s5', 'hash-s5', 'idem-s5'
+  'dev-s5', 'hash-s5', 'idem-s5', now()
 );
 
 -- ------------------------------------------------------------
@@ -175,11 +175,11 @@ select is(
 insert into public.orders (
   id, public_token, order_date, daily_number, customer_name,
   order_type, payment_method, payment_status, status, total,
-  device_id, ip_hash, idempotency_key
+  device_id, ip_hash, idempotency_key, paid_at
 )
 select
   gen_random_uuid(),
-  'tok_bulk_' || i,
+  'tok_bulk_' || lpad(i::text, 16, '0'),
   current_date - interval '2 days',
   i,
   'Bulk User ' || i,
@@ -190,7 +190,8 @@ select
   10000,
   'dev-bulk',
   'hash-bulk',
-  'idem-bulk-' || i
+  'idem-bulk-' || i,
+  now()
 from generate_series(1, 1050) as i;
 
 select is(
