@@ -260,7 +260,7 @@ test.describe.serial("Pengujian End-to-End Riwayat Pesanan Admin", () => {
     await expect(dialog.getByText("Stok habis")).toBeVisible();
 
     // Tutup detail sheet
-    await dialog.getByRole("button", { name: "Tutup", exact: true }).click();
+    await dialog.getByTestId("order-detail-close-button").click();
     await expect(dialog).not.toBeVisible();
 
     // 3. Cek preset 7 Hari: pesanan hari ini dan kemarin tampil
@@ -341,7 +341,7 @@ test.describe.serial("Pengujian End-to-End Riwayat Pesanan Admin", () => {
     await expect(markPaidBtn).not.toBeVisible();
 
     // 5. Tutup dialog dan verifikasi pembaruan di daftar kartu & ringkasan omzet
-    await dialog.getByRole("button", { name: "Tutup", exact: true }).click();
+    await dialog.getByTestId("order-detail-close-button").click();
     await expect(dialog).not.toBeVisible();
 
     // Badge di kartu pesanan sekarang Lunas

@@ -487,6 +487,7 @@ export function OrderDetailSheet({
           <button
             type="button"
             onClick={onClose}
+            data-testid="order-detail-close-button"
             className="inline-flex min-h-[44px] min-w-[44px] w-full sm:w-auto items-center justify-center rounded-lg border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-cream-100 transition-colors"
           >
             Tutup
