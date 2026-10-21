@@ -1,0 +1,331 @@
+-- Tes fungsi RPC admin_get_order_history_summary (Milestone M5: Issue #20)
+begin;
+create extension if not exists pgtap with schema extensions;
+
+select plan(11);
+
+-- ------------------------------------------------------------
+-- Fixture Data: Admin & User Non-Admin
+-- ------------------------------------------------------------
+insert into auth.users (id, email)
+values
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid, 'owner-summary@warung.local'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::uuid, 'stranger-summary@warung.local');
+
+insert into public.admins (user_id)
+values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid);
+
+-- ------------------------------------------------------------
+-- 1. Uji Keamanan: User Non-Pemilik Ditolak (42501)
+-- ------------------------------------------------------------
+set local role authenticated;
+set local "request.jwt.claims" = '{"sub": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "role": "authenticated"}';
+
+select throws_ok(
+  $$select public.admin_get_order_history_summary(current_date, current_date, 'all', null)$$,
+  '42501',
+  null,
+  'user non-pemilik ditolak saat memanggil admin_get_order_history_summary'
+);
+
+-- ------------------------------------------------------------
+-- 2. Setup Data Sintetis Sebagai Pemilik
+-- ------------------------------------------------------------
+set local "request.jwt.claims" = '{"sub": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "role": "authenticated"}';
+
+-- Pesanan 1: Hari ini, selesai, cash, lunas, total 35.000 (paid_at diisi)
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '11111111-1111-1111-1111-111111111111'::uuid,
+  'tokensummary0000000000001',
+  current_date, 1, 'Budi Santoso',
+  'dine_in', 'cash', 'lunas', 'selesai', 35000,
+  'dev-s1', 'hash-s1', 'idem-s1', now()
+);
+
+-- Pesanan 2: Hari ini, selesai, qris, lunas, total 50.000 (paid_at diisi)
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '22222222-2222-2222-2222-222222222222'::uuid,
+  'tokensummary0000000000002',
+  current_date, 2, 'Siti Rahma',
+  'takeaway', 'qris', 'lunas', 'selesai', 50000,
+  'dev-s2', 'hash-s2', 'idem-s2', now()
+);
+
+-- Pesanan 3: Hari ini, selesai, cash, belum_bayar, total 20.000 (paid_at null, tidak boleh masuk omzet)
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '33333333-3333-3333-3333-333333333333'::uuid,
+  'tokensummary0000000000003',
+  current_date, 3, 'Ahmad Belum Bayar',
+  'dine_in', 'cash', 'belum_bayar', 'selesai', 20000,
+  'dev-s3', 'hash-s3', 'idem-s3', null
+);
+
+-- Pesanan 4: Hari ini, batal, qris, lunas, total 40.000 (paid_at diisi, tidak boleh masuk omzet karena status batal)
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '44444444-4444-4444-4444-444444444444'::uuid,
+  'tokensummary0000000000004',
+  current_date, 4, 'Dewi Batal',
+  'takeaway', 'qris', 'lunas', 'batal', 40000,
+  'dev-s4', 'hash-s4', 'idem-s4', now()
+);
+
+-- Pesanan 5: Kemarin, selesai, cash, lunas, total 60.000 (paid_at diisi)
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '55555555-5555-5555-5555-555555555555'::uuid,
+  'tokensummary0000000000005',
+  current_date - interval '1 day', 1, 'Kemarin Customer',
+  'dine_in', 'cash', 'lunas', 'selesai', 60000,
+  'dev-s5', 'hash-s5', 'idem-s5', now()
+);
+
+-- Fixture Uji Wildcard LIKE (% dan _) pada 5 hari lalu (terisolasi dari tes tanggal lain)
+-- Pesanan 6: Nama mengandung literal '%' ('Pelanggan 100% Promo'), cash, lunas, total 15.000
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '66666666-6666-6666-6666-666666666666'::uuid,
+  'tokensummary0000000000006',
+  current_date - interval '5 days', 1, 'Pelanggan 100% Promo',
+  'dine_in', 'cash', 'lunas', 'selesai', 15000,
+  'dev-s6', 'hash-s6', 'idem-s6', now()
+);
+
+-- Pesanan 7: Nama serupa tanpa '%' ('Pelanggan 1000 Biasa'), cash, lunas, total 25.000
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '77777777-7777-7777-7777-777777777777'::uuid,
+  'tokensummary0000000000007',
+  current_date - interval '5 days', 2, 'Pelanggan 1000 Biasa',
+  'dine_in', 'cash', 'lunas', 'selesai', 25000,
+  'dev-s7', 'hash-s7', 'idem-s7', now()
+);
+
+-- Pesanan 8: Nama mengandung literal '_' ('Warung_Kopi Enak'), qris, lunas, total 18.000
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '88888888-8888-8888-8888-888888888888'::uuid,
+  'tokensummary0000000000008',
+  current_date - interval '5 days', 3, 'Warung_Kopi Enak',
+  'takeaway', 'qris', 'lunas', 'selesai', 18000,
+  'dev-s8', 'hash-s8', 'idem-s8', now()
+);
+
+-- Pesanan 9: Nama serupa tanpa '_' ('Warung Kopi Biasa'), qris, lunas, total 12.000
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  '99999999-9999-9999-9999-999999999999'::uuid,
+  'tokensummary0000000000009',
+  current_date - interval '5 days', 4, 'Warung Kopi Biasa',
+  'takeaway', 'qris', 'lunas', 'selesai', 12000,
+  'dev-s9', 'hash-s9', 'idem-s9', now()
+);
+
+-- Pesanan 10: Nama mengandung string angka panjang 20 digit ('No 99999999999999999999'), cash, lunas, total 10.000
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+) values (
+  'aaaaaaaa-bbbb-cccc-dddd-000000000010'::uuid,
+  'tokensummary0000000000010',
+  current_date - interval '5 days', 5, 'No 99999999999999999999',
+  'dine_in', 'cash', 'lunas', 'selesai', 10000,
+  'dev-s10', 'hash-s10', 'idem-s10', now()
+);
+
+-- ------------------------------------------------------------
+-- 3. Agregasi Hari Ini (Status = 'all')
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary(current_date, current_date, 'all', null),
+  jsonb_build_object(
+    'totalOrders', 4,
+    'totalRevenue', 85000,
+    'totalCash', 35000,
+    'totalQris', 50000
+  ),
+  'agregasi hari ini menghitung 4 pesanan dengan omzet lunas 85.000 (35rb cash + 50rb qris)'
+);
+
+-- ------------------------------------------------------------
+-- 4. Filter Status: 'batal'
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary(current_date, current_date, 'batal', null),
+  jsonb_build_object(
+    'totalOrders', 1,
+    'totalRevenue', 0,
+    'totalCash', 0,
+    'totalQris', 0
+  ),
+  'filter status batal hanya menghitung 1 pesanan dengan omzet 0'
+);
+
+-- ------------------------------------------------------------
+-- 5. Filter Pencarian Nama: 'Budi'
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary(current_date, current_date, 'all', 'Budi'),
+  jsonb_build_object(
+    'totalOrders', 1,
+    'totalRevenue', 35000,
+    'totalCash', 35000,
+    'totalQris', 0
+  ),
+  'filter pencarian nama Budi menghitung 1 pesanan'
+);
+
+-- ------------------------------------------------------------
+-- 6. Filter Pencarian Nomor Antrean: '#2'
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary(current_date, current_date, 'all', '#2'),
+  jsonb_build_object(
+    'totalOrders', 1,
+    'totalRevenue', 50000,
+    'totalCash', 0,
+    'totalQris', 50000
+  ),
+  'filter pencarian nomor antrean #2 menghitung 1 pesanan qris lunas 50.000'
+);
+
+-- ------------------------------------------------------------
+-- 7. Rentang Tanggal: Kemarin hingga Hari Ini
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary((current_date - interval '1 day')::date, current_date, 'all', null),
+  jsonb_build_object(
+    'totalOrders', 5,
+    'totalRevenue', 145000,
+    'totalCash', 95000,
+    'totalQris', 50000
+  ),
+  'rentang kemarin hingga hari ini mencakup 5 pesanan total 145.000'
+);
+
+-- ------------------------------------------------------------
+-- 8. Filter Pencarian Wildcard LIKE: '%' (Pencarian Literal '100%')
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary((current_date - interval '5 days')::date, (current_date - interval '5 days')::date, 'all', '100%'),
+  jsonb_build_object(
+    'totalOrders', 1,
+    'totalRevenue', 15000,
+    'totalCash', 15000,
+    'totalQris', 0
+  ),
+  'filter pencarian dengan karakter wildcard % (100%) hanya mencocokkan literal 100%, bukan 1000'
+);
+
+-- ------------------------------------------------------------
+-- 9. Filter Pencarian Wildcard LIKE: '_' (Pencarian Literal 'Warung_Kopi')
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary((current_date - interval '5 days')::date, (current_date - interval '5 days')::date, 'all', 'Warung_Kopi'),
+  jsonb_build_object(
+    'totalOrders', 1,
+    'totalRevenue', 18000,
+    'totalCash', 0,
+    'totalQris', 18000
+  ),
+  'filter pencarian dengan karakter wildcard _ (Warung_Kopi) hanya mencocokkan literal _, bukan spasi'
+);
+
+-- ------------------------------------------------------------
+-- 10. Filter Pencarian String Numerik Melebihi Batas Integer (20 digit)
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary((current_date - interval '5 days')::date, (current_date - interval '5 days')::date, 'all', '99999999999999999999'),
+  jsonb_build_object(
+    'totalOrders', 1,
+    'totalRevenue', 10000,
+    'totalCash', 10000,
+    'totalQris', 0
+  ),
+  'pencarian string numerik melebihi batas integer (20 digit) tidak overflow dan mencocokkan nama pelanggan'
+);
+
+-- ------------------------------------------------------------
+-- 11. Filter Pencarian '#' dengan Angka Melebihi Batas Integer
+-- ------------------------------------------------------------
+select is(
+  public.admin_get_order_history_summary((current_date - interval '5 days')::date, (current_date - interval '5 days')::date, 'all', '#99999999999999999999'),
+  jsonb_build_object(
+    'totalOrders', 0,
+    'totalRevenue', 0,
+    'totalCash', 0,
+    'totalQris', 0
+  ),
+  'pencarian # dengan angka melebihi batas integer tidak error dan mengembalikan ringkasan kosong'
+);
+
+-- ------------------------------------------------------------
+-- 12. Pengujian Skala: Melewati Batas Default 1.000 Baris PostgREST
+-- ------------------------------------------------------------
+-- Sisipkan 1.050 pesanan sintetis tambahan pada tanggal 2 hari lalu
+insert into public.orders (
+  id, public_token, order_date, daily_number, customer_name,
+  order_type, payment_method, payment_status, status, total,
+  device_id, ip_hash, idempotency_key, paid_at
+)
+select
+  gen_random_uuid(),
+  'tok_bulk_' || lpad(i::text, 16, '0'),
+  current_date - interval '2 days',
+  i,
+  'Bulk User ' || i,
+  'dine_in',
+  'cash',
+  'lunas',
+  'selesai',
+  10000,
+  'dev-bulk',
+  'hash-bulk',
+  'idem-bulk-' || i,
+  now()
+from generate_series(1, 1050) as i;
+
+select is(
+  public.admin_get_order_history_summary((current_date - interval '2 days')::date, (current_date - interval '2 days')::date, 'all', null),
+  jsonb_build_object(
+    'totalOrders', 1050,
+    'totalRevenue', 10500000,
+    'totalCash', 10500000,
+    'totalQris', 0
+  ),
+  'agregasi SQL berhasil mengakumulasi 1.050 baris (melebihi limit bawaan 1.000 PostgREST)'
+);
+
+select * from finish();
+rollback;
