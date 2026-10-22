@@ -84,9 +84,10 @@ test.beforeAll(async () => {
     .filter((r) => r.payment_method === "qris")
     .reduce((sum, r) => sum + (r.total || 0), 0);
 
-  expectedTodayOrders = baselineTodayOrders + 2;
-  expectedTodayRevenue = baselineTodayRevenue + 70000;
-  expectedTodayCash = baselineTodayCash + 30000;
+  const isOrder5Today = order5Date === todayStr;
+  expectedTodayOrders = baselineTodayOrders + (isOrder5Today ? 3 : 2);
+  expectedTodayRevenue = baselineTodayRevenue + (isOrder5Today ? 100000 : 70000);
+  expectedTodayCash = baselineTodayCash + (isOrder5Today ? 60000 : 30000);
   expectedTodayQris = baselineTodayQris + 40000;
   expectedTodayAvg = expectedTodayOrders > 0 ? Math.round(expectedTodayRevenue / expectedTodayOrders) : 0;
   expectedTodayCashPct = expectedTodayRevenue > 0 ? Math.round((expectedTodayCash / expectedTodayRevenue) * 100) : 0;
