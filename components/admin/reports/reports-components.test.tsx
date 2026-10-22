@@ -298,7 +298,7 @@ describe("ReportErrorState", () => {
 
     expect(html).toContain("Gagal Memuat Laporan Penjualan");
     expect(html).toContain(
-      "Terjadi kendala teknis saat memuat data laporan dari basis data."
+      "Terjadi kendala teknis saat memuat laporan. Silakan coba lagi."
     );
   });
 

@@ -30,7 +30,7 @@ export function ReportErrorState({ message, onRetry }: ReportErrorStateProps) {
       </h2>
       <p className="mt-1.5 text-sm text-red-700 max-w-md mx-auto">
         {message ||
-          "Terjadi kendala teknis saat memuat data laporan dari basis data. Pastikan migrasi terbaru telah dijalankan dan koneksi server stabil."}
+          "Terjadi kendala teknis saat memuat laporan. Silakan coba lagi."}
       </p>
       <div className="mt-5 flex justify-center">
         <button

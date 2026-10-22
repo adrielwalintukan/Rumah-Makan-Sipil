@@ -50,7 +50,7 @@ function formatDisplayDate(dateStr: string): string {
   return `${day} ${monthName} ${year}`;
 }
 
-async function ReportsDataLoader({
+export async function ReportsDataLoader({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -95,15 +95,13 @@ async function ReportsDataLoader({
 
   const supabase = await createServerSupabaseClient();
   let reportData: SalesReportResult | null = null;
-  let loadErrorMessage: string | null = null;
+  let isError = false;
 
   try {
     reportData = await getSalesReport(supabase, query);
   } catch (err) {
-    loadErrorMessage =
-      err instanceof Error
-        ? err.message
-        : "Terjadi kesalahan saat memuat data laporan penjualan.";
+    console.error("Gagal memuat laporan penjualan di Server Component:", err);
+    isError = true;
   }
 
   return (
@@ -123,9 +121,9 @@ async function ReportsDataLoader({
         currentTo={to}
       />
 
-      {loadErrorMessage || !reportData ? (
-        /* State Error Eksplisit jika RPC gagal */
-        <ReportErrorState message={loadErrorMessage ?? undefined} />
+      {isError || !reportData ? (
+        /* State Error Eksplisit dengan pesan generik aman tanpa membocorkan error basis data mentah */
+        <ReportErrorState message="Terjadi kendala teknis saat memuat laporan. Silakan coba lagi." />
       ) : (
         <>
           {/* Kartu Metrik Utama */}
