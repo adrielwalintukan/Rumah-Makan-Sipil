@@ -52,15 +52,17 @@ test.describe("Admin Finance & Cashbook (E2E)", () => {
   test("alur lengkap keuangan: login, cek buku kas, tambah, ubah, dan hapus pengeluaran", async ({ page }) => {
     // 1. Login admin
     await page.goto("/admin/login");
-    await page.fill('input[type="email"]', testEmail);
-    await page.fill('input[type="password"]', testPassword);
-    await page.click('button[type="submit"]');
+    await page.getByLabel(/Email Pemilik/i).fill(testEmail);
+    await page.getByLabel(/Kata Sandi/i).fill(testPassword);
+    await page.getByRole("button", { name: "Masuk ke Dashboard" }).click();
 
-    await expect(page).toHaveURL(/\/admin/);
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    await expect(page.getByRole("heading", { level: 1, name: "Pesanan Live" })).toBeVisible();
 
     // 2. Navigasi ke Catatan Keuangan
     await page.goto("/admin/keuangan");
-    await expect(page.locator("h1")).toContainText("Catatan Keuangan");
+    await expect(page).toHaveURL(/\/admin\/keuangan/);
+    await expect(page.getByRole("heading", { level: 1, name: "Catatan Keuangan" })).toBeVisible();
 
     // 3. Verifikasi Tiga Kartu Metrik
     await expect(page.getByText("Total Pemasukan")).toBeVisible();
@@ -76,6 +78,7 @@ test.describe("Admin Finance & Cashbook (E2E)", () => {
     await page.selectOption("#expense-category", "bahan");
 
     await page.getByRole("button", { name: "Tambah Pengeluaran" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
 
     // 5. Verifikasi pengeluaran muncul di daftar
     await expect(page.getByText("Beli Telur Ayam 2 Rak").first()).toBeVisible();
@@ -87,6 +90,7 @@ test.describe("Admin Finance & Cashbook (E2E)", () => {
 
     await page.fill("#expense-amount", "115000");
     await page.getByRole("button", { name: "Simpan Perubahan" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
 
     await expect(page.getByText("Rp115.000").first()).toBeVisible();
 
@@ -96,6 +100,7 @@ test.describe("Admin Finance & Cashbook (E2E)", () => {
     await expect(page.getByText("Hapus Catatan Pengeluaran?")).toBeVisible();
 
     await page.getByRole("button", { name: "Hapus Pengeluaran" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
 
     // 8. Verifikasi pengeluaran terhapus dari daftar
     await expect(page.getByText("Beli Telur Ayam 2 Rak")).toHaveCount(0);

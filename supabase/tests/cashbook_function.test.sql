@@ -81,13 +81,13 @@ insert into public.orders (
 insert into public.orders (
   id, public_token, order_date, daily_number, customer_name,
   order_type, payment_method, payment_status, status, total,
-  device_id, ip_hash, idempotency_key
+  device_id, ip_hash, idempotency_key, paid_at
 ) values (
   '33333333-3333-3333-3333-333333333333'::uuid,
   'tokencash0000000000000003',
   current_date, 3, 'Doni Batal',
   'takeaway', 'cash', 'lunas', 'batal', 25000,
-  'dev-c3', 'hash-c3', 'idem-cash-3'
+  'dev-c3', 'hash-c3', 'idem-cash-3', now()
 );
 
 -- Pengeluaran 1 (Hari ini, bahan, 15.000)
