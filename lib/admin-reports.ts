@@ -110,6 +110,8 @@ export interface ReportSummary {
   totalRevenue: number;
   totalCash: number;
   totalQris: number;
+  cashOrders: number;
+  qrisOrders: number;
   averageOrderValue: number;
   cashPercentage: number;
   qrisPercentage: number;
@@ -168,6 +170,8 @@ export async function getSalesReport(
   const totalRevenue = Number(summaryData?.totalRevenue ?? 0) || 0;
   const totalCash = Number(summaryData?.totalCash ?? 0) || 0;
   const totalQris = Number(summaryData?.totalQris ?? 0) || 0;
+  const cashOrders = Number(summaryData?.cashOrders ?? 0) || 0;
+  const qrisOrders = Number(summaryData?.qrisOrders ?? 0) || 0;
 
   const averageOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
   const cashPercentage = totalRevenue > 0 ? Math.round((totalCash / totalRevenue) * 100) : 0;
@@ -193,6 +197,8 @@ export async function getSalesReport(
       totalRevenue,
       totalCash,
       totalQris,
+      cashOrders,
+      qrisOrders,
       averageOrderValue,
       cashPercentage,
       qrisPercentage,

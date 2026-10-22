@@ -81,7 +81,7 @@ Memberikan visualisasi kinerja penjualan yang akurat dan komprehensif bagi pemil
    │        │     - today: from = to = today
    │        │     - this_month: from = 1st of month, to = today
    │        │
-   │        ├── RPC 1: report_summary(from, to) -> { total_orders, total_revenue, total_cash, total_qris }
+   │        ├── RPC 1: report_summary(from, to) -> { total_orders, total_revenue, total_cash, total_qris, cash_orders, qris_orders }
    │        └── RPC 2: top_items(from, to, 5) -> [ { name, total_quantity, total_revenue }, ... ]
    │
    └── Render Komponen Responsif (PPR / Suspense)
@@ -107,6 +107,8 @@ declare
   v_total_revenue bigint := 0;
   v_total_cash bigint := 0;
   v_total_qris bigint := 0;
+  v_cash_orders bigint := 0;
+  v_qris_orders bigint := 0;
 begin
   if not public.is_owner() then
     raise exception 'FORBIDDEN: Hanya akun pemilik yang memiliki hak akses'
@@ -117,12 +119,16 @@ begin
     count(*)::bigint,
     coalesce(sum(total), 0)::bigint,
     coalesce(sum(case when payment_method = 'cash' then total else 0 end), 0)::bigint,
-    coalesce(sum(case when payment_method = 'qris' then total else 0 end), 0)::bigint
+    coalesce(sum(case when payment_method = 'qris' then total else 0 end), 0)::bigint,
+    count(case when payment_method = 'cash' then 1 end)::bigint,
+    count(case when payment_method = 'qris' then 1 end)::bigint
   into
     v_total_orders,
     v_total_revenue,
     v_total_cash,
-    v_total_qris
+    v_total_qris,
+    v_cash_orders,
+    v_qris_orders
   from public.orders
   where order_date >= p_from_date
     and order_date <= p_to_date
@@ -133,7 +139,9 @@ begin
     'totalOrders', v_total_orders,
     'totalRevenue', v_total_revenue,
     'totalCash', v_total_cash,
-    'totalQris', v_total_qris
+    'totalQris', v_total_qris,
+    'cashOrders', v_cash_orders,
+    'qrisOrders', v_qris_orders
   );
 end;
 $$;

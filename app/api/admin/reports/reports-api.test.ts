@@ -42,6 +42,8 @@ describe("GET /api/admin/reports", () => {
       totalRevenue: 375000,
       totalCash: 175000,
       totalQris: 200000,
+      cashOrders: 7,
+      qrisOrders: 8,
       averageOrderValue: 25000,
       cashPercentage: 47,
       qrisPercentage: 53,

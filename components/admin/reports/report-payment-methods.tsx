@@ -10,6 +10,8 @@ export function ReportPaymentMethods({ summary }: ReportPaymentMethodsProps) {
   const totalRevenue = summary?.totalRevenue ?? 0;
   const totalCash = summary?.totalCash ?? 0;
   const totalQris = summary?.totalQris ?? 0;
+  const cashOrders = summary?.cashOrders ?? 0;
+  const qrisOrders = summary?.qrisOrders ?? 0;
   const cashPercentage = summary?.cashPercentage ?? 0;
   const qrisPercentage = summary?.qrisPercentage ?? 0;
 
@@ -86,6 +88,9 @@ export function ReportPaymentMethods({ summary }: ReportPaymentMethodsProps) {
               <p className="mt-2 font-display text-xl font-bold text-ink-900 tabular-nums">
                 {formatRupiah(totalCash)}
               </p>
+              <p className="mt-1 text-xs text-ink-600 tabular-nums">
+                {`${cashOrders} pesanan`}
+              </p>
             </div>
 
             {/* QRIS */}
@@ -106,6 +111,9 @@ export function ReportPaymentMethods({ summary }: ReportPaymentMethodsProps) {
               </div>
               <p className="mt-2 font-display text-xl font-bold text-ink-900 tabular-nums">
                 {formatRupiah(totalQris)}
+              </p>
+              <p className="mt-1 text-xs text-ink-600 tabular-nums">
+                {`${qrisOrders} pesanan`}
               </p>
             </div>
           </div>

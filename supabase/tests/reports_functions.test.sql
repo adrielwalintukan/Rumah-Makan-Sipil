@@ -171,7 +171,9 @@ select is(
     'totalOrders', 2,
     'totalRevenue', 85000,
     'totalCash', 35000,
-    'totalQris', 50000
+    'totalQris', 50000,
+    'cashOrders', 1,
+    'qrisOrders', 1
   ),
   'report_summary hari ini mengabaikan pesanan belum lunas dan batal'
 );
@@ -185,7 +187,9 @@ select is(
     'totalOrders', 0,
     'totalRevenue', 0,
     'totalCash', 0,
-    'totalQris', 0
+    'totalQris', 0,
+    'cashOrders', 0,
+    'qrisOrders', 0
   ),
   'report_summary periode tanpa transaksi mengembalikan nilai nol'
 );
@@ -199,7 +203,9 @@ select is(
     'totalOrders', 3,
     'totalRevenue', 145000,
     'totalCash', 95000,
-    'totalQris', 50000
+    'totalQris', 50000,
+    'cashOrders', 2,
+    'qrisOrders', 1
   ),
   'report_summary rentang multi-hari mengakumulasi pesanan cash dan qris dengan benar'
 );

@@ -253,6 +253,8 @@ describe("admin-reports", () => {
                 totalRevenue: 500000,
                 totalCash: 200000,
                 totalQris: 300000,
+                cashOrders: 4,
+                qrisOrders: 6,
               },
               error: null,
             }
@@ -315,6 +317,8 @@ describe("admin-reports", () => {
             totalRevenue: 240000,
             totalCash: 80000,
             totalQris: 160000,
+            cashOrders: 3,
+            qrisOrders: 5,
           },
           error: null,
         },
@@ -326,6 +330,8 @@ describe("admin-reports", () => {
       expect(result.summary.totalRevenue).toBe(240000);
       expect(result.summary.totalCash).toBe(80000);
       expect(result.summary.totalQris).toBe(160000);
+      expect(result.summary.cashOrders).toBe(3);
+      expect(result.summary.qrisOrders).toBe(5);
       // averageOrderValue = 240000 / 8 = 30000
       expect(result.summary.averageOrderValue).toBe(30000);
       // cashPercentage = (80000 / 240000) * 100 = 33% (round)
@@ -343,6 +349,8 @@ describe("admin-reports", () => {
             totalRevenue: 0,
             totalCash: 0,
             totalQris: 0,
+            cashOrders: 0,
+            qrisOrders: 0,
           },
           error: null,
         },
@@ -356,6 +364,8 @@ describe("admin-reports", () => {
 
       expect(result.summary.totalOrders).toBe(0);
       expect(result.summary.totalRevenue).toBe(0);
+      expect(result.summary.cashOrders).toBe(0);
+      expect(result.summary.qrisOrders).toBe(0);
       expect(result.summary.averageOrderValue).toBe(0);
       expect(result.summary.cashPercentage).toBe(0);
       expect(result.summary.qrisPercentage).toBe(0);

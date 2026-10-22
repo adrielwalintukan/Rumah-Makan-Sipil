@@ -77,6 +77,8 @@ describe("ReportMetricCards", () => {
     totalRevenue: 375000,
     totalCash: 175000,
     totalQris: 200000,
+    cashOrders: 7,
+    qrisOrders: 8,
     averageOrderValue: 25000,
     cashPercentage: 47,
     qrisPercentage: 53,
@@ -106,6 +108,8 @@ describe("ReportMetricCards", () => {
       totalRevenue: 2500000,
       totalCash: 1500000,
       totalQris: 1000000,
+      cashOrders: 75,
+      qrisOrders: 50,
       averageOrderValue: 20000,
       cashPercentage: 60,
       qrisPercentage: 40,
@@ -124,6 +128,8 @@ describe("ReportMetricCards", () => {
       totalRevenue: 0,
       totalCash: 0,
       totalQris: 0,
+      cashOrders: 0,
+      qrisOrders: 0,
       averageOrderValue: 0,
       cashPercentage: 0,
       qrisPercentage: 0,
@@ -144,21 +150,25 @@ describe("ReportPaymentMethods", () => {
     totalRevenue: 500000,
     totalCash: 300000,
     totalQris: 200000,
+    cashOrders: 12,
+    qrisOrders: 8,
     averageOrderValue: 25000,
     cashPercentage: 60,
     qrisPercentage: 40,
   };
 
-  it("merender rincian dan persentase pembayaran Tunai vs QRIS", () => {
+  it("merender rincian, jumlah pesanan, dan persentase pembayaran Tunai vs QRIS", () => {
     const html = renderToString(<ReportPaymentMethods summary={sampleSummary} />);
 
     expect(html).toContain("Metode Pembayaran");
     expect(html).toContain("Tunai (Cash)");
     expect(html).toContain("Rp300.000");
+    expect(html).toContain("12 pesanan");
     expect(html).toContain("60%");
 
     expect(html).toContain("QRIS (DANA Bisnis)");
     expect(html).toContain("Rp200.000");
+    expect(html).toContain("8 pesanan");
     expect(html).toContain("40%");
 
     // Bar visual proporsional
@@ -174,6 +184,8 @@ describe("ReportPaymentMethods", () => {
       totalRevenue: 200000,
       totalCash: 200000,
       totalQris: 0,
+      cashOrders: 10,
+      qrisOrders: 0,
       averageOrderValue: 20000,
       cashPercentage: 100,
       qrisPercentage: 0,
@@ -183,6 +195,8 @@ describe("ReportPaymentMethods", () => {
 
     expect(html).toContain("100%");
     expect(html).toContain("0%");
+    expect(html).toContain("10 pesanan");
+    expect(html).toContain("0 pesanan");
     expect(html).toContain("width:100%");
   });
 
@@ -192,6 +206,8 @@ describe("ReportPaymentMethods", () => {
       totalRevenue: 200000,
       totalCash: 0,
       totalQris: 200000,
+      cashOrders: 0,
+      qrisOrders: 10,
       averageOrderValue: 20000,
       cashPercentage: 0,
       qrisPercentage: 100,
@@ -201,6 +217,8 @@ describe("ReportPaymentMethods", () => {
 
     expect(html).toContain("0%");
     expect(html).toContain("100%");
+    expect(html).toContain("0 pesanan");
+    expect(html).toContain("10 pesanan");
     expect(html).toContain("width:100%");
   });
 
@@ -210,6 +228,8 @@ describe("ReportPaymentMethods", () => {
       totalRevenue: 0,
       totalCash: 0,
       totalQris: 0,
+      cashOrders: 0,
+      qrisOrders: 0,
       averageOrderValue: 0,
       cashPercentage: 0,
       qrisPercentage: 0,

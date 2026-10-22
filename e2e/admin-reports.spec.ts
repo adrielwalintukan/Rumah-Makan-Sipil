@@ -36,6 +36,8 @@ let expectedTodayOrders = 2;
 let expectedTodayRevenue = 70000;
 let expectedTodayCash = 30000;
 let expectedTodayQris = 40000;
+let expectedTodayCashOrders = 1;
+let expectedTodayQrisOrders = 1;
 let expectedTodayAvg = 35000;
 let expectedTodayCashPct = 43;
 let expectedTodayQrisPct = 57;
@@ -83,12 +85,16 @@ test.beforeAll(async () => {
   const baselineTodayQris = validToday
     .filter((r) => r.payment_method === "qris")
     .reduce((sum, r) => sum + (r.total || 0), 0);
+  const baselineTodayCashOrders = validToday.filter((r) => r.payment_method === "cash").length;
+  const baselineTodayQrisOrders = validToday.filter((r) => r.payment_method === "qris").length;
 
   const isOrder5Today = order5Date === todayStr;
   expectedTodayOrders = baselineTodayOrders + (isOrder5Today ? 3 : 2);
   expectedTodayRevenue = baselineTodayRevenue + (isOrder5Today ? 100000 : 70000);
   expectedTodayCash = baselineTodayCash + (isOrder5Today ? 60000 : 30000);
   expectedTodayQris = baselineTodayQris + 40000;
+  expectedTodayCashOrders = baselineTodayCashOrders + (isOrder5Today ? 2 : 1);
+  expectedTodayQrisOrders = baselineTodayQrisOrders + 1;
   expectedTodayAvg = expectedTodayOrders > 0 ? Math.round(expectedTodayRevenue / expectedTodayOrders) : 0;
   expectedTodayCashPct = expectedTodayRevenue > 0 ? Math.round((expectedTodayCash / expectedTodayRevenue) * 100) : 0;
   expectedTodayQrisPct = expectedTodayRevenue > 0 ? 100 - expectedTodayCashPct : 0;
@@ -362,12 +368,14 @@ test.describe.serial("Pengujian End-to-End Laporan Penjualan Admin", () => {
     const cashCard = page.locator("div.rounded-lg").filter({ hasText: "Tunai (Cash)" });
     await expect(cashCard).toBeVisible();
     await expect(cashCard.getByText(formatRupiah(expectedTodayCash), { exact: true })).toBeVisible();
+    await expect(cashCard.getByText(`${expectedTodayCashOrders} pesanan`, { exact: true })).toBeVisible();
     await expect(cashCard.getByText(`${expectedTodayCashPct}%`, { exact: true })).toBeVisible();
 
     // Kartu QRIS
     const qrisCard = page.locator("div.rounded-lg").filter({ hasText: "QRIS (DANA Bisnis)" });
     await expect(qrisCard).toBeVisible();
     await expect(qrisCard.getByText(formatRupiah(expectedTodayQris), { exact: true })).toBeVisible();
+    await expect(qrisCard.getByText(`${expectedTodayQrisOrders} pesanan`, { exact: true })).toBeVisible();
     await expect(qrisCard.getByText(`${expectedTodayQrisPct}%`, { exact: true })).toBeVisible();
 
     // Progressbar komparasi

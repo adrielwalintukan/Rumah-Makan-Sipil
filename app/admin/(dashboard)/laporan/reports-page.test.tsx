@@ -61,6 +61,8 @@ describe("ReportsDataLoader (/admin/laporan)", () => {
       totalRevenue: 250000,
       totalCash: 100000,
       totalQris: 150000,
+      cashOrders: 4,
+      qrisOrders: 6,
       averageOrderValue: 25000,
       cashPercentage: 40,
       qrisPercentage: 60,
@@ -103,6 +105,8 @@ describe("ReportsDataLoader (/admin/laporan)", () => {
     expect(html).toContain("Rp250.000");
     expect(html).toContain("Total Pesanan");
     expect(html).toContain("10");
+    expect(html).toContain("4 pesanan");
+    expect(html).toContain("6 pesanan");
     expect(html).toContain("Ayam Bakar");
     expect(html).not.toContain("Gagal Memuat Laporan Penjualan");
   });
