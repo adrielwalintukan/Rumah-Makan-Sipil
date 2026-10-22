@@ -82,21 +82,22 @@ test.describe("Admin Finance & Cashbook (E2E)", () => {
     await expect(dialog).toBeHidden();
 
     // 5. Verifikasi pengeluaran muncul di daftar
-    await expect(page.getByText("Beli Telur Ayam 2 Rak").locator("visible=true")).toBeVisible();
-    await expect(page.getByText("Rp110.000").locator("visible=true")).toBeVisible();
+    const expenseItem = page.locator("div.sm\\:hidden > div, tbody tr").filter({ hasText: "Beli Telur Ayam 2 Rak" }).locator("visible=true");
+    await expect(expenseItem).toBeVisible();
+    await expect(expenseItem.getByText("Rp110.000")).toBeVisible();
 
     // 6. Ubah Pengeluaran
-    await page.getByLabel("Ubah pengeluaran Beli Telur Ayam 2 Rak").locator("visible=true").click();
+    await expenseItem.getByLabel("Ubah pengeluaran Beli Telur Ayam 2 Rak").click();
     await expect(dialog).toBeVisible();
 
     await dialog.locator("#expense-amount").fill("115000");
     await dialog.getByRole("button", { name: "Simpan Perubahan" }).click();
     await expect(dialog).toBeHidden();
 
-    await expect(page.getByText("Rp115.000").locator("visible=true")).toBeVisible();
+    await expect(expenseItem.getByText("Rp115.000")).toBeVisible();
 
     // 7. Hapus Pengeluaran
-    await page.getByLabel("Hapus pengeluaran Beli Telur Ayam 2 Rak").locator("visible=true").click();
+    await expenseItem.getByLabel("Hapus pengeluaran Beli Telur Ayam 2 Rak").click();
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText("Hapus Catatan Pengeluaran?")).toBeVisible();
 
