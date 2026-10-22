@@ -65,9 +65,13 @@ test.describe("Admin Finance & Cashbook (E2E)", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Catatan Keuangan" })).toBeVisible();
 
     // 3. Verifikasi Tiga Kartu Metrik
-    await expect(page.getByText("Total Pemasukan")).toBeVisible();
-    await expect(page.getByText("Total Pengeluaran")).toBeVisible();
-    await expect(page.getByText("Laba Kotor")).toBeVisible();
+    const incomeCard = page.locator("div.rounded-xl").filter({ hasText: "Total Pemasukan" });
+    const expenseCard = page.locator("div.rounded-xl").filter({ hasText: "Total Pengeluaran" });
+    const profitCard = page.locator("div.rounded-xl").filter({ hasText: "Laba Kotor" });
+
+    await expect(incomeCard).toBeVisible();
+    await expect(expenseCard).toBeVisible();
+    await expect(profitCard).toBeVisible();
 
     // 4. Tambah Pengeluaran Baru
     await page.getByRole("button", { name: /tambah pengeluaran/i }).first().click();
