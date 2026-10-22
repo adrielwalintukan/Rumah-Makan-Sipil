@@ -53,7 +53,7 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 ### M5 — Riwayat, laporan, keuangan (D7–D9)
 - [x] Riwayat dengan filter tanggal + detail
 - [x] Fungsi SQL laporan + halaman Laporan (hari ini / bulan ini, terlaris, Cash vs QRIS)
-- [ ] Catatan keuangan: CRUD pengeluaran, buku kas per tanggal, ringkasan bulan (laba kotor)
+- [x] Catatan keuangan: CRUD pengeluaran, buku kas per tanggal, ringkasan bulan (laba kotor)
 
 **Selesai jika**: angka laporan cocok dengan hitungan manual dari data uji.
 
