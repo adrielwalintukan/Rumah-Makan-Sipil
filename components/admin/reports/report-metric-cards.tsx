@@ -7,9 +7,9 @@ export interface ReportMetricCardsProps {
 }
 
 export function ReportMetricCards({ summary }: ReportMetricCardsProps) {
-  const totalOrdersFormatted = (summary?.totalOrders ?? 0).toLocaleString("id-ID");
-  const totalRevenueFormatted = formatRupiah(summary?.totalRevenue ?? 0);
-  const averageOrderFormatted = formatRupiah(summary?.averageOrderValue ?? 0);
+  const totalOrdersFormatted = Math.round(summary?.totalOrders ?? 0).toLocaleString("id-ID");
+  const totalRevenueFormatted = formatRupiah(Math.round(summary?.totalRevenue ?? 0));
+  const averageOrderFormatted = formatRupiah(Math.round(summary?.averageOrderValue ?? 0));
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
