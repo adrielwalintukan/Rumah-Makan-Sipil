@@ -5,14 +5,17 @@ import { redirect } from "next/navigation";
 import { getAdminUser } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
+  getReportDateRange,
   getSalesReport,
   reportQuerySchema,
   type ReportQuery,
+  type SalesReportResult,
 } from "@/lib/admin-reports";
 import { ReportPeriodSelector } from "@/components/admin/reports/report-period-selector";
 import { ReportMetricCards } from "@/components/admin/reports/report-metric-cards";
 import { ReportPaymentMethods } from "@/components/admin/reports/report-payment-methods";
 import { ReportTopItems } from "@/components/admin/reports/report-top-items";
+import { ReportErrorState } from "@/components/admin/reports/report-error-state";
 
 export const metadata: Metadata = {
   title: "Laporan Penjualan · Dashboard Rumah Makan Sipil",
@@ -79,14 +82,29 @@ async function ReportsDataLoader({
     };
   }
 
-  const supabase = await createServerSupabaseClient();
-  const reportData = await getSalesReport(supabase, query);
-
-  const { from, to, preset } = reportData.period;
+  const preset = query.preset ?? "today";
+  const { from, to } = getReportDateRange(
+    preset,
+    query.from,
+    query.to
+  );
   const dateSubtitle =
     from === to
       ? `WITA: ${formatDisplayDate(from)}`
       : `WITA: ${formatDisplayDate(from)} s.d. ${formatDisplayDate(to)}`;
+
+  const supabase = await createServerSupabaseClient();
+  let reportData: SalesReportResult | null = null;
+  let loadErrorMessage: string | null = null;
+
+  try {
+    reportData = await getSalesReport(supabase, query);
+  } catch (err) {
+    loadErrorMessage =
+      err instanceof Error
+        ? err.message
+        : "Terjadi kesalahan saat memuat data laporan penjualan.";
+  }
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl">
@@ -105,14 +123,21 @@ async function ReportsDataLoader({
         currentTo={to}
       />
 
-      {/* Kartu Metrik Utama */}
-      <ReportMetricCards summary={reportData.summary} />
+      {loadErrorMessage || !reportData ? (
+        /* State Error Eksplisit jika RPC gagal */
+        <ReportErrorState message={loadErrorMessage ?? undefined} />
+      ) : (
+        <>
+          {/* Kartu Metrik Utama */}
+          <ReportMetricCards summary={reportData.summary} />
 
-      {/* Grid Komposisi Pembayaran dan Menu Terlaris */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ReportPaymentMethods summary={reportData.summary} />
-        <ReportTopItems topItems={reportData.topItems} />
-      </div>
+          {/* Grid Komposisi Pembayaran dan Menu Terlaris */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ReportPaymentMethods summary={reportData.summary} />
+            <ReportTopItems topItems={reportData.topItems} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -114,6 +114,30 @@ describe("GET /api/admin/reports", () => {
       expect(mockGetSalesReport).not.toHaveBeenCalled();
     });
 
+    it("mengembalikan 400 jika tanggal kalender tidak valid (misal 2026-02-31 atau 2026-99-99)", async () => {
+      const req = new Request("http://localhost/api/admin/reports?preset=custom&from=2026-02-31&to=2026-03-05");
+      const res = await GET(req);
+
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toBe("BAD_REQUEST");
+      expect(json.message).toBe("Parameter query tidak valid.");
+      expect(json.details).toBeDefined();
+      expect(mockGetSalesReport).not.toHaveBeenCalled();
+    });
+
+    it("mengembalikan 400 jika rentang tanggal kustom terbalik (from > to)", async () => {
+      const req = new Request("http://localhost/api/admin/reports?preset=custom&from=2026-10-25&to=2026-10-10");
+      const res = await GET(req);
+
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toBe("BAD_REQUEST");
+      expect(json.message).toBe("Parameter query tidak valid.");
+      expect(json.details).toBeDefined();
+      expect(mockGetSalesReport).not.toHaveBeenCalled();
+    });
+
     it("mengembalikan 400 jika limit bukan angka", async () => {
       const req = new Request("http://localhost/api/admin/reports?limit=abc");
       const res = await GET(req);

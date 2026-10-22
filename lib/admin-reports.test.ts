@@ -5,6 +5,7 @@ import {
   getSalesReport,
   getWitaMonthRange,
   getWitaTodayDateString,
+  isValidCalendarDate,
   reportPresetEnum,
   reportQuerySchema,
   type ReportQuery,
@@ -45,6 +46,22 @@ describe("admin-reports", () => {
         from: "2026-02-01",
         to: "2026-02-28",
       });
+    });
+
+    it("memvalidasi keabsahan tanggal kalender dengan isValidCalendarDate", () => {
+      // Tanggal valid
+      expect(isValidCalendarDate("2026-10-22")).toBe(true);
+      expect(isValidCalendarDate("2024-02-29")).toBe(true); // Tahun kabisat
+
+      // Tanggal tidak valid
+      expect(isValidCalendarDate("2026-02-31")).toBe(false);
+      expect(isValidCalendarDate("2026-04-31")).toBe(false);
+      expect(isValidCalendarDate("2025-02-29")).toBe(false); // Bukan tahun kabisat
+      expect(isValidCalendarDate("2026-13-01")).toBe(false);
+      expect(isValidCalendarDate("2026-00-10")).toBe(false);
+      expect(isValidCalendarDate("2026-99-99")).toBe(false);
+      expect(isValidCalendarDate("invalid-date")).toBe(false);
+      expect(isValidCalendarDate("22-10-2026")).toBe(false);
     });
 
     it("menghitung rentang tanggal getReportDateRange untuk preset today dan this_month", () => {
@@ -138,7 +155,7 @@ describe("admin-reports", () => {
           from: "01-10-2026",
           to: "2026-10-15",
         })
-      ).toThrow("Format tanggal awal harus YYYY-MM-DD.");
+      ).toThrow("Format tanggal harus YYYY-MM-DD.");
 
       expect(() =>
         reportQuerySchema.parse({
@@ -146,7 +163,65 @@ describe("admin-reports", () => {
           from: "2026-10-01",
           to: "2026/10/15",
         })
-      ).toThrow("Format tanggal akhir harus YYYY-MM-DD.");
+      ).toThrow("Format tanggal harus YYYY-MM-DD.");
+    });
+
+    it("menolak tanggal kalender yang tidak mungkin (impossible dates)", () => {
+      // 31 Februari
+      expect(() =>
+        reportQuerySchema.parse({
+          preset: "custom",
+          from: "2026-02-31",
+          to: "2026-03-05",
+        })
+      ).toThrow("Tanggal kalender tidak valid.");
+
+      // 31 April (April hanya ada 30 hari)
+      expect(() =>
+        reportQuerySchema.parse({
+          preset: "custom",
+          from: "2026-04-01",
+          to: "2026-04-31",
+        })
+      ).toThrow("Tanggal kalender tidak valid.");
+
+      // Bulan 99 atau hari 99
+      expect(() =>
+        reportQuerySchema.parse({
+          preset: "custom",
+          from: "2026-99-99",
+          to: "2026-10-20",
+        })
+      ).toThrow("Tanggal kalender tidak valid.");
+
+      // 29 Februari di tahun bukan kabisat (2025 bukan kabisat)
+      expect(() =>
+        reportQuerySchema.parse({
+          preset: "custom",
+          from: "2025-02-29",
+          to: "2025-03-01",
+        })
+      ).toThrow("Tanggal kalender tidak valid.");
+    });
+
+    it("menerima 29 Februari pada tahun kabisat yang valid (leap year)", () => {
+      const parsed = reportQuerySchema.parse({
+        preset: "custom",
+        from: "2024-02-01",
+        to: "2024-02-29",
+      });
+      expect(parsed.from).toBe("2024-02-01");
+      expect(parsed.to).toBe("2024-02-29");
+    });
+
+    it("menolak rentang tanggal kustom jika from lebih besar dari to (rentang terbalik)", () => {
+      expect(() =>
+        reportQuerySchema.parse({
+          preset: "custom",
+          from: "2026-10-25",
+          to: "2026-10-10",
+        })
+      ).toThrow("Tanggal awal (from) tidak boleh lebih besar dari tanggal akhir (to).");
     });
 
     it("menolak nilai limit di luar batas min 1 dan max 50", () => {
@@ -313,7 +388,8 @@ describe("admin-reports", () => {
       });
     });
 
-    it("menangani error RPC summary secara defensif tanpa melempar unhandled exception", async () => {
+    it("melempar error saat RPC summary gagal", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       const { client } = createMockSupabase({
         summaryResult: {
           data: null,
@@ -321,20 +397,15 @@ describe("admin-reports", () => {
         },
       });
 
-      const result = await getSalesReport(client, { preset: "today", limit: 5 });
-
-      expect(result.summary).toEqual({
-        totalOrders: 0,
-        totalRevenue: 0,
-        totalCash: 0,
-        totalQris: 0,
-        averageOrderValue: 0,
-        cashPercentage: 0,
-        qrisPercentage: 0,
-      });
+      await expect(getSalesReport(client, { preset: "today", limit: 5 })).rejects.toThrow(
+        "Gagal memuat ringkasan laporan: Database connection failed"
+      );
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
     });
 
-    it("menangani error RPC top_items secara defensif tanpa melempar unhandled exception", async () => {
+    it("melempar error saat RPC top_items gagal", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       const { client } = createMockSupabase({
         topItemsResult: {
           data: null,
@@ -342,29 +413,20 @@ describe("admin-reports", () => {
         },
       });
 
-      const result = await getSalesReport(client, { preset: "today", limit: 5 });
-
-      expect(result.topItems).toEqual([]);
-      // summary tetap dihitung jika summary berhasil
-      expect(result.summary.totalOrders).toBe(10);
+      await expect(getSalesReport(client, { preset: "today", limit: 5 })).rejects.toThrow(
+        "Gagal memuat menu terlaris: Function top_items not found"
+      );
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
     });
 
-    it("menangani exception unhandled/rejected promise dari RPC secara aman", async () => {
+    it("melempar error saat promise RPC melempar exception (misal network timeout)", async () => {
       const rpcThrowing = vi.fn().mockRejectedValue(new Error("Network timeout"));
       const throwingClient = { rpc: rpcThrowing } as unknown as SupabaseClient;
 
-      const result = await getSalesReport(throwingClient, { preset: "today", limit: 5 });
-
-      expect(result.summary).toEqual({
-        totalOrders: 0,
-        totalRevenue: 0,
-        totalCash: 0,
-        totalQris: 0,
-        averageOrderValue: 0,
-        cashPercentage: 0,
-        qrisPercentage: 0,
-      });
-      expect(result.topItems).toEqual([]);
+      await expect(getSalesReport(throwingClient, { preset: "today", limit: 5 })).rejects.toThrow(
+        "Network timeout"
+      );
     });
   });
 });

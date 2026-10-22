@@ -5,6 +5,7 @@ import { ReportPeriodSelector } from "./report-period-selector";
 import { ReportMetricCards } from "./report-metric-cards";
 import { ReportPaymentMethods } from "./report-payment-methods";
 import { ReportTopItems } from "./report-top-items";
+import { ReportErrorState } from "./report-error-state";
 import type { ReportSummary, TopItem } from "@/lib/admin-reports";
 
 vi.mock("next/navigation", () => ({
@@ -277,5 +278,35 @@ describe("ReportTopItems", () => {
     expect(html).toContain("5 Menu Terlaris");
     expect(html).toContain("Belum ada data menu terjual pada periode ini.");
     expect(html).not.toContain("—");
+  });
+});
+
+describe("ReportErrorState", () => {
+  it("merender pesan error dan judul kegagalan memuat laporan", () => {
+    const html = renderToString(
+      <ReportErrorState message="Koneksi basis data terputus." />
+    );
+
+    expect(html).toContain("Gagal Memuat Laporan Penjualan");
+    expect(html).toContain("Koneksi basis data terputus.");
+    expect(html).toContain('role="alert"');
+    expect(html).not.toContain("—");
+  });
+
+  it("merender pesan default jika prop message tidak diberikan", () => {
+    const html = renderToString(<ReportErrorState />);
+
+    expect(html).toContain("Gagal Memuat Laporan Penjualan");
+    expect(html).toContain(
+      "Terjadi kendala teknis saat memuat data laporan dari basis data."
+    );
+  });
+
+  it("memiliki tombol muat ulang dengan target sentuh minimal 44px", () => {
+    const html = renderToString(<ReportErrorState />);
+
+    expect(html).toContain("Muat Ulang Halaman");
+    expect(html).toContain("min-h-[44px]");
+    expect(html).toContain("min-w-[44px]");
   });
 });
