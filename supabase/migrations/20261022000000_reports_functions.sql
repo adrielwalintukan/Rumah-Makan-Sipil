@@ -16,8 +16,6 @@ declare
   v_total_revenue bigint := 0;
   v_total_cash bigint := 0;
   v_total_qris bigint := 0;
-  v_cash_orders bigint := 0;
-  v_qris_orders bigint := 0;
 begin
   -- 1. Validasi hak akses akun pemilik (AGENTS.md §8.3, docs/architecture.md §6)
   if not public.is_owner() then
@@ -30,16 +28,12 @@ begin
     count(*)::bigint,
     coalesce(sum(total), 0)::bigint,
     coalesce(sum(case when payment_method = 'cash' then total else 0 end), 0)::bigint,
-    coalesce(sum(case when payment_method = 'qris' then total else 0 end), 0)::bigint,
-    count(case when payment_method = 'cash' then 1 end)::bigint,
-    count(case when payment_method = 'qris' then 1 end)::bigint
+    coalesce(sum(case when payment_method = 'qris' then total else 0 end), 0)::bigint
   into
     v_total_orders,
     v_total_revenue,
     v_total_cash,
-    v_total_qris,
-    v_cash_orders,
-    v_qris_orders
+    v_total_qris
   from public.orders
   where order_date >= p_from_date
     and order_date <= p_to_date
@@ -50,9 +44,7 @@ begin
     'totalOrders', v_total_orders,
     'totalRevenue', v_total_revenue,
     'totalCash', v_total_cash,
-    'totalQris', v_total_qris,
-    'cashOrders', v_cash_orders,
-    'qrisOrders', v_qris_orders
+    'totalQris', v_total_qris
   );
 end;
 $$;
