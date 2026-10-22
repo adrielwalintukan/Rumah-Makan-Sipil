@@ -44,6 +44,9 @@ export function ReportPaymentMethods({ summary }: ReportPaymentMethodsProps) {
           <div
             className="h-4 w-full overflow-hidden rounded-full bg-cream-100 flex"
             role="progressbar"
+            aria-valuenow={cashPercentage}
+            aria-valuemin={0}
+            aria-valuemax={100}
             aria-label={`Perbandingan metode pembayaran: Tunai ${cashPercentage}%, QRIS ${qrisPercentage}%`}
           >
             {cashPercentage > 0 && (

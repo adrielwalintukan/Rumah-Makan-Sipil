@@ -125,6 +125,13 @@ export async function getSalesReport(
     const summaryData = summaryRes.data as Record<string, unknown> | null;
     const topItemsData = topItemsRes.data as unknown;
 
+    if (summaryRes.error) {
+      console.error("RPC report_summary gagal:", summaryRes.error);
+    }
+    if (topItemsRes.error) {
+      console.error("RPC top_items gagal:", topItemsRes.error);
+    }
+
     let totalOrders = 0;
     let totalRevenue = 0;
     let totalCash = 0;
@@ -167,7 +174,8 @@ export async function getSalesReport(
       },
       topItems,
     };
-  } catch {
+  } catch (err) {
+    console.error("Eksepsi getSalesReport:", err);
     return {
       period: {
         preset,
