@@ -218,10 +218,39 @@ describe("admin-reports", () => {
       expect(() =>
         reportQuerySchema.parse({
           preset: "custom",
-          from: "2026-10-25",
+          from: "2026-10-15",
           to: "2026-10-10",
         })
       ).toThrow("Tanggal awal (from) tidak boleh lebih besar dari tanggal akhir (to).");
+    });
+
+    it("menolak tanggal awal (from) atau akhir (to) di masa depan melebihi hari ini (WITA)", () => {
+      // from di masa depan
+      expect(() =>
+        reportQuerySchema.parse({
+          preset: "custom",
+          from: "2099-01-01",
+          to: "2099-01-10",
+        })
+      ).toThrow("Tanggal awal (from) tidak boleh melebihi tanggal hari ini (WITA).");
+
+      // to di masa depan
+      expect(() =>
+        reportQuerySchema.parse({
+          preset: "custom",
+          from: "2026-10-01",
+          to: "2099-01-01",
+        })
+      ).toThrow("Tanggal akhir (to) tidak boleh melebihi tanggal hari ini (WITA).");
+    });
+
+    it("menerima preset this_month tanpa parameter from dan to", () => {
+      const parsed = reportQuerySchema.parse({
+        preset: "this_month",
+      });
+      expect(parsed.preset).toBe("this_month");
+      expect(parsed.from).toBeUndefined();
+      expect(parsed.to).toBeUndefined();
     });
 
     it("menolak nilai limit di luar batas min 1 dan max 50", () => {

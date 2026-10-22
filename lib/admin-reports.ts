@@ -68,6 +68,8 @@ export function getReportDateRange(
           from = to;
           to = temp;
         }
+        if (from > todayStr) from = todayStr;
+        if (to > todayStr) to = todayStr;
         return { from, to };
       }
       return { from: todayStr, to: todayStr };
@@ -77,6 +79,58 @@ export function getReportDateRange(
   }
 }
 
+/**
+ * Membuat skema validasi query laporan dengan basis tanggal hari ini (WITA).
+ * Menolak tanggal from/to yang berada di masa depan atau rentang terbalik.
+ */
+export function createReportQuerySchema(now: Date = new Date()) {
+  const todayStr = getWitaTodayDateString(now);
+
+  return z
+    .object({
+      preset: reportPresetEnum.default("today"),
+      from: calendarDateSchema.optional(),
+      to: calendarDateSchema.optional(),
+      limit: z.coerce.number().int().min(1).max(50).default(5),
+    })
+    .refine(
+      (data) => {
+        if (data.from && data.from > todayStr) {
+          return false;
+        }
+        return true;
+      },
+      {
+        message: "Tanggal awal (from) tidak boleh melebihi tanggal hari ini (WITA).",
+        path: ["from"],
+      }
+    )
+    .refine(
+      (data) => {
+        if (data.to && data.to > todayStr) {
+          return false;
+        }
+        return true;
+      },
+      {
+        message: "Tanggal akhir (to) tidak boleh melebihi tanggal hari ini (WITA).",
+        path: ["to"],
+      }
+    )
+    .refine(
+      (data) => {
+        if (data.from && data.to) {
+          return data.from <= data.to;
+        }
+        return true;
+      },
+      {
+        message: "Tanggal awal (from) tidak boleh lebih besar dari tanggal akhir (to).",
+        path: ["from"],
+      }
+    );
+}
+
 export const reportQuerySchema = z
   .object({
     preset: reportPresetEnum.default("today"),
@@ -84,6 +138,32 @@ export const reportQuerySchema = z
     to: calendarDateSchema.optional(),
     limit: z.coerce.number().int().min(1).max(50).default(5),
   })
+  .refine(
+    (data) => {
+      const todayStr = getWitaTodayDateString();
+      if (data.from && data.from > todayStr) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Tanggal awal (from) tidak boleh melebihi tanggal hari ini (WITA).",
+      path: ["from"],
+    }
+  )
+  .refine(
+    (data) => {
+      const todayStr = getWitaTodayDateString();
+      if (data.to && data.to > todayStr) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Tanggal akhir (to) tidak boleh melebihi tanggal hari ini (WITA).",
+      path: ["to"],
+    }
+  )
   .refine(
     (data) => {
       if (data.from && data.to) {

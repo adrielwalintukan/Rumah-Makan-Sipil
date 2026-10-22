@@ -143,4 +143,28 @@ describe("ReportsDataLoader (/admin/laporan)", () => {
 
     consoleSpy.mockRestore();
   });
+
+  it("otomatis fallback ke laporan hari ini jika parameter tanggal kustom berada di masa depan", async () => {
+    mockGetAdminUser.mockResolvedValue(validAdmin);
+    mockGetSalesReport.mockResolvedValue(sampleReport);
+
+    const element = await ReportsDataLoader({
+      searchParams: Promise.resolve({
+        preset: "custom",
+        from: "2099-01-01",
+        to: "2099-01-31",
+      }),
+    });
+    const html = renderToString(element);
+
+    // Memverifikasi getSalesReport dipanggil dengan fallback preset 'today'
+    expect(mockGetSalesReport).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        preset: "today",
+      })
+    );
+    expect(html).toContain("Laporan Penjualan");
+    expect(html).toContain("Rp250.000");
+  });
 });
