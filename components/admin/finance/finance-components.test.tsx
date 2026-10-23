@@ -82,7 +82,7 @@ describe("Finance Components", () => {
       );
 
       expect(html).toContain('aria-pressed="true"');
-      expect(html).toContain("bg-green-800 text-white");
+      expect(html).toContain("bg-green-700 text-white");
     });
 
     it("memiliki ukuran target sentuh interaktif minimal 44px", () => {

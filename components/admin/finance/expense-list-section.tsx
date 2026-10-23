@@ -53,7 +53,7 @@ export function ExpenseListSection({
         <button
           type="button"
           onClick={onAddExpense}
-          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg bg-green-800 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-green-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-800"
+          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-green-600 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
         >
           <Plus className="size-4" aria-hidden="true" />
           <span>Tambah Pengeluaran</span>
@@ -67,7 +67,7 @@ export function ExpenseListSection({
             key={cat}
             type="button"
             onClick={() => setFilterCategory(cat)}
-            className={`min-h-[44px] min-w-[44px] rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-800 ${
+            className={`min-h-[44px] min-w-[44px] rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700 ${
               filterCategory === cat
                 ? "bg-ink-900 text-white shadow-xs"
                 : "border border-line bg-cream-100 text-ink-700 hover:bg-cream-200"
@@ -121,7 +121,7 @@ export function ExpenseListSection({
                         <button
                           type="button"
                           onClick={() => onEditExpense(expense)}
-                          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-ink-600 hover:bg-cream-100 hover:text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-800"
+                          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-ink-600 hover:bg-cream-100 hover:text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
                           aria-label={`Ubah pengeluaran ${expense.description}`}
                         >
                           <Edit2 className="size-4" aria-hidden="true" />

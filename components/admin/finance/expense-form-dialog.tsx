@@ -117,7 +117,7 @@ export function ExpenseFormDialog({
           <button
             type="button"
             onClick={onClose}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-ink-500 hover:bg-cream-100 hover:text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-800"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-ink-500 hover:bg-cream-100 hover:text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
             aria-label="Tutup form pengeluaran"
           >
             <X className="size-5" aria-hidden="true" />
@@ -143,7 +143,7 @@ export function ExpenseFormDialog({
               value={expenseDate}
               max={todayStr}
               onChange={(e) => setExpenseDate(e.target.value)}
-              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-800"
+              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
               required
             />
           </div>
@@ -157,7 +157,7 @@ export function ExpenseFormDialog({
               id="expense-category"
               value={category}
               onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-800"
+              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
             >
               <option value="bahan">Bahan (Belanja Dapur / Mentah)</option>
               <option value="operasional">Operasional (Gas, Sabun, Listrik, Kebersihan)</option>
@@ -178,7 +178,7 @@ export function ExpenseFormDialog({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="Contoh: 50000"
-              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-800"
+              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
               required
             />
             {amount && !isNaN(parseInt(amount, 10)) && parseInt(amount, 10) > 0 && (
@@ -200,7 +200,7 @@ export function ExpenseFormDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Contoh: Beli Beras 5kg"
-              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-800"
+              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
               required
             />
             <span className="text-right text-[11px] text-ink-500">
@@ -214,14 +214,14 @@ export function ExpenseFormDialog({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="min-h-[44px] min-w-[44px] rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-cream-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-800"
+              className="min-h-[44px] min-w-[44px] rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-cream-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="min-h-[44px] min-w-[44px] rounded-lg bg-green-800 px-5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-green-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-800 disabled:opacity-50"
+              className="min-h-[44px] min-w-[44px] rounded-lg bg-green-700 px-5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-green-600 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700 disabled:opacity-50"
             >
               {isSubmitting ? "Menyimpan..." : initialData ? "Simpan Perubahan" : "Tambah Pengeluaran"}
             </button>
