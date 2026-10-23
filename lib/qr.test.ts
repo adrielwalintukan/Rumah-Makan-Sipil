@@ -114,6 +114,13 @@ describe("lib/qr: Modul Utilitas QR & Poster Kanonikal", () => {
       expect(dim.height).toBe(2480);
       expect(dim.ratio).toBeCloseTo(1 / 1.414, 2);
     });
+
+    it("mengembalikan resolusi 300 DPI untuk ukuran A6 (1240 x 1748 px)", () => {
+      const dim = getPosterDimensions("a6");
+      expect(dim.width).toBe(1240);
+      expect(dim.height).toBe(1748);
+      expect(dim.ratio).toBeCloseTo(1 / 1.414, 2);
+    });
   });
 
   describe("truncateUrl()", () => {
@@ -181,6 +188,14 @@ describe("lib/qr: Modul Utilitas QR & Poster Kanonikal", () => {
 
     it("memastikan seluruh elemen berada di dalam batas kanvas yang aman pada A5 standar", () => {
       const layout = calculatePosterLayout({ ...standardConfig, size: "a5" });
+
+      expect(layout.isSafe).toBe(true);
+      expect(layout.stepsContainerY + layout.stepBoxHeight).toBeLessThan(layout.footerY);
+      expect(layout.footerY).toBeLessThan(layout.bottomSafeLimit);
+    });
+
+    it("memastikan seluruh elemen berada di dalam batas kanvas yang aman pada A6 standar (tenda meja kecil)", () => {
+      const layout = calculatePosterLayout({ ...standardConfig, size: "a6" });
 
       expect(layout.isSafe).toBe(true);
       expect(layout.stepsContainerY + layout.stepBoxHeight).toBeLessThan(layout.footerY);

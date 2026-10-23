@@ -82,8 +82,19 @@ export function QrPosterDashboard({
       <style>{`
         @media print {
           @page {
-            size: ${size === "a5" ? "A5 portrait" : "A4 portrait"};
+            size: ${
+              size === "a6"
+                ? "A6 portrait"
+                : size === "a5"
+                ? "A5 portrait"
+                : "A4 portrait"
+            };
             margin: 0;
+          }
+          #poster-print-target {
+            padding: ${
+              size === "a6" ? "4mm" : size === "a5" ? "6mm" : "8mm"
+            } !important;
           }
         }
       `}</style>
@@ -99,13 +110,13 @@ export function QrPosterDashboard({
             <div
               role="group"
               aria-label="Pilihan ukuran cetak poster"
-              className="inline-flex rounded-lg border border-line bg-cream-50 p-1"
+              className="inline-flex flex-wrap rounded-lg border border-line bg-cream-50 p-1 gap-1"
             >
               <button
                 type="button"
                 onClick={() => setSize("a4")}
                 aria-pressed={size === "a4"}
-                className={`inline-flex min-h-[44px] items-center justify-center rounded-md px-4 text-xs sm:text-sm font-semibold transition active:scale-95 ${
+                className={`inline-flex min-h-[44px] items-center justify-center rounded-md px-3 sm:px-4 text-xs sm:text-sm font-semibold transition active:scale-95 ${
                   size === "a4"
                     ? "bg-green-700 text-white shadow-xs"
                     : "text-ink-600 hover:text-ink-900 hover:bg-cream-100"
@@ -117,13 +128,25 @@ export function QrPosterDashboard({
                 type="button"
                 onClick={() => setSize("a5")}
                 aria-pressed={size === "a5"}
-                className={`inline-flex min-h-[44px] items-center justify-center rounded-md px-4 text-xs sm:text-sm font-semibold transition active:scale-95 ${
+                className={`inline-flex min-h-[44px] items-center justify-center rounded-md px-3 sm:px-4 text-xs sm:text-sm font-semibold transition active:scale-95 ${
                   size === "a5"
                     ? "bg-green-700 text-white shadow-xs"
                     : "text-ink-600 hover:text-ink-900 hover:bg-cream-100"
                 }`}
               >
-                Ukuran A5 (Tenda Meja)
+                Ukuran A5 (Meja Sedang)
+              </button>
+              <button
+                type="button"
+                onClick={() => setSize("a6")}
+                aria-pressed={size === "a6"}
+                className={`inline-flex min-h-[44px] items-center justify-center rounded-md px-3 sm:px-4 text-xs sm:text-sm font-semibold transition active:scale-95 ${
+                  size === "a6"
+                    ? "bg-green-700 text-white shadow-xs"
+                    : "text-ink-600 hover:text-ink-900 hover:bg-cream-100"
+                }`}
+              >
+                Ukuran A6 (Tenda Meja Kecil)
               </button>
             </div>
           </div>
@@ -215,16 +238,22 @@ export function QrPosterDashboard({
           <Sparkles className="size-4 shrink-0 text-brown-500 mt-0.5" aria-hidden />
           <p>
             <strong className="text-ink-900 font-semibold">Tips Cetak:</strong>{" "}
-            Untuk meja makan, pilih ukuran <strong>A5</strong> dan gunakan kertas
-            tebal (Art Paper / Linen 210–260 gsm) atau masukkan ke dalam akrilik berdiri
-            agar tahan cipratan kuah masakan.
+            Untuk meja makan, gunakan ukuran <strong>A6 (Tenda Meja Kecil, ~10x15 cm)</strong> agar pas dan ringkas di atas meja, atau <strong>A5</strong> untuk tenda meja berukuran sedang. Masukkan ke dalam akrilik berdiri agar tahan cipratan kuah masakan.
           </p>
         </div>
       </div>
 
       {/* Area Pratinjau Poster */}
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-line bg-cream-100/40 p-4 sm:p-8">
-        <div className="w-full max-w-sm sm:max-w-md md:max-w-lg transition-all duration-300">
+      <div className="poster-preview-wrapper flex flex-col items-center justify-center rounded-2xl border border-line bg-cream-100/40 p-4 sm:p-8">
+        <div
+          className={`w-full transition-all duration-300 ${
+            size === "a6"
+              ? "max-w-[260px] sm:max-w-[280px]"
+              : size === "a5"
+              ? "max-w-xs sm:max-w-sm md:max-w-md"
+              : "max-w-sm sm:max-w-md md:max-w-lg"
+          }`}
+        >
           <PosterCard
             size={size}
             storeName={initialStoreName}

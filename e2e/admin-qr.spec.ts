@@ -82,17 +82,24 @@ test.describe("Admin QR Poster (E2E)", () => {
     await expect(posterTarget.getByText("2. Pilih Menu")).toBeVisible();
     await expect(posterTarget.getByText("3. Bayar")).toBeVisible();
 
-    // 6. Verifikasi kontrol toggle ukuran A4 dan A5
+    // 6. Verifikasi kontrol toggle ukuran A4, A5, dan A6
     const btnA4 = page.getByRole("button", { name: "Ukuran A4 (Dinding / Kasir)" });
-    const btnA5 = page.getByRole("button", { name: "Ukuran A5 (Tenda Meja)" });
+    const btnA5 = page.getByRole("button", { name: "Ukuran A5 (Meja Sedang)" });
+    const btnA6 = page.getByRole("button", { name: "Ukuran A6 (Tenda Meja Kecil)" });
 
     await expect(btnA4).toHaveAttribute("aria-pressed", "true");
     await expect(btnA5).toHaveAttribute("aria-pressed", "false");
+    await expect(btnA6).toHaveAttribute("aria-pressed", "false");
 
-    // Klik tombol A5
+    // Klik tombol A6 (Tenda Meja Kecil)
+    await btnA6.click();
+    await expect(btnA6).toHaveAttribute("aria-pressed", "true");
+    await expect(btnA4).toHaveAttribute("aria-pressed", "false");
+
+    // Klik tombol A5 (Meja Sedang)
     await btnA5.click();
     await expect(btnA5).toHaveAttribute("aria-pressed", "true");
-    await expect(btnA4).toHaveAttribute("aria-pressed", "false");
+    await expect(btnA6).toHaveAttribute("aria-pressed", "false");
 
     // 7. Verifikasi tombol aksi dan proteksi status produksi
     const btnPrint = page.getByRole("button", { name: "Cetak Poster" });

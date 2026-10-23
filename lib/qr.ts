@@ -1,6 +1,6 @@
 import QRCode from "qrcode";
 
-export type PosterSize = "a4" | "a5";
+export type PosterSize = "a4" | "a5" | "a6";
 
 export interface PosterDimensions {
   width: number;
@@ -158,9 +158,18 @@ export async function generateQrDataUrl(
 }
 
 /**
- * Mendapatkan dimensi pixel untuk cetak 300 DPI berdasarkan ukuran A4 / A5.
+ * Mendapatkan dimensi pixel untuk cetak 300 DPI berdasarkan ukuran A4 / A5 / A6.
  */
 export function getPosterDimensions(size: PosterSize): PosterDimensions {
+  if (size === "a6") {
+    // A6: 105 x 148 mm -> ~1240 x 1748 px pada 300 DPI
+    return {
+      width: 1240,
+      height: 1748,
+      ratio: 1240 / 1748,
+    };
+  }
+
   if (size === "a5") {
     // A5: 148 x 210 mm -> ~1748 x 2480 px pada 300 DPI
     return {

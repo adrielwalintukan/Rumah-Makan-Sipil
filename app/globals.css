@@ -115,8 +115,7 @@
 
 @media print {
   @page {
-    size: auto;
-    margin: 6mm;
+    margin: 0;
   }
 
   html,
@@ -127,33 +126,57 @@
     padding: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    overflow: visible !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
   }
 
-  /* Sembunyikan SEMUA elemen selain target poster */
-  body * {
-    visibility: hidden !important;
+  /* Sembunyikan SEMUA elemen non-cetak dari layout flow */
+  .no-print,
+  nav,
+  header,
+  aside,
+  footer {
+    display: none !important;
   }
 
-  /* Tampilkan hanya target poster dan seluruh turunannya */
-  #poster-print-target,
-  #poster-print-target * {
-    visibility: visible !important;
+  /* Reset layout wrapper admin agar tidak memiliki padding/margin/min-height */
+  body > div,
+  .md\:pl-64,
+  main,
+  .poster-preview-wrapper,
+  .poster-preview-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    display: block !important;
   }
 
-  /* Posisikan target poster pas mengisi satu halaman */
+  /* Target poster mengisi penuh 1 lembar halaman cetak */
   #poster-print-target {
+    display: flex !important;
     position: fixed !important;
-    left: 0 !important;
-    top: 0 !important;
+    inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
     max-width: 100% !important;
     max-height: 100% !important;
+    aspect-ratio: auto !important;
     margin: 0 !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
-    border-width: 3px !important;
+    border-width: 2px !important;
+    box-sizing: border-box !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
     page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-before: avoid !important;
     break-inside: avoid !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;

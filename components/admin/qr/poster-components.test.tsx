@@ -49,6 +49,14 @@ describe("components/admin/qr/poster-card", () => {
     expect(html).toContain("aspect-[210/297]");
     expect(html).toContain("RMS");
   });
+
+  it("merender proporsi ringkas untuk ukuran A6 (tenda meja kecil)", () => {
+    const html = renderToString(<PosterCard {...dummyProps} size="a6" />);
+
+    expect(html).toContain("rounded-xl border-2 border-[#1F3D2B]");
+    expect(html).toContain("p-2.5 sm:p-3.5");
+    expect(html).toContain("RMS");
+  });
 });
 
 describe("components/admin/qr/qr-poster-dashboard", () => {
@@ -59,13 +67,14 @@ describe("components/admin/qr/qr-poster-dashboard", () => {
     siteUrl: "https://rumah-makan-sipil.vercel.app",
   };
 
-  it("merender kontrol pilihan ukuran A4 dan A5", () => {
+  it("merender kontrol pilihan ukuran A4, A5, dan A6", () => {
     const html = renderToString(
       <QrPosterDashboard {...defaultDashboardProps} />
     );
 
     expect(html).toContain("Ukuran A4 (Dinding / Kasir)");
-    expect(html).toContain("Ukuran A5 (Tenda Meja)");
+    expect(html).toContain("Ukuran A5 (Meja Sedang)");
+    expect(html).toContain("Ukuran A6 (Tenda Meja Kecil)");
     expect(html).toContain('aria-pressed="true"');
   });
 
@@ -84,7 +93,7 @@ describe("components/admin/qr/qr-poster-dashboard", () => {
     );
 
     expect(html).toContain("Tips Cetak:");
-    expect(html).toContain("Art Paper / Linen 210–260 gsm");
+    expect(html).toContain("A6 (Tenda Meja Kecil, ~10x15 cm)");
   });
 
   it("menampilkan peringatan URL jika siteUrl menunjuk ke localhost di non-production", () => {
