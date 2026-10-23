@@ -76,8 +76,6 @@ describe("components/admin/qr/qr-poster-dashboard", () => {
 
     expect(html).toContain("Cetak Poster");
     expect(html).toContain("Unduh PNG (300 DPI)");
-    expect(html).toContain('aria-label="Cetak poster sekarang"');
-    expect(html).toContain('aria-label="Unduh poster format PNG 300 DPI"');
   });
 
   it("merender teks tips cetak untuk meja makan", () => {

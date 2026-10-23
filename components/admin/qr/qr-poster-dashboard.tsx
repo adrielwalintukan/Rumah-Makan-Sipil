@@ -103,7 +103,6 @@ export function QrPosterDashboard({
             <button
               type="button"
               onClick={handlePrint}
-              aria-label="Cetak poster sekarang"
               className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-green-700 bg-white px-4 py-2.5 font-sans text-sm font-semibold text-green-700 shadow-2xs hover:bg-green-50 active:scale-95 transition"
             >
               <Printer className="size-4" aria-hidden />
@@ -114,7 +113,6 @@ export function QrPosterDashboard({
               type="button"
               onClick={handleDownload}
               disabled={isDownloading}
-              aria-label="Unduh poster format PNG 300 DPI"
               className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-green-700 px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-2xs hover:bg-green-600 active:scale-95 transition disabled:opacity-60"
             >
               {isDownloading ? (
