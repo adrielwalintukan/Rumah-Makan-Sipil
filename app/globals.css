@@ -9,9 +9,12 @@
 @theme {
   --color-green-*: initial;
   --color-green-900: #1f3d2b;
+  --color-green-800: #264a34;
   --color-green-700: #2e5a3f;
   --color-green-600: #3a6e4e;
   --color-green-100: #e3ede5;
+  --color-green-200: #c7ded0;
+  --color-green-50: #f2f7f3;
   --color-brown-700: #7a4e24;
   --color-brown-500: #a86a32;
   --color-brown-100: #f1e3d3;
