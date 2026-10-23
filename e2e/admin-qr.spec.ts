@@ -94,12 +94,30 @@ test.describe("Admin QR Poster (E2E)", () => {
     await expect(btnA5).toHaveAttribute("aria-pressed", "true");
     await expect(btnA4).toHaveAttribute("aria-pressed", "false");
 
-    // 7. Verifikasi ketersediaan tombol aksi
+    // 7. Verifikasi tombol aksi dan proteksi status produksi
     const btnPrint = page.getByRole("button", { name: "Cetak Poster" });
     const btnDownload = page.getByRole("button", { name: /Unduh PNG/i });
 
     await expect(btnPrint).toBeVisible();
     await expect(btnDownload).toBeVisible();
-    await expect(btnDownload).toBeEnabled();
+
+    // Di lingkungan build produksi (seperti runner E2E CI) dengan URL localhost,
+    // aksi cetak & unduh dinonaktifkan demi keselamatan operasional warung
+    const isBlocked = await page
+      .getByText(/Aksi Cetak & Unduh Dinonaktifkan/i)
+      .isVisible();
+
+    if (isBlocked) {
+      await expect(btnPrint).toBeDisabled();
+      await expect(btnDownload).toBeDisabled();
+    } else {
+      await expect(btnPrint).toBeEnabled();
+      await expect(btnDownload).toBeEnabled();
+    }
+
+    // 8. Verifikasi isolasi cetak (@media print)
+    await page.emulateMedia({ media: "print" });
+    await expect(posterTarget).toBeVisible();
+    await page.emulateMedia({ media: "screen" });
   });
 });
