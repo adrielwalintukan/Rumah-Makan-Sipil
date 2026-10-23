@@ -56,7 +56,7 @@ describe("components/admin/qr/qr-poster-dashboard", () => {
     initialStoreName: "Rumah Makan Sipil",
     initialTagline: "Spesialis Masakan Rumahan",
     initialQrDataUrl: "data:image/png;base64,dummy",
-    siteUrl: "https://sipil.local",
+    siteUrl: "https://rumah-makan-sipil.vercel.app",
   };
 
   it("merender kontrol pilihan ukuran A4 dan A5", () => {
@@ -85,5 +85,37 @@ describe("components/admin/qr/qr-poster-dashboard", () => {
 
     expect(html).toContain("Tips Cetak:");
     expect(html).toContain("Art Paper / Linen 210–260 gsm");
+  });
+
+  it("menampilkan peringatan URL jika siteUrl menunjuk ke localhost", () => {
+    const html = renderToString(
+      <QrPosterDashboard
+        {...defaultDashboardProps}
+        siteUrl="http://localhost:3000"
+      />
+    );
+
+    expect(html).toContain("Perhatian URL Localhost:");
+    expect(html).toContain("http://localhost:3000");
+  });
+
+  it("TIDAK menampilkan peringatan URL jika siteUrl adalah domain HTTPS publik", () => {
+    const html = renderToString(
+      <QrPosterDashboard
+        {...defaultDashboardProps}
+        siteUrl="https://rumah-makan-sipil.vercel.app"
+      />
+    );
+
+    expect(html).not.toContain("Perhatian URL Localhost:");
+  });
+
+  it("merender dynamic print @page size", () => {
+    const html = renderToString(
+      <QrPosterDashboard {...defaultDashboardProps} />
+    );
+
+    expect(html).toContain("@page");
+    expect(html).toContain("A4 portrait");
   });
 });

@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Printer, Download, Loader2, Sparkles } from "lucide-react";
+import { Printer, Download, Loader2, Sparkles, AlertTriangle } from "lucide-react";
 import {
   type PosterSize,
   exportPosterToPngBlob,
   triggerDownload,
+  validateStoreUrl,
 } from "@/lib/qr";
 import { PosterCard } from "./poster-card";
 
@@ -25,6 +26,8 @@ export function QrPosterDashboard({
   const [size, setSize] = React.useState<PosterSize>("a4");
   const [isDownloading, setIsDownloading] = React.useState(false);
   const [downloadError, setDownloadError] = React.useState<string | null>(null);
+
+  const urlValidation = React.useMemo(() => validateStoreUrl(siteUrl), [siteUrl]);
 
   const handlePrint = () => {
     window.print();
@@ -58,6 +61,16 @@ export function QrPosterDashboard({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Dynamic @page size for browser print dialog */}
+      <style>{`
+        @media print {
+          @page {
+            size: ${size === "a5" ? "A5 portrait" : "A4 portrait"};
+            margin: 6mm;
+          }
+        }
+      `}</style>
+
       {/* Toolbar Kontrol & Aksi (Disembunyikan saat cetak) */}
       <div className="no-print flex flex-col gap-4 rounded-xl border border-line bg-card p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -129,6 +142,20 @@ export function QrPosterDashboard({
             </button>
           </div>
         </div>
+
+        {/* Peringatan jika URL menunjuk ke localhost */}
+        {urlValidation.isLocalhost && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning-bg p-3 text-xs text-warning"
+          >
+            <AlertTriangle className="size-4 shrink-0 text-warning mt-0.5" aria-hidden />
+            <p className="leading-relaxed">
+              <strong className="font-semibold text-ink-900">Perhatian URL Localhost:</strong>{" "}
+              Kode QR saat ini mengarah ke <code>{urlValidation.cleanUrl}</code>. Di lingkungan produksi, pastikan menyetel variabel <code>NEXT_PUBLIC_SITE_URL</code> ke domain publik toko agar kode QR dapat dibuka dari kamera HP pelanggan.
+            </p>
+          </div>
+        )}
 
         {downloadError && (
           <div

@@ -16,6 +16,71 @@ export interface PosterRenderConfig {
   siteUrl: string;
 }
 
+export interface StoreUrlValidation {
+  isValid: boolean;
+  isLocalhost: boolean;
+  cleanUrl: string;
+  warning?: string;
+}
+
+/**
+ * Validasi URL kanonikal toko untuk target QR code.
+ * Memeriksa skema protokol (http/https), format URL, dan mendeteksi host lokal (localhost).
+ */
+export function validateStoreUrl(rawUrl?: string): StoreUrlValidation {
+  const trimmed = rawUrl?.trim() || "";
+  if (!trimmed) {
+    return {
+      isValid: false,
+      isLocalhost: false,
+      cleanUrl: "http://localhost:3000",
+      warning: "URL toko belum disetel.",
+    };
+  }
+
+  const cleanUrl = trimmed.replace(/\/+$/, "");
+
+  try {
+    const parsed = new URL(cleanUrl);
+    const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
+    const hostname = parsed.hostname.toLowerCase();
+    const isLocalhost =
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0" ||
+      hostname.endsWith(".local");
+
+    if (!isHttp) {
+      return {
+        isValid: false,
+        isLocalhost: false,
+        cleanUrl,
+        warning: "Protokol URL harus berupa HTTP atau HTTPS.",
+      };
+    }
+
+    let warning: string | undefined;
+    if (isLocalhost) {
+      warning =
+        "URL mengarah ke localhost. Pastikan menyetel NEXT_PUBLIC_SITE_URL ke domain publik produksi agar kode QR dapat dibuka dari HP pelanggan.";
+    }
+
+    return {
+      isValid: true,
+      isLocalhost,
+      cleanUrl,
+      warning,
+    };
+  } catch {
+    return {
+      isValid: false,
+      isLocalhost: false,
+      cleanUrl,
+      warning: "Format URL toko tidak valid.",
+    };
+  }
+}
+
 /**
  * Resolusi URL kanonikal toko untuk target QR code.
  * Membaca variabel NEXT_PUBLIC_SITE_URL, dengan fallback ke window.location.origin
@@ -24,15 +89,25 @@ export interface PosterRenderConfig {
 export function getStoreCanonicalUrl(fallbackOrigin?: string): string {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (envUrl) {
-    return envUrl.replace(/\/+$/, "");
-  }
-
-  if (fallbackOrigin?.trim()) {
-    return fallbackOrigin.trim().replace(/\/+$/, "");
+    const validated = validateStoreUrl(envUrl);
+    if (validated.isValid) {
+      return validated.cleanUrl;
+    }
   }
 
   if (typeof window !== "undefined" && window.location?.origin) {
-    return window.location.origin.replace(/\/+$/, "");
+    const origin = window.location.origin.trim();
+    const validated = validateStoreUrl(origin);
+    if (validated.isValid) {
+      return validated.cleanUrl;
+    }
+  }
+
+  if (fallbackOrigin?.trim()) {
+    const validated = validateStoreUrl(fallbackOrigin);
+    if (validated.isValid) {
+      return validated.cleanUrl;
+    }
   }
 
   return "http://localhost:3000";
@@ -82,6 +157,69 @@ export function getPosterDimensions(size: PosterSize): PosterDimensions {
 }
 
 /**
+ * Memecah dan merender teks multi-baris pada Canvas dengan batas lebar (maxWidth)
+ * dan batas jumlah baris (maxLines). Jika teks melebihi batas, baris terakhir diberi ellipsis (...).
+ * Mengembalikan total tinggi teks yang dirender.
+ */
+export function drawWrappedText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  startY: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines: number = 2
+): number {
+  const clean = text.trim();
+  if (!clean) return 0;
+
+  const words = clean.split(/\s+/);
+  const lines: string[] = [];
+  let currentLine = words[0];
+
+  for (let i = 1; i < words.length; i++) {
+    const testLine = `${currentLine} ${words[i]}`;
+    const metrics = ctx.measureText(testLine);
+    if (metrics.width <= maxWidth) {
+      currentLine = testLine;
+    } else {
+      lines.push(currentLine);
+      currentLine = words[i];
+      if (lines.length >= maxLines - 1) {
+        // Gabungkan sisa kata ke baris terakhir
+        const remaining = words.slice(i + 1).join(" ");
+        if (remaining) {
+          currentLine = `${currentLine} ${remaining}`;
+        }
+        break;
+      }
+    }
+  }
+  lines.push(currentLine);
+
+  // Jika baris terakhir melebihi maxWidth atau ada pemotongan baris, tambahkan ellipsis
+  const renderLines = lines.slice(0, maxLines);
+  const lastIndex = renderLines.length - 1;
+  let lastLine = renderLines[lastIndex];
+
+  if (ctx.measureText(lastLine).width > maxWidth || lines.length > maxLines) {
+    while (
+      ctx.measureText(`${lastLine}...`).width > maxWidth &&
+      lastLine.length > 0
+    ) {
+      lastLine = lastLine.slice(0, -1).trim();
+    }
+    renderLines[lastIndex] = `${lastLine}...`;
+  }
+
+  renderLines.forEach((line, idx) => {
+    ctx.fillText(line, x, startY + idx * lineHeight, maxWidth);
+  });
+
+  return renderLines.length * lineHeight;
+}
+
+/**
  * Render poster ke HTML Canvas offscreen beresolusi cetak tinggi (300 DPI).
  */
 export async function renderPosterToCanvas(
@@ -125,10 +263,12 @@ export async function renderPosterToCanvas(
     height - innerMargin * 2
   );
 
+  const contentMaxWidth = width - innerMargin * 2 - width * 0.06;
+
   // 3. Header: Monogram Emblem RMS
-  const emblemSize = width * 0.12;
+  const emblemSize = width * 0.11;
   const emblemX = width / 2 - emblemSize / 2;
-  const emblemY = height * 0.08;
+  const emblemY = height * 0.065;
 
   ctx.fillStyle = "#2E5A3F"; // green-700
   ctx.beginPath();
@@ -141,28 +281,48 @@ export async function renderPosterToCanvas(
   ctx.textBaseline = "middle";
   ctx.fillText("RMS", width / 2, emblemY + emblemSize / 2);
 
-  // 4. Nama Toko & Tagline
-  const storeNameY = emblemY + emblemSize + height * 0.04;
+  // 4. Nama Toko & Tagline dengan Text Wrapping Aman
+  const storeNameY = emblemY + emblemSize + height * 0.025;
+  const storeFontSize = width * 0.052;
+  const storeLineHeight = storeFontSize * 1.25;
+
   ctx.fillStyle = "#1F3D2B"; // green-900
-  ctx.font = `bold ${width * 0.065}px "Fraunces", serif, sans-serif`;
+  ctx.font = `bold ${storeFontSize}px "Fraunces", serif, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.fillText(config.storeName || "Rumah Makan Sipil", width / 2, storeNameY);
 
-  const taglineY = storeNameY + width * 0.085;
+  const storeHeight = drawWrappedText(
+    ctx,
+    config.storeName || "Rumah Makan Sipil",
+    width / 2,
+    storeNameY,
+    contentMaxWidth,
+    storeLineHeight,
+    2
+  );
+
+  const taglineY = storeNameY + storeHeight + height * 0.012;
+  const tagFontSize = width * 0.026;
+  const tagLineHeight = tagFontSize * 1.35;
+
   ctx.fillStyle = "#5C5A54"; // ink-600
-  ctx.font = `500 ${width * 0.03}px "Plus Jakarta Sans", sans-serif`;
-  ctx.fillText(
+  ctx.font = `500 ${tagFontSize}px "Plus Jakarta Sans", sans-serif`;
+
+  const tagHeight = drawWrappedText(
+    ctx,
     config.tagline || "Spesialis Masakan Rumahan & Ikan Bakar Khas Manado",
     width / 2,
-    taglineY
+    taglineY,
+    contentMaxWidth,
+    tagLineHeight,
+    2
   );
 
   // 5. Container Kartu QR (Putih Bersih)
-  const qrCardWidth = width * 0.68;
-  const qrCardHeight = width * 0.72;
+  const qrCardWidth = width * 0.62;
+  const qrCardHeight = width * 0.66;
   const qrCardX = width / 2 - qrCardWidth / 2;
-  const qrCardY = taglineY + height * 0.035;
+  const qrCardY = taglineY + tagHeight + height * 0.025;
 
   ctx.fillStyle = "#FFFFFF";
   ctx.shadowColor = "rgba(31, 61, 43, 0.08)";
@@ -189,10 +349,10 @@ export async function renderPosterToCanvas(
   ctx.stroke();
 
   // Badge "SCAN UNTUK PESAN" di atas QR
-  const badgeWidth = qrCardWidth * 0.62;
-  const badgeHeight = width * 0.065;
+  const badgeWidth = qrCardWidth * 0.64;
+  const badgeHeight = width * 0.06;
   const badgeX = width / 2 - badgeWidth / 2;
-  const badgeY = qrCardY + width * 0.035;
+  const badgeY = qrCardY + width * 0.03;
 
   ctx.fillStyle = "#2E5A3F"; // green-700
   ctx.beginPath();
@@ -202,21 +362,21 @@ export async function renderPosterToCanvas(
   ctx.fillStyle = "#FFFFFF";
   ctx.font = `bold ${badgeHeight * 0.48}px "Plus Jakarta Sans", sans-serif`;
   ctx.textBaseline = "middle";
-  ctx.fillText("SCAN UNTUK PESAN", width / 2, badgeY + badgeHeight / 2);
+  ctx.fillText("SCAN UNTUK PESAN", width / 2, badgeY + badgeHeight / 2, badgeWidth);
 
   // 6. Draw QR Image ke dalam kartu
   if (config.qrDataUrl) {
     const qrImg = await loadImage(config.qrDataUrl);
-    const qrImageSize = qrCardWidth * 0.76;
+    const qrImageSize = qrCardWidth * 0.72;
     const qrImageX = width / 2 - qrImageSize / 2;
-    const qrImageY = badgeY + badgeHeight + width * 0.025;
+    const qrImageY = badgeY + badgeHeight + width * 0.02;
     ctx.drawImage(qrImg, qrImageX, qrImageY, qrImageSize, qrImageSize);
   }
 
   // 7. 3 Langkah Pemesanan
-  const stepsContainerY = qrCardY + qrCardHeight + height * 0.035;
+  const stepsContainerY = qrCardY + qrCardHeight + height * 0.028;
   const stepBoxWidth = width * 0.25;
-  const stepBoxHeight = height * 0.085;
+  const stepBoxHeight = height * 0.078;
   const stepSpacing = width * 0.04;
   const totalStepsWidth = stepBoxWidth * 3 + stepSpacing * 2;
   const stepsStartX = width / 2 - totalStepsWidth / 2;
@@ -224,7 +384,7 @@ export async function renderPosterToCanvas(
   const stepsData = [
     { num: "1", title: "Scan QR", desc: "Buka kamera HP" },
     { num: "2", title: "Pilih Menu", desc: "Pesan dari meja" },
-    { num: "3", title: "Bayar & Nikmati", desc: "Kasir / QRIS" },
+    { num: "3", title: "Bayar & Tunggu", desc: "Kasir / QRIS" },
   ];
 
   for (let i = 0; i < 3; i++) {
@@ -241,9 +401,9 @@ export async function renderPosterToCanvas(
     ctx.stroke();
 
     // Circle number badge
-    const circleSize = width * 0.045;
+    const circleSize = width * 0.042;
     const circleX = sX + stepBoxWidth / 2;
-    const circleY = stepsContainerY + stepBoxHeight * 0.28;
+    const circleY = stepsContainerY + stepBoxHeight * 0.26;
 
     ctx.fillStyle = "#E3EDE5"; // green-100
     ctx.beginPath();
@@ -257,25 +417,45 @@ export async function renderPosterToCanvas(
 
     // Text title & desc
     ctx.fillStyle = "#1C1B18"; // ink-900
-    ctx.font = `bold ${width * 0.022}px "Plus Jakarta Sans", sans-serif`;
+    ctx.font = `bold ${width * 0.02}px "Plus Jakarta Sans", sans-serif`;
     ctx.textBaseline = "top";
-    ctx.fillText(step.title, circleX, stepsContainerY + stepBoxHeight * 0.52);
+    ctx.fillText(
+      step.title,
+      circleX,
+      stepsContainerY + stepBoxHeight * 0.5,
+      stepBoxWidth * 0.9
+    );
 
     ctx.fillStyle = "#5C5A54"; // ink-600
-    ctx.font = `500 ${width * 0.018}px "Plus Jakarta Sans", sans-serif`;
-    ctx.fillText(step.desc, circleX, stepsContainerY + stepBoxHeight * 0.72);
+    ctx.font = `500 ${width * 0.016}px "Plus Jakarta Sans", sans-serif`;
+    ctx.fillText(
+      step.desc,
+      circleX,
+      stepsContainerY + stepBoxHeight * 0.72,
+      stepBoxWidth * 0.92
+    );
   }
 
   // 8. Footer URL
-  const footerY = height - outerMargin - height * 0.035;
+  const footerY = height - outerMargin - height * 0.038;
   ctx.fillStyle = "#5C5A54"; // ink-600
-  ctx.font = `500 ${width * 0.022}px "Plus Jakarta Sans", sans-serif`;
+  ctx.font = `500 ${width * 0.02}px "Plus Jakarta Sans", sans-serif`;
   ctx.textBaseline = "middle";
-  ctx.fillText("Atau akses langsung melalui browser:", width / 2, footerY - width * 0.025);
+  ctx.fillText(
+    "Atau akses langsung melalui browser:",
+    width / 2,
+    footerY - width * 0.022,
+    contentMaxWidth
+  );
 
   ctx.fillStyle = "#2E5A3F"; // green-700
-  ctx.font = `bold ${width * 0.025}px "Plus Jakarta Sans", sans-serif`;
-  ctx.fillText(config.siteUrl || "http://localhost:3000", width / 2, footerY + width * 0.01);
+  ctx.font = `bold ${width * 0.023}px "Plus Jakarta Sans", sans-serif`;
+  ctx.fillText(
+    config.siteUrl || "http://localhost:3000",
+    width / 2,
+    footerY + width * 0.01,
+    contentMaxWidth
+  );
 
   return canvas;
 }
