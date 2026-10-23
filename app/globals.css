@@ -112,3 +112,35 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+
+@media print {
+  @page {
+    size: auto;
+    margin: 8mm;
+  }
+  body {
+    background: #ffffff !important;
+    color: #1c1b18 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .no-print,
+  header,
+  nav,
+  aside {
+    display: none !important;
+  }
+  #poster-print-target {
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    border-width: 3px !important;
+    box-shadow: none !important;
+  }
+}
