@@ -130,12 +130,12 @@
     overflow: hidden !important;
   }
 
-  /* Sembunyikan SEMUA elemen non-cetak dari layout flow */
+  /* Sembunyikan SEMUA elemen non-cetak dari layout dashboard */
   .no-print,
-  nav,
-  header,
-  aside,
-  footer {
+  header:not(#poster-print-target *),
+  footer:not(#poster-print-target *),
+  nav:not(#poster-print-target *),
+  aside:not(#poster-print-target *) {
     display: none !important;
   }
 
@@ -180,5 +180,17 @@
     break-inside: avoid !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+
+  /* Pastikan seluruh bagian poster (header toko, QR, dan footer panduan) selalu tampil utuh */
+  #poster-print-target header,
+  #poster-print-target main,
+  #poster-print-target footer {
+    display: flex !important;
+    visibility: visible !important;
+  }
+
+  #poster-print-target * {
+    visibility: visible !important;
   }
 }

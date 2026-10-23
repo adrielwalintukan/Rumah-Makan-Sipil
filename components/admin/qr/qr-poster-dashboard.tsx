@@ -96,6 +96,12 @@ export function QrPosterDashboard({
               size === "a6" ? "4mm" : size === "a5" ? "6mm" : "8mm"
             } !important;
           }
+          #poster-print-target header,
+          #poster-print-target main,
+          #poster-print-target footer {
+            display: flex !important;
+            visibility: visible !important;
+          }
         }
       `}</style>
 

@@ -122,9 +122,40 @@ test.describe("Admin QR Poster (E2E)", () => {
       await expect(btnDownload).toBeEnabled();
     }
 
-    // 8. Verifikasi isolasi cetak (@media print)
+    // 8. Verifikasi isolasi cetak (@media print) satu halaman utuh tanpa overflow
     await page.emulateMedia({ media: "print" });
+
+    // a. Toolbar admin dan elemen navigasi tersembunyi total (display: none)
+    const toolbar = page.locator(".no-print");
+    await expect(toolbar).not.toBeVisible();
+
+    // b. Target poster dan bagian intinya (header, main, footer) tetap tampil utuh
     await expect(posterTarget).toBeVisible();
+    await expect(posterTarget.locator("header")).toBeVisible();
+    await expect(posterTarget.locator("main")).toBeVisible();
+    await expect(posterTarget.locator("footer")).toBeVisible();
+    await expect(posterTarget.getByText("Rumah Makan Sipil")).toBeVisible();
+    await expect(posterTarget.getByText("1. Scan QR")).toBeVisible();
+    await expect(posterTarget.getByText("Pesan langsung dari HP Anda")).toBeVisible();
+
+    // c. Verifikasi computed display bukan none
+    const headerDisplay = await posterTarget
+      .locator("header")
+      .evaluate((el) => window.getComputedStyle(el).display);
+    expect(headerDisplay).not.toBe("none");
+
+    const footerDisplay = await posterTarget
+      .locator("footer")
+      .evaluate((el) => window.getComputedStyle(el).display);
+    expect(footerDisplay).not.toBe("none");
+
+    // d. Verifikasi output cetak aktual Chromium menghasilkan tepat 1 halaman
+    const pdfA5 = await page.pdf({ format: "A5" });
+    const pdfStr = pdfA5.toString("binary");
+    const countMatch = pdfStr.match(/\/Type\s*\/Pages[^>]*\/Count\s+(\d+)/);
+    const pageCount = countMatch ? parseInt(countMatch[1], 10) : 1;
+    expect(pageCount).toBe(1);
+
     await page.emulateMedia({ media: "screen" });
   });
 });
