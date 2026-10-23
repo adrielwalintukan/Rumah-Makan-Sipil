@@ -5,6 +5,9 @@ import {
   getPosterDimensions,
   validateStoreUrl,
   drawWrappedText,
+  truncateUrl,
+  calculatePosterLayout,
+  type PosterRenderConfig,
 } from "./qr";
 
 describe("lib/qr: Modul Utilitas QR & Poster Kanonikal", () => {
@@ -113,6 +116,21 @@ describe("lib/qr: Modul Utilitas QR & Poster Kanonikal", () => {
     });
   });
 
+  describe("truncateUrl()", () => {
+    it("tidak memotong URL jika panjangnya masih di bawah atau sama dengan batas maksimal", () => {
+      const url = "https://rumah-makan-sipil.vercel.app";
+      expect(truncateUrl(url, 50)).toBe(url);
+    });
+
+    it("memotong URL panjang dengan elipsis (...) rapi", () => {
+      const longUrl = "https://rumah-makan-sipil-spesialis-masakan-rumahan-khas-manado-asli.vercel.app/order";
+      const truncated = truncateUrl(longUrl, 40);
+
+      expect(truncated.length).toBeLessThanOrEqual(40);
+      expect(truncated).toContain("...");
+    });
+  });
+
   describe("drawWrappedText()", () => {
     it("membungkus teks panjang dan memanggil fillText dengan batas maxWidth", () => {
       const mockFillText = vi.fn();
@@ -140,6 +158,51 @@ describe("lib/qr: Modul Utilitas QR & Poster Kanonikal", () => {
 
       const height = drawWrappedText(fakeCtx, "", 100, 50, 200, 30, 2);
       expect(height).toBe(0);
+    });
+  });
+
+  describe("calculatePosterLayout() Bounding Box & Canvas Safety", () => {
+    const standardConfig: PosterRenderConfig = {
+      size: "a4",
+      storeName: "Rumah Makan Sipil",
+      tagline: "Spesialis Masakan Rumahan & Ikan Bakar Khas Manado",
+      qrDataUrl: "data:image/png;base64,dummy",
+      siteUrl: "https://rumah-makan-sipil.vercel.app",
+    };
+
+    it("memastikan seluruh elemen berada di dalam batas kanvas yang aman pada A4 standar", () => {
+      const layout = calculatePosterLayout(standardConfig);
+
+      expect(layout.isSafe).toBe(true);
+      expect(layout.emblemY).toBeGreaterThan(layout.outerMargin);
+      expect(layout.stepsContainerY + layout.stepBoxHeight).toBeLessThan(layout.footerY);
+      expect(layout.footerY).toBeLessThan(layout.bottomSafeLimit);
+    });
+
+    it("memastikan seluruh elemen berada di dalam batas kanvas yang aman pada A5 standar", () => {
+      const layout = calculatePosterLayout({ ...standardConfig, size: "a5" });
+
+      expect(layout.isSafe).toBe(true);
+      expect(layout.stepsContainerY + layout.stepBoxHeight).toBeLessThan(layout.footerY);
+      expect(layout.footerY).toBeLessThan(layout.bottomSafeLimit);
+    });
+
+    it("tetap aman dan tidak bertabrakan saat nama toko, tagline, dan URL sangat panjang (kasus ekstrem)", () => {
+      const extremeConfig: PosterRenderConfig = {
+        size: "a4",
+        storeName: "Rumah Makan Sipil Cabang Utama Manado Spesialis Ikan Bakar Sedap",
+        tagline: "Menyediakan Aneka Masakan Tradisional Minahasa & Manado dengan Bumbu Rempah Asli Pilihan Keluarga Sejak 1998",
+        qrDataUrl: "data:image/png;base64,dummy",
+        siteUrl: "https://rumah-makan-sipil-cabang-utama-manado-sulawesi-utara.vercel.app/katalog-pesanan",
+      };
+
+      const layoutA4 = calculatePosterLayout(extremeConfig);
+      expect(layoutA4.isSafe).toBe(true);
+      expect(layoutA4.stepsContainerY + layoutA4.stepBoxHeight).toBeLessThan(layoutA4.footerY);
+
+      const layoutA5 = calculatePosterLayout({ ...extremeConfig, size: "a5" });
+      expect(layoutA5.isSafe).toBe(true);
+      expect(layoutA5.stepsContainerY + layoutA5.stepBoxHeight).toBeLessThan(layoutA5.footerY);
     });
   });
 });

@@ -1,7 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Printer, Download, Loader2, Sparkles, AlertTriangle } from "lucide-react";
+import {
+  Printer,
+  Download,
+  Loader2,
+  Sparkles,
+  AlertTriangle,
+  AlertOctagon,
+} from "lucide-react";
 import {
   type PosterSize,
   exportPosterToPngBlob,
@@ -15,6 +22,7 @@ export interface QrPosterDashboardProps {
   initialTagline: string;
   initialQrDataUrl: string;
   siteUrl: string;
+  isProduction?: boolean;
 }
 
 export function QrPosterDashboard({
@@ -22,6 +30,7 @@ export function QrPosterDashboard({
   initialTagline,
   initialQrDataUrl,
   siteUrl,
+  isProduction = false,
 }: QrPosterDashboardProps) {
   const [size, setSize] = React.useState<PosterSize>("a4");
   const [isDownloading, setIsDownloading] = React.useState(false);
@@ -29,11 +38,19 @@ export function QrPosterDashboard({
 
   const urlValidation = React.useMemo(() => validateStoreUrl(siteUrl), [siteUrl]);
 
+  // Di production, blokir cetak & unduh jika URL masih localhost atau tidak valid
+  const isBlockedInProduction = Boolean(
+    isProduction && (urlValidation.isLocalhost || !urlValidation.isValid)
+  );
+
   const handlePrint = () => {
+    if (isBlockedInProduction) return;
     window.print();
   };
 
   const handleDownload = async () => {
+    if (isBlockedInProduction) return;
+
     setIsDownloading(true);
     setDownloadError(null);
 
@@ -66,7 +83,7 @@ export function QrPosterDashboard({
         @media print {
           @page {
             size: ${size === "a5" ? "A5 portrait" : "A4 portrait"};
-            margin: 6mm;
+            margin: 0;
           }
         }
       `}</style>
@@ -116,7 +133,14 @@ export function QrPosterDashboard({
             <button
               type="button"
               onClick={handlePrint}
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-green-700 bg-white px-4 py-2.5 font-sans text-sm font-semibold text-green-700 shadow-2xs hover:bg-green-50 active:scale-95 transition"
+              disabled={isBlockedInProduction}
+              aria-disabled={isBlockedInProduction}
+              title={
+                isBlockedInProduction
+                  ? "Cetak dinonaktifkan di production karena URL masih localhost"
+                  : "Cetak poster"
+              }
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-green-700 bg-white px-4 py-2.5 font-sans text-sm font-semibold text-green-700 shadow-2xs hover:bg-green-50 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Printer className="size-4" aria-hidden />
               <span>Cetak Poster</span>
@@ -125,8 +149,14 @@ export function QrPosterDashboard({
             <button
               type="button"
               onClick={handleDownload}
-              disabled={isDownloading}
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-green-700 px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-2xs hover:bg-green-600 active:scale-95 transition disabled:opacity-60"
+              disabled={isDownloading || isBlockedInProduction}
+              aria-disabled={isBlockedInProduction}
+              title={
+                isBlockedInProduction
+                  ? "Unduh dinonaktifkan di production karena URL masih localhost"
+                  : "Unduh PNG"
+              }
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-green-700 px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-2xs hover:bg-green-600 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isDownloading ? (
                 <>
@@ -143,8 +173,22 @@ export function QrPosterDashboard({
           </div>
         </div>
 
-        {/* Peringatan jika URL menunjuk ke localhost */}
-        {urlValidation.isLocalhost && (
+        {/* Error Blokir di Production jika URL Masih Localhost */}
+        {isBlockedInProduction && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-lg border border-danger/40 bg-danger-bg p-3 text-xs text-danger"
+          >
+            <AlertOctagon className="size-4 shrink-0 text-danger mt-0.5" aria-hidden />
+            <p className="leading-relaxed">
+              <strong className="font-semibold">Aksi Cetak & Unduh Dinonaktifkan:</strong>{" "}
+              Di lingkungan produksi, kode QR tidak boleh menunjuk ke localhost (<code>{urlValidation.cleanUrl}</code>). Silakan setel variabel <code>NEXT_PUBLIC_SITE_URL</code> ke domain publik toko di pengaturan deployment Vercel agar pelanggan dapat memesan dari HP.
+            </p>
+          </div>
+        )}
+
+        {/* Peringatan Informatif jika URL Localhost di Non-Production */}
+        {urlValidation.isLocalhost && !isBlockedInProduction && (
           <div
             role="alert"
             className="flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning-bg p-3 text-xs text-warning"

@@ -87,27 +87,45 @@ describe("components/admin/qr/qr-poster-dashboard", () => {
     expect(html).toContain("Art Paper / Linen 210–260 gsm");
   });
 
-  it("menampilkan peringatan URL jika siteUrl menunjuk ke localhost", () => {
+  it("menampilkan peringatan URL jika siteUrl menunjuk ke localhost di non-production", () => {
     const html = renderToString(
       <QrPosterDashboard
         {...defaultDashboardProps}
         siteUrl="http://localhost:3000"
+        isProduction={false}
       />
     );
 
     expect(html).toContain("Perhatian URL Localhost:");
     expect(html).toContain("http://localhost:3000");
+    // Tombol tetap aktif saat non-production
+    expect(html).not.toContain("Aksi Cetak &amp; Unduh Dinonaktifkan:");
   });
 
-  it("TIDAK menampilkan peringatan URL jika siteUrl adalah domain HTTPS publik", () => {
+  it("memblokir dan menonaktifkan aksi cetak & unduh di production jika URL localhost", () => {
+    const html = renderToString(
+      <QrPosterDashboard
+        {...defaultDashboardProps}
+        siteUrl="http://localhost:3000"
+        isProduction={true}
+      />
+    );
+
+    expect(html).toContain("Aksi Cetak &amp; Unduh Dinonaktifkan:");
+    expect(html).toContain('disabled=""');
+  });
+
+  it("TIDAK menampilkan peringatan URL jika siteUrl adalah domain HTTPS publik di production", () => {
     const html = renderToString(
       <QrPosterDashboard
         {...defaultDashboardProps}
         siteUrl="https://rumah-makan-sipil.vercel.app"
+        isProduction={true}
       />
     );
 
     expect(html).not.toContain("Perhatian URL Localhost:");
+    expect(html).not.toContain("Aksi Cetak &amp; Unduh Dinonaktifkan:");
   });
 
   it("merender dynamic print @page size", () => {

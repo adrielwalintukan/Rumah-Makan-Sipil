@@ -42,6 +42,7 @@ export async function QrPosterLoader() {
       initialTagline={tagline}
       initialQrDataUrl={qrDataUrl}
       siteUrl={siteUrl}
+      isProduction={process.env.NODE_ENV === "production"}
     />
   );
 }

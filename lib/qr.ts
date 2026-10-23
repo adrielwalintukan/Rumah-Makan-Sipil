@@ -23,6 +23,28 @@ export interface StoreUrlValidation {
   warning?: string;
 }
 
+export interface PosterLayoutMetrics {
+  width: number;
+  height: number;
+  outerMargin: number;
+  innerMargin: number;
+  contentMaxWidth: number;
+  emblemY: number;
+  emblemSize: number;
+  storeNameY: number;
+  storeNameHeight: number;
+  taglineY: number;
+  taglineHeight: number;
+  qrCardY: number;
+  qrCardWidth: number;
+  qrCardHeight: number;
+  stepsContainerY: number;
+  stepBoxHeight: number;
+  footerY: number;
+  bottomSafeLimit: number;
+  isSafe: boolean;
+}
+
 /**
  * Validasi URL kanonikal toko untuk target QR code.
  * Memeriksa skema protokol (http/https), format URL, dan mendeteksi host lokal (localhost).
@@ -157,6 +179,18 @@ export function getPosterDimensions(size: PosterSize): PosterDimensions {
 }
 
 /**
+ * Memotong URL panjang secara rapi jika melebihi batas karakter agar tidak dipipihkan secara jelek di canvas.
+ */
+export function truncateUrl(url: string, maxLength: number = 42): string {
+  const clean = url.trim();
+  if (clean.length <= maxLength) return clean;
+
+  const keepStart = Math.floor((maxLength - 3) * 0.65);
+  const keepEnd = maxLength - 3 - keepStart;
+  return `${clean.slice(0, keepStart)}...${clean.slice(-keepEnd)}`;
+}
+
+/**
  * Memecah dan merender teks multi-baris pada Canvas dengan batas lebar (maxWidth)
  * dan batas jumlah baris (maxLines). Jika teks melebihi batas, baris terakhir diberi ellipsis (...).
  * Mengembalikan total tinggi teks yang dirender.
@@ -186,7 +220,6 @@ export function drawWrappedText(
       lines.push(currentLine);
       currentLine = words[i];
       if (lines.length >= maxLines - 1) {
-        // Gabungkan sisa kata ke baris terakhir
         const remaining = words.slice(i + 1).join(" ");
         if (remaining) {
           currentLine = `${currentLine} ${remaining}`;
@@ -197,7 +230,6 @@ export function drawWrappedText(
   }
   lines.push(currentLine);
 
-  // Jika baris terakhir melebihi maxWidth atau ada pemotongan baris, tambahkan ellipsis
   const renderLines = lines.slice(0, maxLines);
   const lastIndex = renderLines.length - 1;
   let lastLine = renderLines[lastIndex];
@@ -220,12 +252,85 @@ export function drawWrappedText(
 }
 
 /**
+ * Menghitung tata letak vertikal poster secara proporsional dan terukur.
+ * Menjamin semua elemen muat di dalam batas margin tanpa bertabrakan atau terpotong.
+ */
+export function calculatePosterLayout(
+  config: PosterRenderConfig
+): PosterLayoutMetrics {
+  const { width, height } = getPosterDimensions(config.size);
+  const outerMargin = width * 0.04;
+  const innerMargin = width * 0.048;
+  const contentMaxWidth = width - innerMargin * 2 - width * 0.06;
+
+  // Header Emblem
+  const emblemSize = width * 0.105;
+  const emblemY = height * 0.06;
+
+  // Nama Toko
+  const storeNameY = emblemY + emblemSize + height * 0.02;
+  const isLongStoreName = (config.storeName || "").length > 28;
+  const storeFontSize = isLongStoreName ? width * 0.045 : width * 0.052;
+  const storeLineHeight = storeFontSize * 1.25;
+  const estimatedStoreLines = isLongStoreName ? 2 : 1;
+  const storeNameHeight = estimatedStoreLines * storeLineHeight;
+
+  // Tagline
+  const taglineY = storeNameY + storeNameHeight + height * 0.01;
+  const isLongTagline = (config.tagline || "").length > 45;
+  const tagFontSize = isLongTagline ? width * 0.023 : width * 0.026;
+  const tagLineHeight = tagFontSize * 1.35;
+  const estimatedTagLines = isLongTagline ? 2 : 1;
+  const taglineHeight = estimatedTagLines * tagLineHeight;
+
+  // Kartu QR (ukuran proporsional)
+  const qrCardWidth = width * 0.60;
+  const qrCardHeight = width * 0.64;
+  const qrCardY = taglineY + taglineHeight + height * 0.022;
+
+  // 3 Langkah Pemesanan
+  const stepsContainerY = qrCardY + qrCardHeight + height * 0.022;
+  const stepBoxHeight = height * 0.075;
+
+  // Footer URL
+  const footerY = height - outerMargin - height * 0.035;
+  const bottomSafeLimit = height - innerMargin;
+
+  const lastElementBottom = stepsContainerY + stepBoxHeight;
+  const isSafe = lastElementBottom < footerY - height * 0.04 && footerY + height * 0.02 <= bottomSafeLimit;
+
+  return {
+    width,
+    height,
+    outerMargin,
+    innerMargin,
+    contentMaxWidth,
+    emblemY,
+    emblemSize,
+    storeNameY,
+    storeNameHeight,
+    taglineY,
+    taglineHeight,
+    qrCardY,
+    qrCardWidth,
+    qrCardHeight,
+    stepsContainerY,
+    stepBoxHeight,
+    footerY,
+    bottomSafeLimit,
+    isSafe,
+  };
+}
+
+/**
  * Render poster ke HTML Canvas offscreen beresolusi cetak tinggi (300 DPI).
  */
 export async function renderPosterToCanvas(
   config: PosterRenderConfig
 ): Promise<HTMLCanvasElement> {
-  const { width, height } = getPosterDimensions(config.size);
+  const layout = calculatePosterLayout(config);
+  const { width, height } = layout;
+
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -240,50 +345,48 @@ export async function renderPosterToCanvas(
   ctx.fillRect(0, 0, width, height);
 
   // 2. Double Border Dekoratif
-  const outerMargin = width * 0.04;
-  const innerMargin = width * 0.048;
-
   // Outer Border (green-900)
   ctx.strokeStyle = "#1F3D2B";
   ctx.lineWidth = width * 0.008;
   ctx.strokeRect(
-    outerMargin,
-    outerMargin,
-    width - outerMargin * 2,
-    height - outerMargin * 2
+    layout.outerMargin,
+    layout.outerMargin,
+    width - layout.outerMargin * 2,
+    height - layout.outerMargin * 2
   );
 
   // Inner Border Aksen (brown-500)
   ctx.strokeStyle = "#A86A32";
   ctx.lineWidth = width * 0.003;
   ctx.strokeRect(
-    innerMargin,
-    innerMargin,
-    width - innerMargin * 2,
-    height - innerMargin * 2
+    layout.innerMargin,
+    layout.innerMargin,
+    width - layout.innerMargin * 2,
+    height - layout.innerMargin * 2
   );
 
-  const contentMaxWidth = width - innerMargin * 2 - width * 0.06;
-
   // 3. Header: Monogram Emblem RMS
-  const emblemSize = width * 0.11;
-  const emblemX = width / 2 - emblemSize / 2;
-  const emblemY = height * 0.065;
-
+  const emblemX = width / 2 - layout.emblemSize / 2;
   ctx.fillStyle = "#2E5A3F"; // green-700
   ctx.beginPath();
-  ctx.roundRect(emblemX, emblemY, emblemSize, emblemSize, emblemSize * 0.22);
+  ctx.roundRect(
+    emblemX,
+    layout.emblemY,
+    layout.emblemSize,
+    layout.emblemSize,
+    layout.emblemSize * 0.22
+  );
   ctx.fill();
 
   ctx.fillStyle = "#FFFFFF";
-  ctx.font = `bold ${emblemSize * 0.45}px "Fraunces", serif, sans-serif`;
+  ctx.font = `bold ${layout.emblemSize * 0.45}px "Fraunces", serif, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("RMS", width / 2, emblemY + emblemSize / 2);
+  ctx.fillText("RMS", width / 2, layout.emblemY + layout.emblemSize / 2);
 
   // 4. Nama Toko & Tagline dengan Text Wrapping Aman
-  const storeNameY = emblemY + emblemSize + height * 0.025;
-  const storeFontSize = width * 0.052;
+  const isLongStoreName = (config.storeName || "").length > 28;
+  const storeFontSize = isLongStoreName ? width * 0.045 : width * 0.052;
   const storeLineHeight = storeFontSize * 1.25;
 
   ctx.fillStyle = "#1F3D2B"; // green-900
@@ -291,38 +394,37 @@ export async function renderPosterToCanvas(
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
 
-  const storeHeight = drawWrappedText(
+  const actualStoreHeight = drawWrappedText(
     ctx,
     config.storeName || "Rumah Makan Sipil",
     width / 2,
-    storeNameY,
-    contentMaxWidth,
+    layout.storeNameY,
+    layout.contentMaxWidth,
     storeLineHeight,
     2
   );
 
-  const taglineY = storeNameY + storeHeight + height * 0.012;
-  const tagFontSize = width * 0.026;
+  const actualTaglineY = layout.storeNameY + actualStoreHeight + height * 0.01;
+  const isLongTagline = (config.tagline || "").length > 45;
+  const tagFontSize = isLongTagline ? width * 0.023 : width * 0.026;
   const tagLineHeight = tagFontSize * 1.35;
 
   ctx.fillStyle = "#5C5A54"; // ink-600
   ctx.font = `500 ${tagFontSize}px "Plus Jakarta Sans", sans-serif`;
 
-  const tagHeight = drawWrappedText(
+  const actualTagHeight = drawWrappedText(
     ctx,
     config.tagline || "Spesialis Masakan Rumahan & Ikan Bakar Khas Manado",
     width / 2,
-    taglineY,
-    contentMaxWidth,
+    actualTaglineY,
+    layout.contentMaxWidth,
     tagLineHeight,
     2
   );
 
   // 5. Container Kartu QR (Putih Bersih)
-  const qrCardWidth = width * 0.62;
-  const qrCardHeight = width * 0.66;
-  const qrCardX = width / 2 - qrCardWidth / 2;
-  const qrCardY = taglineY + tagHeight + height * 0.025;
+  const actualQrCardY = actualTaglineY + actualTagHeight + height * 0.022;
+  const qrCardX = width / 2 - layout.qrCardWidth / 2;
 
   ctx.fillStyle = "#FFFFFF";
   ctx.shadowColor = "rgba(31, 61, 43, 0.08)";
@@ -331,9 +433,9 @@ export async function renderPosterToCanvas(
   ctx.beginPath();
   ctx.roundRect(
     qrCardX,
-    qrCardY,
-    qrCardWidth,
-    qrCardHeight,
+    actualQrCardY,
+    layout.qrCardWidth,
+    layout.qrCardHeight,
     width * 0.035
   );
   ctx.fill();
@@ -349,10 +451,10 @@ export async function renderPosterToCanvas(
   ctx.stroke();
 
   // Badge "SCAN UNTUK PESAN" di atas QR
-  const badgeWidth = qrCardWidth * 0.64;
+  const badgeWidth = layout.qrCardWidth * 0.64;
   const badgeHeight = width * 0.06;
   const badgeX = width / 2 - badgeWidth / 2;
-  const badgeY = qrCardY + width * 0.03;
+  const badgeY = actualQrCardY + width * 0.03;
 
   ctx.fillStyle = "#2E5A3F"; // green-700
   ctx.beginPath();
@@ -367,16 +469,15 @@ export async function renderPosterToCanvas(
   // 6. Draw QR Image ke dalam kartu
   if (config.qrDataUrl) {
     const qrImg = await loadImage(config.qrDataUrl);
-    const qrImageSize = qrCardWidth * 0.72;
+    const qrImageSize = layout.qrCardWidth * 0.72;
     const qrImageX = width / 2 - qrImageSize / 2;
     const qrImageY = badgeY + badgeHeight + width * 0.02;
     ctx.drawImage(qrImg, qrImageX, qrImageY, qrImageSize, qrImageSize);
   }
 
   // 7. 3 Langkah Pemesanan
-  const stepsContainerY = qrCardY + qrCardHeight + height * 0.028;
+  const actualStepsContainerY = actualQrCardY + layout.qrCardHeight + height * 0.022;
   const stepBoxWidth = width * 0.25;
-  const stepBoxHeight = height * 0.078;
   const stepSpacing = width * 0.04;
   const totalStepsWidth = stepBoxWidth * 3 + stepSpacing * 2;
   const stepsStartX = width / 2 - totalStepsWidth / 2;
@@ -396,14 +497,20 @@ export async function renderPosterToCanvas(
     ctx.strokeStyle = "#E7E1D6";
     ctx.lineWidth = width * 0.002;
     ctx.beginPath();
-    ctx.roundRect(sX, stepsContainerY, stepBoxWidth, stepBoxHeight, width * 0.02);
+    ctx.roundRect(
+      sX,
+      actualStepsContainerY,
+      stepBoxWidth,
+      layout.stepBoxHeight,
+      width * 0.02
+    );
     ctx.fill();
     ctx.stroke();
 
     // Circle number badge
     const circleSize = width * 0.042;
     const circleX = sX + stepBoxWidth / 2;
-    const circleY = stepsContainerY + stepBoxHeight * 0.26;
+    const circleY = actualStepsContainerY + layout.stepBoxHeight * 0.26;
 
     ctx.fillStyle = "#E3EDE5"; // green-100
     ctx.beginPath();
@@ -422,7 +529,7 @@ export async function renderPosterToCanvas(
     ctx.fillText(
       step.title,
       circleX,
-      stepsContainerY + stepBoxHeight * 0.5,
+      actualStepsContainerY + layout.stepBoxHeight * 0.5,
       stepBoxWidth * 0.9
     );
 
@@ -431,30 +538,31 @@ export async function renderPosterToCanvas(
     ctx.fillText(
       step.desc,
       circleX,
-      stepsContainerY + stepBoxHeight * 0.72,
+      actualStepsContainerY + layout.stepBoxHeight * 0.72,
       stepBoxWidth * 0.92
     );
   }
 
-  // 8. Footer URL
-  const footerY = height - outerMargin - height * 0.038;
+  // 8. Footer URL (dengan truncate rapi jika sangat panjang)
+  const displayUrl = truncateUrl(config.siteUrl || "http://localhost:3000", 45);
+
   ctx.fillStyle = "#5C5A54"; // ink-600
   ctx.font = `500 ${width * 0.02}px "Plus Jakarta Sans", sans-serif`;
   ctx.textBaseline = "middle";
   ctx.fillText(
     "Atau akses langsung melalui browser:",
     width / 2,
-    footerY - width * 0.022,
-    contentMaxWidth
+    layout.footerY - width * 0.022,
+    layout.contentMaxWidth
   );
 
   ctx.fillStyle = "#2E5A3F"; // green-700
   ctx.font = `bold ${width * 0.023}px "Plus Jakarta Sans", sans-serif`;
   ctx.fillText(
-    config.siteUrl || "http://localhost:3000",
+    displayUrl,
     width / 2,
-    footerY + width * 0.01,
-    contentMaxWidth
+    layout.footerY + width * 0.01,
+    layout.contentMaxWidth
   );
 
   return canvas;
