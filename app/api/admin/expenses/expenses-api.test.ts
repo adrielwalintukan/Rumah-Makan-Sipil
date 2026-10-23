@@ -81,6 +81,54 @@ describe("/api/admin/expenses", () => {
       const body = await res.json();
       expect(body.error).toBe("INTERNAL_SERVER_ERROR");
     });
+
+    it("mengembalikan 400 jika preset tidak dikenal", async () => {
+      vi.mocked(getAdminUser).mockResolvedValue({ id: "admin-1", email: "admin@warung.local" });
+      const res = await getExpenses(new Request("http://localhost/api/admin/expenses?preset=mingguan"));
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe("BAD_REQUEST");
+    });
+
+    it("mengembalikan 400 jika kategori tidak valid", async () => {
+      vi.mocked(getAdminUser).mockResolvedValue({ id: "admin-1", email: "admin@warung.local" });
+      const res = await getExpenses(new Request("http://localhost/api/admin/expenses?category=investasi"));
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe("BAD_REQUEST");
+    });
+
+    it("mengembalikan 400 jika format tanggal tidak valid", async () => {
+      vi.mocked(getAdminUser).mockResolvedValue({ id: "admin-1", email: "admin@warung.local" });
+      const res = await getExpenses(new Request("http://localhost/api/admin/expenses?preset=custom&from=invalid&to=2026-10-23"));
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe("BAD_REQUEST");
+    });
+
+    it("mengembalikan 400 jika tanggal kalender tidak valid (misal 30 Februari)", async () => {
+      vi.mocked(getAdminUser).mockResolvedValue({ id: "admin-1", email: "admin@warung.local" });
+      const res = await getExpenses(new Request("http://localhost/api/admin/expenses?preset=custom&from=2026-02-30&to=2026-10-23"));
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe("BAD_REQUEST");
+    });
+
+    it("mengembalikan 400 jika rentang tanggal terbalik (from > to)", async () => {
+      vi.mocked(getAdminUser).mockResolvedValue({ id: "admin-1", email: "admin@warung.local" });
+      const res = await getExpenses(new Request("http://localhost/api/admin/expenses?preset=custom&from=2026-10-23&to=2026-10-20"));
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe("BAD_REQUEST");
+    });
+
+    it("mengembalikan 400 jika tanggal berada di masa depan", async () => {
+      vi.mocked(getAdminUser).mockResolvedValue({ id: "admin-1", email: "admin@warung.local" });
+      const res = await getExpenses(new Request("http://localhost/api/admin/expenses?preset=custom&from=2026-10-23&to=2099-01-01"));
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe("BAD_REQUEST");
+    });
   });
 
   describe("POST /api/admin/expenses", () => {

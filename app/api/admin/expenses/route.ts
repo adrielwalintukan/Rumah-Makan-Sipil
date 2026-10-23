@@ -3,10 +3,8 @@ import { getAdminUser } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   expensePayloadSchema,
-  expenseCategoryEnum,
+  expensesQuerySchema,
   getFinanceDateRange,
-  financePresetEnum,
-  type ExpenseCategory,
 } from "@/lib/admin-finance";
 
 export async function GET(request: Request) {
@@ -23,15 +21,30 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const preset = searchParams.get("preset");
-    const validPreset = financePresetEnum.safeParse(preset).success
-      ? (preset as "today" | "this_month" | "custom")
-      : "today";
-    const customFrom = searchParams.get("from") || undefined;
-    const customTo = searchParams.get("to") || undefined;
-    const categoryParam = searchParams.get("category");
+    const rawParams: Record<string, string> = {};
+    searchParams.forEach((val, key) => {
+      if (val.trim() !== "") {
+        rawParams[key] = val;
+      }
+    });
 
-    const { from, to } = getFinanceDateRange(validPreset, customFrom, customTo);
+    const parsed = expensesQuerySchema.safeParse(rawParams);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "BAD_REQUEST",
+          message: "Parameter query tidak valid.",
+          details: parsed.error.issues,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { from, to } = getFinanceDateRange(
+      parsed.data.preset,
+      parsed.data.from,
+      parsed.data.to
+    );
 
     const supabase = await createServerSupabaseClient();
     let query = supabase
@@ -42,8 +55,8 @@ export async function GET(request: Request) {
       .order("expense_date", { ascending: false })
       .order("created_at", { ascending: false });
 
-    if (categoryParam && expenseCategoryEnum.safeParse(categoryParam).success) {
-      query = query.eq("category", categoryParam as ExpenseCategory);
+    if (parsed.data.category) {
+      query = query.eq("category", parsed.data.category);
     }
 
     const { data, error } = await query;

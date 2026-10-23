@@ -86,6 +86,15 @@ export function createFinanceQuerySchema(now: Date = new Date()) {
 export const financeQuerySchema = createFinanceQuerySchema();
 export type FinanceQuery = z.infer<typeof financeQuerySchema>;
 
+export function createExpensesQuerySchema(now: Date = new Date()) {
+  return createFinanceQuerySchema(now).extend({
+    category: expenseCategoryEnum.optional(),
+  });
+}
+
+export const expensesQuerySchema = createExpensesQuerySchema();
+export type ExpensesQuery = z.infer<typeof expensesQuerySchema>;
+
 // ------------------------------------------------------------
 // 3. Tipe Data Kontrak
 // ------------------------------------------------------------
@@ -175,46 +184,29 @@ export async function getFinanceData(
 ): Promise<FinanceData> {
   const { from, to } = getFinanceDateRange(query.preset, query.from, query.to, now);
 
-  const fallbackCashbook: CashbookResult = {
-    period: { from, to },
-    summary: {
-      totalIncome: 0,
-      totalExpense: 0,
-      grossProfit: 0,
-      expenseByCategory: { bahan: 0, operasional: 0, lainnya: 0 },
-    },
-    dailyBreakdown: [],
-  };
+  const [cashbookRes, expensesRes] = await Promise.all([
+    supabase.rpc("cashbook", { p_from_date: from, p_to_date: to }),
+    supabase
+      .from("expenses")
+      .select("*")
+      .gte("expense_date", from)
+      .lte("expense_date", to)
+      .order("expense_date", { ascending: false })
+      .order("created_at", { ascending: false }),
+  ]);
 
-  try {
-    const [cashbookRes, expensesRes] = await Promise.all([
-      supabase.rpc("cashbook", { p_from_date: from, p_to_date: to }),
-      supabase
-        .from("expenses")
-        .select("*")
-        .gte("expense_date", from)
-        .lte("expense_date", to)
-        .order("expense_date", { ascending: false })
-        .order("created_at", { ascending: false }),
-    ]);
-
-    let cashbook = fallbackCashbook;
-    if (cashbookRes.data && !cashbookRes.error) {
-      cashbook = cashbookRes.data as CashbookResult;
-    } else if (cashbookRes.error) {
-      console.error("Gagal memanggil RPC cashbook:", cashbookRes.error);
-    }
-
-    let expenses: Expense[] = [];
-    if (expensesRes.data && !expensesRes.error) {
-      expenses = expensesRes.data as Expense[];
-    } else if (expensesRes.error) {
-      console.error("Gagal mengambil data expenses:", expensesRes.error);
-    }
-
-    return { cashbook, expenses };
-  } catch (err) {
-    console.error("Kesalahan tak terduga saat mengambil data keuangan:", err);
-    return { cashbook: fallbackCashbook, expenses: [] };
+  if (cashbookRes.error) {
+    console.error("Gagal memanggil RPC cashbook:", cashbookRes.error);
+    throw new Error(`Gagal memuat buku kas: ${cashbookRes.error.message}`);
   }
+
+  if (expensesRes.error) {
+    console.error("Gagal mengambil data expenses:", expensesRes.error);
+    throw new Error(`Gagal memuat daftar pengeluaran: ${expensesRes.error.message}`);
+  }
+
+  return {
+    cashbook: cashbookRes.data as CashbookResult,
+    expenses: (expensesRes.data as Expense[]) || [],
+  };
 }

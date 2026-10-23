@@ -9,9 +9,12 @@ import {
   getFinanceDateRange,
   getFinanceData,
   getWitaTodayDateString,
+  type FinanceData,
   type FinanceQuery,
 } from "@/lib/admin-finance";
 import { FinanceDashboardClient } from "@/components/admin/finance/finance-dashboard-client";
+import { FinancePeriodSelector } from "@/components/admin/finance/finance-period-selector";
+import { FinanceErrorState } from "@/components/admin/finance/finance-error-state";
 
 export const metadata: Metadata = {
   title: "Catatan Keuangan · Dashboard Rumah Makan Sipil",
@@ -71,7 +74,29 @@ export async function FinanceDataLoader({ searchParams }: PageProps) {
   );
 
   const supabase = await createServerSupabaseClient();
-  const financeData = await getFinanceData(supabase, validatedQuery);
+  let financeData: FinanceData | null = null;
+  let isError = false;
+
+  try {
+    financeData = await getFinanceData(supabase, validatedQuery);
+  } catch (err) {
+    console.error("Gagal memuat catatan keuangan di Server Component:", err);
+    isError = true;
+  }
+
+  if (isError || !financeData) {
+    return (
+      <div className="flex flex-col gap-6">
+        <FinancePeriodSelector
+          currentPreset={validatedQuery.preset}
+          currentFrom={from}
+          currentTo={to}
+          todayStr={todayStr}
+        />
+        <FinanceErrorState message="Terjadi kendala teknis saat memuat catatan keuangan. Silakan coba lagi." />
+      </div>
+    );
+  }
 
   return (
     <FinanceDashboardClient

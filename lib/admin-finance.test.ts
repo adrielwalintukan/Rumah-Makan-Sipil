@@ -4,6 +4,7 @@ import {
   expensePayloadSchema,
   financePresetEnum,
   createFinanceQuerySchema,
+  createExpensesQuerySchema,
   getFinanceDateRange,
   getFinanceData,
 } from "./admin-finance";
@@ -152,6 +153,48 @@ describe("admin-finance", () => {
     });
   });
 
+  describe("createExpensesQuerySchema", () => {
+    const expensesSchema = createExpensesQuerySchema(fixedNow);
+
+    it("menerima query valid dengan kategori opsional", () => {
+      const res = expensesSchema.safeParse({
+        preset: "today",
+        category: "bahan",
+      });
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.category).toBe("bahan");
+      }
+    });
+
+    it("menerima query tanpa kategori", () => {
+      const res = expensesSchema.safeParse({
+        preset: "this_month",
+      });
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.category).toBeUndefined();
+      }
+    });
+
+    it("menolak query jika kategori tidak valid", () => {
+      const res = expensesSchema.safeParse({
+        preset: "today",
+        category: "investasi",
+      });
+      expect(res.success).toBe(false);
+    });
+
+    it("menolak rentang tanggal custom yang tidak valid", () => {
+      const res = expensesSchema.safeParse({
+        preset: "custom",
+        from: "2026-02-30",
+        to: "2026-10-23",
+      });
+      expect(res.success).toBe(false);
+    });
+  });
+
   describe("getFinanceDateRange", () => {
     it("menghitung rentang today", () => {
       const range = getFinanceDateRange("today", undefined, undefined, fixedNow);
@@ -247,15 +290,15 @@ describe("admin-finance", () => {
       expect(result.expenses[0].description).toBe("Beli Beras");
     });
 
-    it("mengembalikan fallback aman jika rpc atau query menghasilkan error", async () => {
+    it("melempar error jika RPC cashbook gagal dan tidak menyamarkannya sebagai angka nol", async () => {
       const mockSupabase = {
-        rpc: vi.fn().mockResolvedValue({ data: null, error: new Error("DB Error") }),
+        rpc: vi.fn().mockResolvedValue({ data: null, error: new Error("RPC Failure") }),
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
             gte: vi.fn().mockReturnValue({
               lte: vi.fn().mockReturnValue({
                 order: vi.fn().mockReturnValue({
-                  order: vi.fn().mockResolvedValue({ data: null, error: new Error("DB Error") }),
+                  order: vi.fn().mockResolvedValue({ data: [], error: null }),
                 }),
               }),
             }),
@@ -263,20 +306,45 @@ describe("admin-finance", () => {
         }),
       } as unknown as Parameters<typeof getFinanceData>[0];
 
-      const result = await getFinanceData(
-        mockSupabase,
-        { preset: "today" },
-        fixedNow
-      );
-
-      expect(result.cashbook.summary.totalIncome).toBe(0);
-      expect(result.cashbook.summary.totalExpense).toBe(0);
-      expect(result.cashbook.summary.grossProfit).toBe(0);
-      expect(result.cashbook.dailyBreakdown).toEqual([]);
-      expect(result.expenses).toEqual([]);
+      await expect(
+        getFinanceData(mockSupabase, { preset: "today" }, fixedNow)
+      ).rejects.toThrow("Gagal memuat buku kas: RPC Failure");
     });
 
-    it("menangani throw error tak terduga dengan fallback", async () => {
+    it("melempar error jika query expenses gagal dan tidak mengembalikan data parsial", async () => {
+      const mockSupabase = {
+        rpc: vi.fn().mockResolvedValue({
+          data: {
+            period: { from: "2026-10-23", to: "2026-10-23" },
+            summary: {
+              totalIncome: 100000,
+              totalExpense: 0,
+              grossProfit: 100000,
+              expenseByCategory: { bahan: 0, operasional: 0, lainnya: 0 },
+            },
+            dailyBreakdown: [],
+          },
+          error: null,
+        }),
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            gte: vi.fn().mockReturnValue({
+              lte: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  order: vi.fn().mockResolvedValue({ data: null, error: new Error("Table Locked") }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      } as unknown as Parameters<typeof getFinanceData>[0];
+
+      await expect(
+        getFinanceData(mockSupabase, { preset: "today" }, fixedNow)
+      ).rejects.toThrow("Gagal memuat daftar pengeluaran: Table Locked");
+    });
+
+    it("melempar error tak terduga (misal network crash) tanpa menelannya", async () => {
       const mockSupabase = {
         rpc: vi.fn().mockRejectedValue(new Error("Network Crash")),
         from: vi.fn().mockReturnValue({
@@ -284,7 +352,7 @@ describe("admin-finance", () => {
             gte: vi.fn().mockReturnValue({
               lte: vi.fn().mockReturnValue({
                 order: vi.fn().mockReturnValue({
-                  order: vi.fn().mockRejectedValue(new Error("Network Crash")),
+                  order: vi.fn().mockResolvedValue({ data: [], error: null }),
                 }),
               }),
             }),
@@ -292,14 +360,9 @@ describe("admin-finance", () => {
         }),
       } as unknown as Parameters<typeof getFinanceData>[0];
 
-      const result = await getFinanceData(
-        mockSupabase,
-        { preset: "today" },
-        fixedNow
-      );
-
-      expect(result.cashbook.summary.grossProfit).toBe(0);
-      expect(result.expenses).toEqual([]);
+      await expect(
+        getFinanceData(mockSupabase, { preset: "today" }, fixedNow)
+      ).rejects.toThrow("Network Crash");
     });
   });
 });
