@@ -1,0 +1,105 @@
+import { test, expect } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const isLocal = supabaseUrl.includes("127.0.0.1") || supabaseUrl.includes("localhost");
+
+test.describe("Admin QR Poster (E2E)", () => {
+  test.skip(!isLocal || !serviceRoleKey, "Butuh Supabase lokal (supabase start) + SUPABASE_SERVICE_ROLE_KEY");
+
+  const adminClient = isLocal && serviceRoleKey
+    ? createClient(supabaseUrl, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
+    : null;
+
+  const testEmail = `admin-qr-test-${Date.now()}@warung.local`;
+  const testPassword = "PasswordTest123!";
+  let userId: string;
+
+  test.beforeAll(async () => {
+    if (!adminClient) return;
+
+    // 1. Buat user admin sintetis
+    const { data: userRes, error: userErr } = await adminClient.auth.admin.createUser({
+      email: testEmail,
+      password: testPassword,
+      email_confirm: true,
+    });
+    if (userErr || !userRes.user) throw userErr;
+    userId = userRes.user.id;
+
+    // 2. Daftarkan ke tabel public.admins
+    const { error: adminErr } = await adminClient
+      .from("admins")
+      .insert({ user_id: userId });
+    if (adminErr) throw adminErr;
+  });
+
+  test.afterAll(async () => {
+    if (!adminClient) return;
+
+    // Teardown admin sintetis
+    if (userId) {
+      await adminClient.from("admins").delete().eq("user_id", userId);
+      await adminClient.auth.admin.deleteUser(userId);
+    }
+  });
+
+  test("alur poster QR: autentikasi, render kartu poster, toggle ukuran, dan tombol aksi", async ({ page }) => {
+    // 1. Akses langsung saat belum login -> redirect ke /admin/login
+    await page.goto("/admin/qr");
+    await expect(page).toHaveURL(/\/admin\/login/);
+
+    // 2. Login admin
+    await page.getByLabel(/Email Pemilik/i).fill(testEmail);
+    await page.getByLabel(/Kata Sandi/i).fill(testPassword);
+    await page.getByRole("button", { name: "Masuk ke Dashboard" }).click();
+
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+
+    // 3. Navigasi ke halaman Poster QR
+    await page.goto("/admin/qr");
+    await expect(page).toHaveURL(/\/admin\/qr/);
+
+    // 4. Verifikasi heading dan deskripsi
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Poster QR Pemesanan" })
+    ).toBeVisible();
+
+    // 5. Verifikasi komponen kartu poster
+    const posterTarget = page.locator("#poster-print-target");
+    await expect(posterTarget).toBeVisible();
+    await expect(posterTarget.getByText("RMS")).toBeVisible();
+    await expect(posterTarget.getByText("Rumah Makan Sipil")).toBeVisible();
+    await expect(posterTarget.getByText("SCAN UNTUK PESAN")).toBeVisible();
+    await expect(
+      posterTarget.getByAltText("QR Code Pemesanan Rumah Makan Sipil")
+    ).toBeVisible();
+    await expect(posterTarget.getByText("1. Scan QR")).toBeVisible();
+    await expect(posterTarget.getByText("2. Pilih Menu")).toBeVisible();
+    await expect(posterTarget.getByText("3. Bayar")).toBeVisible();
+
+    // 6. Verifikasi kontrol toggle ukuran A4 dan A5
+    const btnA4 = page.getByRole("button", { name: "Ukuran A4 (Dinding / Kasir)" });
+    const btnA5 = page.getByRole("button", { name: "Ukuran A5 (Tenda Meja)" });
+
+    await expect(btnA4).toHaveAttribute("aria-pressed", "true");
+    await expect(btnA5).toHaveAttribute("aria-pressed", "false");
+
+    // Klik tombol A5
+    await btnA5.click();
+    await expect(btnA5).toHaveAttribute("aria-pressed", "true");
+    await expect(btnA4).toHaveAttribute("aria-pressed", "false");
+
+    // 7. Verifikasi ketersediaan tombol aksi
+    const btnPrint = page.getByRole("button", { name: "Cetak Poster" });
+    const btnDownload = page.getByRole("button", { name: /Unduh PNG/i });
+
+    await expect(btnPrint).toBeVisible();
+    await expect(btnDownload).toBeVisible();
+    await expect(btnDownload).toBeEnabled();
+  });
+});

@@ -58,7 +58,7 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 **Selesai jika**: angka laporan cocok dengan hitungan manual dari data uji.
 
 ### M6 — Poster QR, polish, rilis (D10)
-- [ ] Halaman Poster QR: cetak (A4/A5) + unduh PNG
+- [x] Halaman Poster QR: cetak (A4/A5) + unduh PNG
 - [ ] Empty state, skeleton, toast, cek aksesibilitas & kontras, uji di HP Android murah + iPhone
 - [ ] Deploy produksi, buat akun pemilik, upload QRIS asli, cetak poster
 - [ ] Uji coba 1 hari di warung, lalu catat masukan
