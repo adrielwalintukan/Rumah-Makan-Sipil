@@ -103,9 +103,11 @@ test.describe("Admin QR Poster (E2E)", () => {
 
     // 7. Verifikasi tombol aksi dan proteksi status produksi
     const btnPrint = page.getByRole("button", { name: "Cetak Poster" });
+    const btnDownloadWord = page.getByRole("button", { name: /Unduh Dokumen Word/i });
     const btnDownload = page.getByRole("button", { name: /Unduh PNG/i });
 
     await expect(btnPrint).toBeVisible();
+    await expect(btnDownloadWord).toBeVisible();
     await expect(btnDownload).toBeVisible();
 
     // Di lingkungan build produksi (seperti runner E2E CI) dengan URL localhost,
@@ -116,9 +118,11 @@ test.describe("Admin QR Poster (E2E)", () => {
 
     if (isBlocked) {
       await expect(btnPrint).toBeDisabled();
+      await expect(btnDownloadWord).toBeDisabled();
       await expect(btnDownload).toBeDisabled();
     } else {
       await expect(btnPrint).toBeEnabled();
+      await expect(btnDownloadWord).toBeEnabled();
       await expect(btnDownload).toBeEnabled();
     }
 
@@ -151,12 +155,23 @@ test.describe("Admin QR Poster (E2E)", () => {
       .evaluate((el) => window.getComputedStyle(el).display);
     expect(footerDisplay).not.toBe("none");
 
-    // d. Verifikasi output cetak aktual Chromium menghasilkan tepat 1 halaman
+    // d. Verifikasi output cetak aktual Chromium menghasilkan tepat 1 halaman untuk A4, A5, dan A6
+    const verifySinglePagePdf = (pdfBuffer: Buffer) => {
+      const pdfStr = pdfBuffer.toString("binary");
+      const countMatch = pdfStr.match(/\/Type\s*\/Pages[^>]*\/Count\s+(\d+)/);
+      expect(countMatch).not.toBeNull();
+      const pageCount = parseInt(countMatch![1], 10);
+      expect(pageCount).toBe(1);
+    };
+
     const pdfA5 = await page.pdf({ format: "A5" });
-    const pdfStr = pdfA5.toString("binary");
-    const countMatch = pdfStr.match(/\/Type\s*\/Pages[^>]*\/Count\s+(\d+)/);
-    const pageCount = countMatch ? parseInt(countMatch[1], 10) : 1;
-    expect(pageCount).toBe(1);
+    verifySinglePagePdf(pdfA5);
+
+    const pdfA4 = await page.pdf({ format: "A4" });
+    verifySinglePagePdf(pdfA4);
+
+    const pdfA6 = await page.pdf({ format: "A6" });
+    verifySinglePagePdf(pdfA6);
 
     await page.emulateMedia({ media: "screen" });
   });

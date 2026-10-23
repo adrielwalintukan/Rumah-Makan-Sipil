@@ -7,6 +7,8 @@ import {
   drawWrappedText,
   truncateUrl,
   calculatePosterLayout,
+  computeActualPosterCoordinates,
+  exportPosterToWordDoc,
   type PosterRenderConfig,
 } from "./qr";
 
@@ -218,6 +220,106 @@ describe("lib/qr: Modul Utilitas QR & Poster Kanonikal", () => {
       const layoutA5 = calculatePosterLayout({ ...extremeConfig, size: "a5" });
       expect(layoutA5.isSafe).toBe(true);
       expect(layoutA5.stepsContainerY + layoutA5.stepBoxHeight).toBeLessThan(layoutA5.footerY);
+    });
+
+    it("memverifikasi koordinat aktual pasca-render pada A4, A5, dan A6 saat teks panjang bersamaan", () => {
+      const extremeConfig: PosterRenderConfig = {
+        size: "a4",
+        storeName: "Rumah Makan Sipil Cabang Utama Manado Spesialis Ikan Bakar Sedap",
+        tagline: "Menyediakan Aneka Masakan Tradisional Minahasa & Manado dengan Bumbu Rempah Asli Pilihan Keluarga Sejak 1998",
+        qrDataUrl: "data:image/png;base64,dummy",
+        siteUrl: "https://rumah-makan-sipil-cabang-utama-manado-sulawesi-utara.vercel.app/katalog-pesanan",
+      };
+
+      // Uji A4
+      const coordsA4 = computeActualPosterCoordinates(extremeConfig, 2, 2);
+      expect(coordsA4.isWithinBounds).toBe(true);
+      expect(coordsA4.stepsBottom).toBeLessThan(coordsA4.footerTop);
+      expect(coordsA4.footerBottom).toBeLessThanOrEqual(coordsA4.height);
+
+      // Uji A5
+      const coordsA5 = computeActualPosterCoordinates({ ...extremeConfig, size: "a5" }, 2, 2);
+      expect(coordsA5.isWithinBounds).toBe(true);
+      expect(coordsA5.stepsBottom).toBeLessThan(coordsA5.footerTop);
+      expect(coordsA5.footerBottom).toBeLessThanOrEqual(coordsA5.height);
+
+      // Uji A6
+      const coordsA6 = computeActualPosterCoordinates({ ...extremeConfig, size: "a6" }, 2, 2);
+      expect(coordsA6.isWithinBounds).toBe(true);
+      expect(coordsA6.stepsBottom).toBeLessThan(coordsA6.footerTop);
+      expect(coordsA6.footerBottom).toBeLessThanOrEqual(coordsA6.height);
+    });
+  });
+
+  describe("exportPosterToWordDoc()", () => {
+    it("menghasilkan Blob dokumen Word (.doc) berbasis MHTML yang valid", async () => {
+      const originalDocument = globalThis.document;
+      const originalImage = (globalThis as unknown as { Image: unknown }).Image;
+
+      globalThis.document = {
+        createElement: (tag: string) => {
+          if (tag === "canvas") {
+            return {
+              width: 100,
+              height: 100,
+              toDataURL: () => "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+              getContext: () => ({
+                fillRect: vi.fn(),
+                strokeRect: vi.fn(),
+                beginPath: vi.fn(),
+                roundRect: vi.fn(),
+                fill: vi.fn(),
+                stroke: vi.fn(),
+                fillText: vi.fn(),
+                arc: vi.fn(),
+                drawImage: vi.fn(),
+                measureText: () => ({ width: 50 }),
+              }),
+            } as unknown as HTMLCanvasElement;
+          }
+          return {} as HTMLElement;
+        },
+      } as unknown as Document;
+
+      class MockImage {
+        crossOrigin = "";
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        private _src = "";
+        set src(val: string) {
+          this._src = val;
+          setTimeout(() => {
+            if (this.onload) this.onload();
+          }, 0);
+        }
+        get src() {
+          return this._src;
+        }
+      }
+      (globalThis as unknown as { Image: unknown }).Image = MockImage;
+
+      try {
+        const blob = await exportPosterToWordDoc({
+          size: "a6",
+          storeName: "Rumah Makan Sipil",
+          tagline: "Makan Enak, Setiap Hari",
+          qrDataUrl: "data:image/png;base64,dummy",
+          siteUrl: "https://rumah-makan-sipil.vercel.app",
+        });
+
+        expect(blob).toBeInstanceOf(Blob);
+        expect(blob.type).toBe("application/msword;charset=utf-8");
+
+        const text = await blob.text();
+        expect(text).toContain("MIME-Version: 1.0");
+        expect(text).toContain("multipart/related");
+        expect(text).toContain("w:WordDocument");
+        expect(text).toContain("<w:View>Print</w:View>");
+        expect(text).toContain("poster-rms.png");
+      } finally {
+        globalThis.document = originalDocument;
+        (globalThis as unknown as { Image: unknown }).Image = originalImage;
+      }
     });
   });
 });

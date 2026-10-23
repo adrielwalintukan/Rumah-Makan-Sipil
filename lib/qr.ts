@@ -331,6 +331,73 @@ export function calculatePosterLayout(
   };
 }
 
+export interface ActualPosterCoordinates {
+  width: number;
+  height: number;
+  emblemBottom: number;
+  storeNameY: number;
+  taglineY: number;
+  qrCardY: number;
+  qrCardBottom: number;
+  stepsContainerY: number;
+  stepsBottom: number;
+  footerTop: number;
+  footerBottom: number;
+  isWithinBounds: boolean;
+}
+
+/**
+ * Menghitung koordinat vertikal aktual pasca-render untuk seluruh elemen poster
+ * termasuk saat nama toko dan tagline panjang dirender secara multi-baris.
+ */
+export function computeActualPosterCoordinates(
+  config: PosterRenderConfig,
+  actualStoreLines: number = 2,
+  actualTagLines: number = 2
+): ActualPosterCoordinates {
+  const layout = calculatePosterLayout(config);
+  const { width, height } = layout;
+
+  const isLongStoreName = (config.storeName || "").length > 28;
+  const storeFontSize = isLongStoreName ? width * 0.045 : width * 0.052;
+  const storeLineHeight = storeFontSize * 1.25;
+  const storeHeight = actualStoreLines * storeLineHeight;
+
+  const taglineY = layout.storeNameY + storeHeight + height * 0.01;
+  const isLongTagline = (config.tagline || "").length > 45;
+  const tagFontSize = isLongTagline ? width * 0.023 : width * 0.026;
+  const tagLineHeight = tagFontSize * 1.35;
+  const tagHeight = actualTagLines * tagLineHeight;
+
+  const qrCardY = taglineY + tagHeight + height * 0.022;
+  const qrCardBottom = qrCardY + layout.qrCardHeight;
+
+  const stepsContainerY = qrCardBottom + height * 0.022;
+  const stepsBottom = stepsContainerY + layout.stepBoxHeight;
+
+  const footerTop = layout.footerY - width * 0.022;
+  const footerBottom = layout.footerY + width * 0.02;
+
+  const isWithinBounds =
+    stepsBottom < footerTop &&
+    footerBottom <= height - layout.innerMargin;
+
+  return {
+    width,
+    height,
+    emblemBottom: layout.emblemY + layout.emblemSize,
+    storeNameY: layout.storeNameY,
+    taglineY,
+    qrCardY,
+    qrCardBottom,
+    stepsContainerY,
+    stepsBottom,
+    footerTop,
+    footerBottom,
+    isWithinBounds,
+  };
+}
+
 /**
  * Render poster ke HTML Canvas offscreen beresolusi cetak tinggi (300 DPI).
  */
@@ -593,6 +660,99 @@ export async function exportPosterToPngBlob(
       }
     }, "image/png");
   });
+}
+
+/**
+ * Konversi poster ke dokumen Microsoft Word (.doc) berbasis MHTML
+ * dengan gambar poster beresolusi tinggi (300 DPI) tersemat di dalamnya.
+ * Memungkinkan pemilik warung membuka file di Word, mengatur tata letak,
+ * ukuran, atau memperbanyak kartu (mis. 2 atau 4 kartu per lembar HVS) untuk dicetak manual.
+ */
+export async function exportPosterToWordDoc(
+  config: PosterRenderConfig
+): Promise<Blob> {
+  const canvas = await renderPosterToCanvas(config);
+  const dataUrl = canvas.toDataURL("image/png");
+  const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+
+  // Tentukan dimensi tampilan gambar di Word (cm) berdasarkan pilihan ukuran
+  // A6: ~9.5 cm lebar agar muat nyaman di Word A4
+  // A5: ~13.5 cm lebar
+  // A4: ~17.5 cm lebar (lebar proporsional halaman A4 dengan margin 1.5 cm)
+  const displayWidthCm =
+    config.size === "a6" ? "9.5cm" : config.size === "a5" ? "13.5cm" : "17.5cm";
+
+  const mhtml = `MIME-Version: 1.0
+Content-Type: multipart/related; boundary="----=_NextPart_RumahMakanSipil_PosterQR"
+
+------=_NextPart_RumahMakanSipil_PosterQR
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+<w:DoNotOptimizeForBrowser/>
+</w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+@page {
+  size: A4 portrait;
+  margin: 1.5cm 1.5cm 1.5cm 1.5cm;
+  mso-page-orientation: portrait;
+}
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Calibri, 'Segoe UI', Arial, sans-serif;
+  text-align: center;
+  background-color: #ffffff;
+}
+.poster-container {
+  text-align: center;
+  margin: 0 auto;
+  padding: 10px 0;
+}
+.poster-img {
+  width: ${displayWidthCm};
+  height: auto;
+  border: 1px solid #1F3D2B;
+}
+.note {
+  margin-top: 12px;
+  font-size: 9pt;
+  color: #5C5A54;
+}
+</style>
+</head>
+<body>
+<div class="poster-container">
+  <p style="text-align:center; margin: 0 0 10px 0;">
+    <img class="poster-img" src="poster-rms.png" alt="Poster QR Rumah Makan Sipil" />
+  </p>
+  <p class="note">
+    Rumah Makan Sipil &middot; Poster QR Meja / Kasir &middot; Siap Cetak dan Diatur di Word
+  </p>
+</div>
+</body>
+</html>
+
+------=_NextPart_RumahMakanSipil_PosterQR
+Content-Type: image/png
+Content-Transfer-Encoding: base64
+Content-Location: poster-rms.png
+
+${base64Data}
+------=_NextPart_RumahMakanSipil_PosterQR--
+`;
+
+  return new Blob([mhtml], { type: "application/msword;charset=utf-8" });
 }
 
 /**

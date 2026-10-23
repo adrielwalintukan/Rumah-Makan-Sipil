@@ -128,6 +128,9 @@
     height: 100% !important;
     max-height: 100% !important;
     overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   /* Sembunyikan SEMUA elemen non-cetak dari layout dashboard */
@@ -142,7 +145,7 @@
   /* Reset layout wrapper admin agar tidak memiliki padding/margin/min-height */
   body > div,
   .md\:pl-64,
-  main,
+  main:not(#poster-print-target *):not(#poster-print-target),
   .poster-preview-wrapper,
   .poster-preview-container {
     margin: 0 !important;
@@ -159,7 +162,7 @@
     justify-content: center !important;
   }
 
-  /* Target poster: tata letak cetak satu halaman dengan rasio proporsional */
+  /* Target poster: tata letak cetak satu halaman di tengah halaman dengan rasio proporsional */
   #poster-print-target {
     display: flex !important;
     flex-direction: column !important;
@@ -180,10 +183,20 @@
 
   /* Pastikan seluruh bagian poster (header toko, QR, dan footer panduan) selalu tampil utuh */
   #poster-print-target header,
-  #poster-print-target main,
   #poster-print-target footer {
     display: flex !important;
     visibility: visible !important;
+  }
+
+  #poster-print-target main {
+    display: flex !important;
+    visibility: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   #poster-print-target * {

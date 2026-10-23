@@ -54,7 +54,7 @@ describe("components/admin/qr/poster-card", () => {
     const html = renderToString(<PosterCard {...dummyProps} size="a6" />);
 
     expect(html).toContain("rounded-xl border-2 border-[#1F3D2B]");
-    expect(html).toContain("p-2.5 sm:p-3.5");
+    expect(html).toContain("p-2 sm:p-2.5");
     expect(html).toContain("RMS");
   });
 });
@@ -78,12 +78,13 @@ describe("components/admin/qr/qr-poster-dashboard", () => {
     expect(html).toContain('aria-pressed="true"');
   });
 
-  it("merender tombol Cetak Poster dan Unduh PNG", () => {
+  it("merender tombol Cetak Poster, Unduh Dokumen Word, dan Unduh PNG", () => {
     const html = renderToString(
       <QrPosterDashboard {...defaultDashboardProps} />
     );
 
     expect(html).toContain("Cetak Poster");
+    expect(html).toContain("Unduh Dokumen Word");
     expect(html).toContain("Unduh PNG (300 DPI)");
   });
 
@@ -92,7 +93,7 @@ describe("components/admin/qr/qr-poster-dashboard", () => {
       <QrPosterDashboard {...defaultDashboardProps} />
     );
 
-    expect(html).toContain("Tips Cetak:");
+    expect(html).toContain("Tips Cetak &amp; Pengaturan:");
     expect(html).toContain("A6 (Tenda Meja Kecil, ~10x15 cm)");
   });
 
