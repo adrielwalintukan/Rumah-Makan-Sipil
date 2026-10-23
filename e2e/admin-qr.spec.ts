@@ -126,8 +126,10 @@ test.describe("Admin QR Poster (E2E)", () => {
     await page.emulateMedia({ media: "print" });
 
     // a. Toolbar admin dan elemen navigasi tersembunyi total (display: none)
-    const toolbar = page.locator(".no-print");
-    await expect(toolbar).not.toBeVisible();
+    const noPrintLocators = await page.locator(".no-print").all();
+    for (const el of noPrintLocators) {
+      await expect(el).not.toBeVisible();
+    }
 
     // b. Target poster dan bagian intinya (header, main, footer) tetap tampil utuh
     await expect(posterTarget).toBeVisible();

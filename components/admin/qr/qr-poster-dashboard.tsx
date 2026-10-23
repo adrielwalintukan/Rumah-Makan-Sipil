@@ -78,7 +78,7 @@ export function QrPosterDashboard({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Dynamic @page size for browser print dialog */}
+      {/* Dynamic @page size and poster sizing for browser print dialog */}
       <style>{`
         @media print {
           @page {
@@ -92,14 +92,30 @@ export function QrPosterDashboard({
             margin: 0;
           }
           #poster-print-target {
-            padding: ${
-              size === "a6" ? "4mm" : size === "a5" ? "6mm" : "8mm"
+            width: ${
+              size === "a6" ? "105mm" : size === "a5" ? "148mm" : "210mm"
             } !important;
+            height: ${
+              size === "a6" ? "148mm" : size === "a5" ? "210mm" : "297mm"
+            } !important;
+            max-width: ${
+              size === "a6" ? "105mm" : size === "a5" ? "148mm" : "210mm"
+            } !important;
+            max-height: ${
+              size === "a6" ? "148mm" : size === "a5" ? "210mm" : "297mm"
+            } !important;
+            padding: ${
+              size === "a6" ? "3.5mm 4mm" : size === "a5" ? "5.5mm 6mm" : "8mm 9mm"
+            } !important;
+            border-width: ${size === "a6" ? "2px" : "3px"} !important;
           }
           #poster-print-target header,
           #poster-print-target main,
           #poster-print-target footer {
             display: flex !important;
+            visibility: visible !important;
+          }
+          #poster-print-target * {
             visibility: visible !important;
           }
         }

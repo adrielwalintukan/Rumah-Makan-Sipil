@@ -154,23 +154,19 @@
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
-    display: block !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
-  /* Target poster mengisi penuh 1 lembar halaman cetak */
+  /* Target poster: tata letak cetak satu halaman dengan rasio proporsional */
   #poster-print-target {
     display: flex !important;
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    max-width: 100% !important;
-    max-height: 100% !important;
-    aspect-ratio: auto !important;
-    margin: 0 !important;
-    border-radius: 0 !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    margin: auto !important;
+    border-radius: 12px !important;
     box-shadow: none !important;
-    border-width: 2px !important;
     box-sizing: border-box !important;
     page-break-after: avoid !important;
     page-break-before: avoid !important;
