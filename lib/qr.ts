@@ -644,14 +644,203 @@ export async function renderPosterToCanvas(
   return canvas;
 }
 
+// Tabel CRC-32 standar IEEE 802.3 untuk kalkulasi checksum chunk PNG
+let pngCrcTable: Uint32Array | null = null;
+function getPngCrcTable(): Uint32Array {
+  if (pngCrcTable) return pngCrcTable;
+  pngCrcTable = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) {
+      if (c & 1) {
+        c = 0xedb88320 ^ (c >>> 1);
+      } else {
+        c = c >>> 1;
+      }
+    }
+    pngCrcTable[n] = c >>> 0;
+  }
+  return pngCrcTable;
+}
+
 /**
- * Ekspor poster ke PNG Blob untuk download file.
+ * Menghitung CRC-32 standar dari buffer data.
+ */
+export function calculateCrc32(data: Uint8Array): number {
+  const table = getPngCrcTable();
+  let crc = 0xffffffff;
+  for (let i = 0; i < data.length; i++) {
+    crc = table[(crc ^ data[i]) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+/**
+ * Menyematkan chunk pHYs metadata resolusi fisik (default 300 DPI = 11811 pixels/meter)
+ * ke dalam biner gambar PNG agar aplikasi cetak dan sistem operasi mengenali resolusi cetak fisik.
+ */
+export async function embedPngDpi(blob: Blob, dpi: number = 300): Promise<Blob> {
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+
+  // Verifikasi signature PNG (8 byte awal)
+  if (
+    bytes.length < 33 ||
+    bytes[0] !== 0x89 ||
+    bytes[1] !== 0x50 ||
+    bytes[2] !== 0x4e ||
+    bytes[3] !== 0x47 ||
+    bytes[4] !== 0x0d ||
+    bytes[5] !== 0x0a ||
+    bytes[6] !== 0x1a ||
+    bytes[7] !== 0x0a
+  ) {
+    return blob;
+  }
+
+  // Hitung pixels per meter (1 inch = 0.0254 meter)
+  // 300 DPI = 300 / 0.0254 = ~11811 px/m
+  const ppm = Math.round(dpi / 0.0254);
+  const ppmX = ppm;
+  const ppmY = ppm;
+
+  // Bangun Type + Data chunk pHYs (13 byte)
+  const chunkData = new Uint8Array(13);
+  // "pHYs"
+  chunkData[0] = 0x70;
+  chunkData[1] = 0x48;
+  chunkData[2] = 0x59;
+  chunkData[3] = 0x73;
+  // ppm X (4 bytes big-endian)
+  chunkData[4] = (ppmX >>> 24) & 0xff;
+  chunkData[5] = (ppmX >>> 16) & 0xff;
+  chunkData[6] = (ppmX >>> 8) & 0xff;
+  chunkData[7] = ppmX & 0xff;
+  // ppm Y (4 bytes big-endian)
+  chunkData[8] = (ppmY >>> 24) & 0xff;
+  chunkData[9] = (ppmY >>> 16) & 0xff;
+  chunkData[10] = (ppmY >>> 8) & 0xff;
+  chunkData[11] = ppmY & 0xff;
+  // Unit (1 = meter)
+  chunkData[12] = 0x01;
+
+  const crc = calculateCrc32(chunkData);
+
+  // Total chunk pHYs: Length(4) + Type(4) + Data(9) + CRC(4) = 21 bytes
+  const physChunk = new Uint8Array(21);
+  physChunk[0] = 0x00;
+  physChunk[1] = 0x00;
+  physChunk[2] = 0x00;
+  physChunk[3] = 0x09;
+  physChunk.set(chunkData, 4);
+  physChunk[17] = (crc >>> 24) & 0xff;
+  physChunk[18] = (crc >>> 16) & 0xff;
+  physChunk[19] = (crc >>> 8) & 0xff;
+  physChunk[20] = crc & 0xff;
+
+  // Cari apakah chunk pHYs sudah ada sebelumnya sebelum IDAT
+  let existingPhysOffset = -1;
+  let existingPhysLength = 0;
+  let pos = 8;
+
+  while (pos + 8 <= bytes.length) {
+    const length =
+      (bytes[pos] << 24) |
+      (bytes[pos + 1] << 16) |
+      (bytes[pos + 2] << 8) |
+      bytes[pos + 3];
+    const type = String.fromCharCode(
+      bytes[pos + 4],
+      bytes[pos + 5],
+      bytes[pos + 6],
+      bytes[pos + 7]
+    );
+
+    if (type === "pHYs") {
+      existingPhysOffset = pos;
+      existingPhysLength = 12 + length;
+      break;
+    }
+    if (type === "IDAT") {
+      break;
+    }
+    pos += 12 + length;
+  }
+
+  let resultBytes: Uint8Array;
+  if (existingPhysOffset !== -1) {
+    resultBytes = new Uint8Array(
+      bytes.length - existingPhysLength + physChunk.length
+    );
+    resultBytes.set(bytes.subarray(0, existingPhysOffset), 0);
+    resultBytes.set(physChunk, existingPhysOffset);
+    resultBytes.set(
+      bytes.subarray(existingPhysOffset + existingPhysLength),
+      existingPhysOffset + physChunk.length
+    );
+  } else {
+    // Sisipkan tepat setelah IHDR (IHDR selalu berakhir di byte 33)
+    const ihdrEndOffset = 33;
+    resultBytes = new Uint8Array(bytes.length + physChunk.length);
+    resultBytes.set(bytes.subarray(0, ihdrEndOffset), 0);
+    resultBytes.set(physChunk, ihdrEndOffset);
+    resultBytes.set(bytes.subarray(ihdrEndOffset), ihdrEndOffset + physChunk.length);
+  }
+
+  return new Blob([resultBytes.buffer as ArrayBuffer], { type: "image/png" });
+}
+
+/**
+ * Membaca metadata resolusi (DPI) dari biner gambar PNG (chunk pHYs).
+ * Mengembalikan angka DPI bulat jika ditemukan unit meter, atau null jika tidak ada.
+ */
+export async function extractPngDpi(blob: Blob): Promise<number | null> {
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+
+  if (bytes.length < 33) return null;
+
+  let pos = 8;
+  while (pos + 8 <= bytes.length) {
+    const length =
+      (bytes[pos] << 24) |
+      (bytes[pos + 1] << 16) |
+      (bytes[pos + 2] << 8) |
+      bytes[pos + 3];
+    const type = String.fromCharCode(
+      bytes[pos + 4],
+      bytes[pos + 5],
+      bytes[pos + 6],
+      bytes[pos + 7]
+    );
+
+    if (type === "pHYs" && length >= 9) {
+      const dataOffset = pos + 8;
+      const ppmX =
+        (bytes[dataOffset] << 24) |
+        (bytes[dataOffset + 1] << 16) |
+        (bytes[dataOffset + 2] << 8) |
+        bytes[dataOffset + 3];
+      const unit = bytes[dataOffset + 8];
+      if (unit === 1) {
+        return Math.round(ppmX * 0.0254);
+      }
+      return null;
+    }
+    if (type === "IDAT") break;
+    pos += 12 + length;
+  }
+  return null;
+}
+
+/**
+ * Ekspor poster ke PNG Blob untuk download file dengan metadata resolusi 300 DPI.
  */
 export async function exportPosterToPngBlob(
   config: PosterRenderConfig
 ): Promise<Blob> {
   const canvas = await renderPosterToCanvas(config);
-  return new Promise((resolve, reject) => {
+  const rawBlob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) {
         resolve(blob);
@@ -660,6 +849,8 @@ export async function exportPosterToPngBlob(
       }
     }, "image/png");
   });
+
+  return embedPngDpi(rawBlob, 300);
 }
 
 /**

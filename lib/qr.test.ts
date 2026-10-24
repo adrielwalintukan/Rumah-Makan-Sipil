@@ -9,6 +9,10 @@ import {
   calculatePosterLayout,
   computeActualPosterCoordinates,
   renderPosterToCanvas,
+  calculateCrc32,
+  embedPngDpi,
+  extractPngDpi,
+  exportPosterToPngBlob,
   exportPosterToWordDoc,
   type PosterRenderConfig,
 } from "./qr";
@@ -467,6 +471,125 @@ describe("lib/qr: Modul Utilitas QR & Poster Kanonikal", () => {
           expect(lastTextBox.right).toBeLessThanOrEqual(canvas.width);
           expect(lastTextBox.bottom).toBeLessThanOrEqual(canvas.height);
         }
+      } finally {
+        globalThis.document = originalDocument;
+        (globalThis as unknown as { Image: unknown }).Image = originalImage;
+      }
+    });
+  });
+
+  describe("Metadata Resolusi PNG 300 DPI (chunk pHYs)", () => {
+    it("menghitung CRC-32 secara presisi untuk data chunk pHYs", () => {
+      // Type 'pHYs' + 11811 px/m X + 11811 px/m Y + unit meter (0x01)
+      const chunkData = new Uint8Array([
+        0x70, 0x48, 0x59, 0x73, 0x00, 0x00, 0x2e, 0x23, 0x00, 0x00, 0x2e, 0x23, 0x01,
+      ]);
+      const crc = calculateCrc32(chunkData);
+      expect(crc).toBe(0x78a53f76);
+    });
+
+    it("menyematkan chunk pHYs 300 DPI ke dalam file PNG valid", async () => {
+      // 1x1 piksel PNG dasar
+      const minimalPngBase64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const binaryString = atob(minimalPngBase64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const rawBlob = new Blob([bytes], { type: "image/png" });
+
+      // Sebelum disematkan, tidak ada chunk pHYs
+      const initialDpi = await extractPngDpi(rawBlob);
+      expect(initialDpi).toBeNull();
+
+      // Sematkan 300 DPI
+      const dpiBlob = await embedPngDpi(rawBlob, 300);
+      expect(dpiBlob).toBeInstanceOf(Blob);
+      expect(dpiBlob.size).toBe(rawBlob.size + 21); // Tambahan persis 21 byte chunk pHYs
+
+      // Ekstraksi kembali dan pastikan nilainya 300 DPI
+      const extractedDpi = await extractPngDpi(dpiBlob);
+      expect(extractedDpi).toBe(300);
+    });
+
+    it("exportPosterToPngBlob menghasilkan blob PNG yang memiliki metadata 300 DPI", async () => {
+      const originalDocument = globalThis.document;
+      const originalImage = (globalThis as unknown as { Image: unknown }).Image;
+
+      // 1x1 piksel PNG dasar untuk toBlob mock
+      const minimalPngBase64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const binaryString = atob(minimalPngBase64);
+      const rawBytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        rawBytes[i] = binaryString.charCodeAt(i);
+      }
+
+      globalThis.document = {
+        createElement: (tag: string) => {
+          if (tag === "canvas") {
+            return {
+              width: 100,
+              height: 100,
+              toBlob: (cb: (b: Blob) => void) => {
+                cb(new Blob([rawBytes], { type: "image/png" }));
+              },
+              getContext: () => ({
+                fillStyle: "",
+                strokeStyle: "",
+                lineWidth: 0,
+                font: "",
+                textAlign: "",
+                textBaseline: "",
+                fillRect: vi.fn(),
+                strokeRect: vi.fn(),
+                beginPath: vi.fn(),
+                roundRect: vi.fn(),
+                fill: vi.fn(),
+                stroke: vi.fn(),
+                fillText: vi.fn(),
+                arc: vi.fn(),
+                drawImage: vi.fn(),
+                measureText: () => ({ width: 50 }),
+              }),
+            } as unknown as HTMLCanvasElement;
+          }
+          return {} as HTMLElement;
+        },
+      } as unknown as Document;
+
+      class MockImage {
+        crossOrigin = "";
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        private _src = "";
+        set src(val: string) {
+          this._src = val;
+          setTimeout(() => {
+            if (this.onload) this.onload();
+          }, 0);
+        }
+        get src() {
+          return this._src;
+        }
+      }
+      (globalThis as unknown as { Image: unknown }).Image = MockImage;
+
+      try {
+        const pngBlob = await exportPosterToPngBlob({
+          size: "a6",
+          storeName: "Rumah Makan Sipil",
+          tagline: "Spesialis Masakan Rumahan",
+          qrDataUrl: "data:image/png;base64,dummy",
+          siteUrl: "https://rumah-makan-sipil.vercel.app",
+        });
+
+        expect(pngBlob).toBeInstanceOf(Blob);
+        expect(pngBlob.type).toBe("image/png");
+
+        const detectedDpi = await extractPngDpi(pngBlob);
+        expect(detectedDpi).toBe(300);
       } finally {
         globalThis.document = originalDocument;
         (globalThis as unknown as { Image: unknown }).Image = originalImage;
