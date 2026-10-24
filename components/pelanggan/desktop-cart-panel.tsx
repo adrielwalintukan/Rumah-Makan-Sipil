@@ -68,12 +68,12 @@ export function DesktopCartPanel({
                       )}
                       {line.note && (
                         <p className="mt-1 inline-block rounded-sm bg-brown-100 px-2 py-0.5 text-xs italic text-ink-900">
-                          “{line.note}”
+                          Catatan: {line.note}
                         </p>
                       )}
                       {!available && (
                         <p className="mt-1 text-xs font-semibold text-danger">
-                          Habis atau berubah. Hapus dari keranjang.
+                          Menu habis atau berubah. Hapus dari keranjang.
                         </p>
                       )}
                     </div>

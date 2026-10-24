@@ -208,7 +208,7 @@ describe("DesktopCartPanel (components/pelanggan/desktop-cart-panel)", () => {
       <DesktopCartPanel categories={unavailableCategories} isOpen={true} />,
     );
 
-    expect(html).toContain("Habis atau berubah. Hapus dari keranjang.");
+    expect(html).toContain("Menu habis atau berubah. Hapus dari keranjang.");
     expect(html).toContain("Hapus menu yang habis dulu");
     expect(html).toContain("disabled");
     expect(html).not.toContain('href="/checkout"');

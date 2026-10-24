@@ -231,7 +231,7 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
       setSuccessMessage("Pengaturan toko berhasil disimpan.");
       toast({
         title: "Pengaturan tersimpan",
-        description: "Pengaturan toko berhasil disimpan.",
+        description: "Profil dan konfigurasi toko telah diperbarui.",
         variant: "success",
       });
       router.refresh();
