@@ -155,23 +155,55 @@ test.describe("Admin QR Poster (E2E)", () => {
       .evaluate((el) => window.getComputedStyle(el).display);
     expect(footerDisplay).not.toBe("none");
 
-    // d. Verifikasi output cetak aktual Chromium menghasilkan tepat 1 halaman untuk A4, A5, dan A6
-    const verifySinglePagePdf = (pdfBuffer: Buffer) => {
+    // d. Verifikasi output cetak aktual Chromium menghasilkan tepat 1 halaman dengan ukuran CSS @page yang sesuai (A4, A5, dan A6)
+    const verifySinglePagePdf = (pdfBuffer: Buffer, expectedFormat?: "a4" | "a5" | "a6") => {
       const pdfStr = pdfBuffer.toString("binary");
       const countMatch = pdfStr.match(/\/Type\s*\/Pages[^>]*\/Count\s+(\d+)/);
       expect(countMatch).not.toBeNull();
       const pageCount = parseInt(countMatch![1], 10);
       expect(pageCount).toBe(1);
+
+      if (expectedFormat) {
+        const mediaBoxMatch = pdfStr.match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/);
+        expect(mediaBoxMatch).not.toBeNull();
+        const widthPt = parseFloat(mediaBoxMatch![1]);
+        const heightPt = parseFloat(mediaBoxMatch![2]);
+
+        if (expectedFormat === "a4") {
+          // A4 portrait: ~595 x 842 pt
+          expect(Math.round(widthPt)).toBe(595);
+          expect(Math.round(heightPt)).toBe(842);
+        } else if (expectedFormat === "a5") {
+          // A5 portrait: ~420 x 595 pt
+          expect(Math.round(widthPt)).toBe(420);
+          expect(Math.round(heightPt)).toBe(595);
+        } else if (expectedFormat === "a6") {
+          // A6 portrait: ~298 x 420 pt
+          expect(Math.round(widthPt)).toBe(298);
+          expect(Math.round(heightPt)).toBe(420);
+        }
+      }
     };
 
-    const pdfA5 = await page.pdf({ format: "A5" });
-    verifySinglePagePdf(pdfA5);
+    // 1) Uji ukuran aktif saat ini (A5)
+    const pdfA5 = await page.pdf({ preferCSSPageSize: true });
+    verifySinglePagePdf(pdfA5, "a5");
 
-    const pdfA4 = await page.pdf({ format: "A4" });
-    verifySinglePagePdf(pdfA4);
+    // 2) Beralih ke screen, pilih A4, lalu uji ukuran cetak A4
+    await page.emulateMedia({ media: "screen" });
+    await btnA4.click();
+    await expect(btnA4).toHaveAttribute("aria-pressed", "true");
+    await page.emulateMedia({ media: "print" });
+    const pdfA4 = await page.pdf({ preferCSSPageSize: true });
+    verifySinglePagePdf(pdfA4, "a4");
 
-    const pdfA6 = await page.pdf({ format: "A6" });
-    verifySinglePagePdf(pdfA6);
+    // 3) Beralih ke screen, pilih A6, lalu uji ukuran cetak A6 (tenda meja kecil)
+    await page.emulateMedia({ media: "screen" });
+    await btnA6.click();
+    await expect(btnA6).toHaveAttribute("aria-pressed", "true");
+    await page.emulateMedia({ media: "print" });
+    const pdfA6 = await page.pdf({ preferCSSPageSize: true });
+    verifySinglePagePdf(pdfA6, "a6");
 
     await page.emulateMedia({ media: "screen" });
   });

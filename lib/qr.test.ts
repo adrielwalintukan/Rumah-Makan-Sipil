@@ -8,6 +8,7 @@ import {
   truncateUrl,
   calculatePosterLayout,
   computeActualPosterCoordinates,
+  renderPosterToCanvas,
   exportPosterToWordDoc,
   type PosterRenderConfig,
 } from "./qr";
@@ -248,6 +249,135 @@ describe("lib/qr: Modul Utilitas QR & Poster Kanonikal", () => {
       expect(coordsA6.isWithinBounds).toBe(true);
       expect(coordsA6.stepsBottom).toBeLessThan(coordsA6.footerTop);
       expect(coordsA6.footerBottom).toBeLessThanOrEqual(coordsA6.height);
+    });
+
+    it("menjalankan renderPosterToCanvas aktual dan memverifikasi seluruh elemen berada di dalam batas kanvas untuk A4, A5, dan A6", async () => {
+      const originalDocument = globalThis.document;
+      const originalImage = (globalThis as unknown as { Image: unknown }).Image;
+
+      class MockImage {
+        crossOrigin = "";
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        private _src = "";
+        set src(val: string) {
+          this._src = val;
+          setTimeout(() => {
+            if (this.onload) this.onload();
+          }, 0);
+        }
+        get src() {
+          return this._src;
+        }
+      }
+      (globalThis as unknown as { Image: unknown }).Image = MockImage;
+
+      const extremeConfig: PosterRenderConfig = {
+        size: "a4",
+        storeName: "Rumah Makan Sipil Cabang Utama Manado Spesialis Ikan Bakar Sedap",
+        tagline: "Menyediakan Aneka Masakan Tradisional Minahasa & Manado dengan Bumbu Rempah Asli Pilihan Keluarga Sejak 1998",
+        qrDataUrl: "data:image/png;base64,dummy",
+        siteUrl: "https://rumah-makan-sipil-cabang-utama-manado-sulawesi-utara.vercel.app/katalog-pesanan",
+      };
+
+      try {
+        for (const size of ["a4", "a5", "a6"] as const) {
+          interface RenderRecord {
+            type: string;
+            text?: string;
+            x?: number;
+            y?: number;
+            w?: number;
+            h?: number;
+          }
+          const records: RenderRecord[] = [];
+
+          globalThis.document = {
+            createElement: (tag: string) => {
+              if (tag === "canvas") {
+                const canvasObj = {
+                  width: 0,
+                  height: 0,
+                  getContext: () => ({
+                    fillStyle: "",
+                    strokeStyle: "",
+                    lineWidth: 0,
+                    font: "",
+                    textAlign: "",
+                    textBaseline: "",
+                    fillRect: (x: number, y: number, w: number, h: number) => {
+                      records.push({ type: "fillRect", x, y, w, h });
+                    },
+                    strokeRect: (x: number, y: number, w: number, h: number) => {
+                      records.push({ type: "strokeRect", x, y, w, h });
+                    },
+                    beginPath: vi.fn(),
+                    roundRect: (x: number, y: number, w: number, h: number) => {
+                      records.push({ type: "roundRect", x, y, w, h });
+                    },
+                    fill: vi.fn(),
+                    stroke: vi.fn(),
+                    fillText: (text: string, x: number, y: number) => {
+                      records.push({ type: "fillText", text, x, y });
+                    },
+                    arc: (x: number, y: number) => {
+                      records.push({ type: "arc", x, y });
+                    },
+                    drawImage: (_img: unknown, x: number, y: number, w: number, h: number) => {
+                      records.push({ type: "drawImage", x, y, w, h });
+                    },
+                    measureText: (text: string) => ({
+                      width: text.length * 15,
+                    }),
+                  }),
+                };
+                return canvasObj as unknown as HTMLCanvasElement;
+              }
+              return {} as HTMLElement;
+            },
+          } as unknown as Document;
+
+          const canvas = await renderPosterToCanvas({ ...extremeConfig, size });
+          expect(canvas.width).toBeGreaterThan(0);
+          expect(canvas.height).toBeGreaterThan(0);
+
+          // 1. Verifikasi seluruh pemanggilan fillText berada dalam batas kanvas
+          const textRecords = records.filter((r) => r.type === "fillText");
+          expect(textRecords.length).toBeGreaterThan(5);
+          for (const t of textRecords) {
+            expect(t.y).toBeGreaterThanOrEqual(0);
+            expect(t.y).toBeLessThanOrEqual(canvas.height);
+            expect(t.x).toBeGreaterThanOrEqual(0);
+            expect(t.x).toBeLessThanOrEqual(canvas.width);
+          }
+
+          // 2. Verifikasi posisi gambar QR Code berada di dalam batas kanvas
+          const qrImageRecord = records.find((r) => r.type === "drawImage");
+          expect(qrImageRecord).toBeDefined();
+          expect(qrImageRecord!.y).toBeGreaterThan(0);
+          expect(qrImageRecord!.y! + qrImageRecord!.h!).toBeLessThan(canvas.height);
+
+          // 3. Verifikasi posisi elemen langkah berada di bawah QR dan di atas footer
+          const stepRecords = records.filter((r) => r.type === "roundRect");
+          expect(stepRecords.length).toBeGreaterThanOrEqual(4);
+          const stepCards = stepRecords.slice(-3);
+          const footerText = textRecords.find((t) => t.text?.includes("browser:"));
+          expect(footerText).toBeDefined();
+
+          for (const step of stepCards) {
+            const stepBottom = step.y! + step.h!;
+            expect(stepBottom).toBeLessThan(footerText!.y!);
+            expect(stepBottom).toBeLessThan(canvas.height);
+          }
+
+          // 4. Verifikasi teks footer terakhir tidak melebihi kanvas
+          const lastText = textRecords[textRecords.length - 1];
+          expect(lastText.y).toBeLessThan(canvas.height);
+        }
+      } finally {
+        globalThis.document = originalDocument;
+        (globalThis as unknown as { Image: unknown }).Image = originalImage;
+      }
     });
   });
 
