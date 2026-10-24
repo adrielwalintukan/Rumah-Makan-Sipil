@@ -57,8 +57,8 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--color-green-900);
+  --color-destructive: var(--color-danger);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -110,5 +110,96 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  @page {
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #1c1b18 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Sembunyikan SEMUA elemen non-cetak dari layout dashboard */
+  .no-print,
+  header:not(#poster-print-target *),
+  footer:not(#poster-print-target *),
+  nav:not(#poster-print-target *),
+  aside:not(#poster-print-target *) {
+    display: none !important;
+  }
+
+  /* Reset layout wrapper admin agar tidak memiliki padding/margin/min-height */
+  body > div,
+  .md\:pl-64,
+  main:not(#poster-print-target *):not(#poster-print-target),
+  .poster-preview-wrapper,
+  .poster-preview-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Target poster: tata letak cetak satu halaman di tengah halaman dengan rasio proporsional */
+  #poster-print-target {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    margin: auto !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-before: avoid !important;
+    break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Pastikan seluruh bagian poster (header toko, QR, dan footer panduan) selalu tampil utuh */
+  #poster-print-target header,
+  #poster-print-target footer {
+    display: flex !important;
+    visibility: visible !important;
+  }
+
+  #poster-print-target main {
+    display: flex !important;
+    visibility: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  #poster-print-target * {
+    visibility: visible !important;
   }
 }
