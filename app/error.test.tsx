@@ -24,22 +24,25 @@ function findElement(
   return null;
 }
 
+interface ReactInternals {
+  __CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE?: {
+    H: Record<string, unknown> | null;
+  };
+}
+
+const internals = (React as unknown as ReactInternals)
+  .__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+
 describe("Root Error Boundary (app/error.tsx)", () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let originalH: Record<string, unknown> | null = null;
 
   beforeEach(() => {
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    // Inisialisasi dispatcher React untuk pengujian hooks tanpa jsdom
-    const internals = (
-      React as unknown as {
-        __CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE?: {
-          H: Record<string, unknown> | null;
-        };
-      }
-    ).__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
-
+    // Simpan dispatcher React asli dan pasang dispatcher buatan untuk pengujian hooks tanpa jsdom
     if (internals) {
+      originalH = internals.H;
       internals.H = {
         useEffect: (fn: () => void) => fn(),
       };
@@ -48,6 +51,11 @@ describe("Root Error Boundary (app/error.tsx)", () => {
 
   afterEach(() => {
     consoleErrorSpy.mockRestore();
+
+    // Pulihkan dispatcher React ke kondisi semula agar tidak mencemari pengujian lainnya
+    if (internals) {
+      internals.H = originalH;
+    }
   });
 
   it("merender pesan ramah dan elemen visual sesuai design system", () => {
