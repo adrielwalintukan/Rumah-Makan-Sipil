@@ -144,6 +144,6 @@ describe("components/admin/qr/qr-poster-dashboard", () => {
     );
 
     expect(html).toContain("@page");
-    expect(html).toContain("A4 portrait");
+    expect(html).toContain("210mm 297mm");
   });
 });

@@ -115,10 +115,10 @@ export function QrPosterDashboard({
           @page {
             size: ${
               size === "a6"
-                ? "A6 portrait"
+                ? "105mm 148mm"
                 : size === "a5"
-                ? "A5 portrait"
-                : "A4 portrait"
+                ? "148mm 210mm"
+                : "210mm 297mm"
             };
             margin: 0;
           }
