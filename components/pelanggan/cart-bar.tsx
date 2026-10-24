@@ -6,7 +6,7 @@ import { formatRupiah } from "@/lib/format";
 export function CartBar({ count, total }: { count: number; total: number }) {
   if (count === 0) return null;
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <div className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:hidden">
       <Link
         href="/keranjang"
         className="mx-auto flex h-14 max-w-3xl items-center gap-3 rounded-lg bg-primary px-4 text-primary-foreground shadow-sheet animate-in slide-in-from-bottom-4"
