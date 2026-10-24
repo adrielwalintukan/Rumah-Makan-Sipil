@@ -168,25 +168,27 @@ export function AdminNav({ userEmail }: AdminNavProps) {
       {/* Bottom Tab Bar (Mobile < 768 px) */}
       <nav
         aria-label="Navigasi mobile admin"
-        className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-line bg-card/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] pb-safe backdrop-blur-xs md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 flex flex-col border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xs md:hidden"
       >
-        {mobileTabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <Link
-              key={tab.label}
-              href={tab.href}
-              className={`flex flex-col items-center justify-center min-w-[64px] h-full gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 rounded-md ${
-                tab.isActive
-                  ? "text-green-800 font-bold"
-                  : "text-ink-600 hover:text-ink-900 font-medium"
-              }`}
-            >
-              <Icon className="size-5" aria-hidden />
-              <span className="text-[11px] leading-none tracking-tight">{tab.label}</span>
-            </Link>
-          );
-        })}
+        <div className="flex h-16 w-full items-center justify-around">
+          {mobileTabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <Link
+                key={tab.label}
+                href={tab.href}
+                className={`flex flex-col items-center justify-center min-w-[64px] h-full gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 rounded-md ${
+                  tab.isActive
+                    ? "text-green-800 font-bold"
+                    : "text-ink-600 hover:text-ink-900 font-medium"
+                }`}
+              >
+                <Icon className="size-5" aria-hidden />
+                <span className="text-[11px] leading-none tracking-tight">{tab.label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
     </>
   );

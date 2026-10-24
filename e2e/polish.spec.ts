@@ -15,16 +15,26 @@ async function setStoreOpen(isOpen: boolean) {
   expect(error).toBeNull();
 }
 
+let originalIsOpen: boolean | null = null;
+
 test.describe("M6 Polish: Desktop Cart Panel, Mobile Viewport & 404", () => {
   test.beforeAll(async () => {
     if (db) {
+      const { data, error } = await db
+        .from("settings")
+        .select("is_open")
+        .eq("id", 1)
+        .maybeSingle();
+      if (!error && data) {
+        originalIsOpen = Boolean(data.is_open);
+      }
       await setStoreOpen(true);
     }
   });
 
   test.afterAll(async () => {
-    if (db) {
-      await setStoreOpen(false);
+    if (db && originalIsOpen !== null) {
+      await setStoreOpen(originalIsOpen);
     }
   });
 
