@@ -168,7 +168,7 @@ export function AdminNav({ userEmail }: AdminNavProps) {
       {/* Bottom Tab Bar (Mobile < 768 px) */}
       <nav
         aria-label="Navigasi mobile admin"
-        className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-line bg-card/95 pb-safe backdrop-blur-xs md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-line bg-card/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] pb-safe backdrop-blur-xs md:hidden"
       >
         {mobileTabs.map((tab) => {
           const Icon = tab.icon;
@@ -176,7 +176,7 @@ export function AdminNav({ userEmail }: AdminNavProps) {
             <Link
               key={tab.label}
               href={tab.href}
-              className={`flex flex-col items-center justify-center min-w-[64px] h-full gap-1 transition-colors ${
+              className={`flex flex-col items-center justify-center min-w-[64px] h-full gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 rounded-md ${
                 tab.isActive
                   ? "text-green-800 font-bold"
                   : "text-ink-600 hover:text-ink-900 font-medium"

@@ -124,7 +124,7 @@ export function ReportPeriodSelector({
                 max={todayStr}
                 onChange={(e) => setCustomFrom(e.target.value)}
                 required
-                className="w-full min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-900 focus:outline-hidden focus:ring-2 focus:ring-green-700"
+                className="w-full min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 text-base sm:text-sm text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
               />
             </div>
           </div>
@@ -144,7 +144,7 @@ export function ReportPeriodSelector({
                 max={todayStr}
                 onChange={(e) => setCustomTo(e.target.value)}
                 required
-                className="w-full min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-900 focus:outline-hidden focus:ring-2 focus:ring-green-700"
+                className="w-full min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 text-base sm:text-sm text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
               />
             </div>
           </div>
