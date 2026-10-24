@@ -24,10 +24,10 @@ test.describe("M6 Polish: Desktop Cart Panel, Mobile Viewport & 404", () => {
         .from("settings")
         .select("is_open")
         .eq("id", 1)
-        .maybeSingle();
-      if (!error && data) {
-        originalIsOpen = Boolean(data.is_open);
-      }
+        .single();
+      expect(error).toBeNull();
+      expect(data).toBeTruthy();
+      originalIsOpen = Boolean(data?.is_open);
       await setStoreOpen(true);
     }
   });
