@@ -148,7 +148,7 @@ export function FinancePeriodSelector({
                   value={customFrom}
                   max={todayStr || undefined}
                   onChange={(e) => setCustomFrom(e.target.value)}
-                  className="min-h-[44px] w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
+                  className="min-h-[44px] w-full rounded-lg border border-line bg-card px-3 py-2 text-base sm:text-sm text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
                   required
                 />
               </div>
@@ -165,7 +165,7 @@ export function FinancePeriodSelector({
                   value={customTo}
                   max={todayStr || undefined}
                   onChange={(e) => setCustomTo(e.target.value)}
-                  className="min-h-[44px] w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
+                  className="min-h-[44px] w-full rounded-lg border border-line bg-card px-3 py-2 text-base sm:text-sm text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
                   required
                 />
               </div>

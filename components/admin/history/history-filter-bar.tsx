@@ -187,7 +187,7 @@ export function HistoryFilterBar({ currentParams }: HistoryFilterBarProps) {
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="flex h-11 min-h-[44px] w-full rounded-md border border-line bg-card px-3 py-2 text-sm text-ink-900 shadow-xs focus-visible:border-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-100"
+                className="flex h-11 min-h-[44px] w-full rounded-md border border-line bg-card px-3 py-2 text-base sm:text-sm text-ink-900 shadow-xs focus-visible:border-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
                 required
               />
             </div>
@@ -206,7 +206,7 @@ export function HistoryFilterBar({ currentParams }: HistoryFilterBarProps) {
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="flex h-11 min-h-[44px] w-full rounded-md border border-line bg-card px-3 py-2 text-sm text-ink-900 shadow-xs focus-visible:border-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-100"
+                className="flex h-11 min-h-[44px] w-full rounded-md border border-line bg-card px-3 py-2 text-base sm:text-sm text-ink-900 shadow-xs focus-visible:border-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
                 required
               />
             </div>
@@ -234,7 +234,7 @@ export function HistoryFilterBar({ currentParams }: HistoryFilterBarProps) {
             value={searchVal}
             onChange={(e) => setSearchVal(e.target.value)}
             placeholder="Cari nama / #antrean..."
-            className="flex h-11 min-h-[44px] w-full rounded-md border border-line bg-card pl-10 pr-10 py-2 text-sm text-ink-900 placeholder:text-ink-400 shadow-xs focus-visible:border-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-100"
+            className="flex h-11 min-h-[44px] w-full rounded-md border border-line bg-card pl-10 pr-10 py-2 text-base sm:text-sm text-ink-900 placeholder:text-ink-400 shadow-xs focus-visible:border-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
           />
           {searchVal && (
             <button
@@ -257,7 +257,7 @@ export function HistoryFilterBar({ currentParams }: HistoryFilterBarProps) {
             id="filter-status-select"
             value={currentStatus}
             onChange={handleStatusChange}
-            className="flex h-11 min-h-[44px] rounded-md border border-line bg-card px-3 py-2 text-sm font-medium text-ink-900 shadow-xs focus-visible:border-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-100"
+            className="flex h-11 min-h-[44px] rounded-md border border-line bg-card px-3 py-2 text-base sm:text-sm font-medium text-ink-900 shadow-xs focus-visible:border-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
           >
             <option value="all">Semua Status</option>
             <option value="selesai">Selesai</option>

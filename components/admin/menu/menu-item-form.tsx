@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/toast";
 import {
   Dialog,
   DialogContent,
@@ -328,6 +329,15 @@ export function MenuItemForm({
         throw new Error(result.error || "Gagal menyimpan menu.");
       }
 
+      const isEdit = !!initialData?.id;
+      toast({
+        title: isEdit ? "Menu diperbarui" : "Menu ditambahkan",
+        description: isEdit
+          ? `Menu "${name.trim()}" berhasil diperbarui.`
+          : `Menu "${name.trim()}" berhasil ditambahkan.`,
+        variant: "success",
+      });
+
       router.push("/admin/menu");
       router.refresh();
     } catch (err) {
@@ -357,6 +367,11 @@ export function MenuItemForm({
       }
 
       setIsDeleteDialogOpen(false);
+      toast({
+        title: "Menu dihapus",
+        description: `Menu "${name.trim()}" berhasil dihapus.`,
+        variant: "success",
+      });
       router.push("/admin/menu");
       router.refresh();
     } catch (err) {

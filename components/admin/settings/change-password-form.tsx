@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/toast";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -90,6 +91,11 @@ export function ChangePasswordForm() {
       }
 
       setSuccessMessage("Password berhasil diperbarui.");
+      toast({
+        title: "Password diperbarui",
+        description: "Password akun admin berhasil diperbarui.",
+        variant: "success",
+      });
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
