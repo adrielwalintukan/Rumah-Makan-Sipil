@@ -251,7 +251,7 @@ describe("lib/qr: Modul Utilitas QR & Poster Kanonikal", () => {
       expect(coordsA6.footerBottom).toBeLessThanOrEqual(coordsA6.height);
     });
 
-    it("menjalankan renderPosterToCanvas aktual dan memverifikasi seluruh elemen berada di dalam batas kanvas untuk A4, A5, dan A6", async () => {
+    it("menjalankan renderPosterToCanvas aktual dan memverifikasi seluruh bounding box elemen berada di dalam batas kanvas untuk A4, A5, dan A6", async () => {
       const originalDocument = globalThis.document;
       const originalImage = (globalThis as unknown as { Image: unknown }).Image;
 
@@ -282,15 +282,17 @@ describe("lib/qr: Modul Utilitas QR & Poster Kanonikal", () => {
 
       try {
         for (const size of ["a4", "a5", "a6"] as const) {
-          interface RenderRecord {
-            type: string;
+          interface BoundingBoxRecord {
+            type: "fillText" | "drawImage" | "roundRect" | "strokeRect" | "fillRect";
             text?: string;
-            x?: number;
-            y?: number;
-            w?: number;
-            h?: number;
+            left: number;
+            right: number;
+            top: number;
+            bottom: number;
+            width: number;
+            height: number;
           }
-          const records: RenderRecord[] = [];
+          const recordedBoxes: BoundingBoxRecord[] = [];
 
           globalThis.document = {
             createElement: (tag: string) => {
@@ -298,38 +300,113 @@ describe("lib/qr: Modul Utilitas QR & Poster Kanonikal", () => {
                 const canvasObj = {
                   width: 0,
                   height: 0,
-                  getContext: () => ({
-                    fillStyle: "",
-                    strokeStyle: "",
-                    lineWidth: 0,
-                    font: "",
-                    textAlign: "",
-                    textBaseline: "",
-                    fillRect: (x: number, y: number, w: number, h: number) => {
-                      records.push({ type: "fillRect", x, y, w, h });
-                    },
-                    strokeRect: (x: number, y: number, w: number, h: number) => {
-                      records.push({ type: "strokeRect", x, y, w, h });
-                    },
-                    beginPath: vi.fn(),
-                    roundRect: (x: number, y: number, w: number, h: number) => {
-                      records.push({ type: "roundRect", x, y, w, h });
-                    },
-                    fill: vi.fn(),
-                    stroke: vi.fn(),
-                    fillText: (text: string, x: number, y: number) => {
-                      records.push({ type: "fillText", text, x, y });
-                    },
-                    arc: (x: number, y: number) => {
-                      records.push({ type: "arc", x, y });
-                    },
-                    drawImage: (_img: unknown, x: number, y: number, w: number, h: number) => {
-                      records.push({ type: "drawImage", x, y, w, h });
-                    },
-                    measureText: (text: string) => ({
-                      width: text.length * 15,
-                    }),
-                  }),
+                  getContext: () => {
+                    const ctxState = {
+                      fillStyle: "",
+                      strokeStyle: "",
+                      lineWidth: 0,
+                      font: 'bold 20px "Plus Jakarta Sans"',
+                      textAlign: "center" as CanvasTextAlign,
+                      textBaseline: "alphabetic" as CanvasTextBaseline,
+                      shadowColor: "",
+                      shadowBlur: 0,
+                      shadowOffsetY: 0,
+                      beginPath: vi.fn(),
+                      fill: vi.fn(),
+                      stroke: vi.fn(),
+                      arc: vi.fn(),
+                      getFontSize: () => {
+                        const match = ctxState.font.match(/(\d+(?:\.\d+)?)px/);
+                        return match ? parseFloat(match[1]) : 20;
+                      },
+                      measureText: (text: string) => {
+                        const fontSize = ctxState.getFontSize();
+                        // Estimasi lebar rata-rata karakter proporsional (0.55 * fontSize)
+                        const width = text.length * fontSize * 0.55;
+                        return { width } as TextMetrics;
+                      },
+                      fillText: (text: string, x: number, y: number, maxWidth?: number) => {
+                        const fontSize = ctxState.getFontSize();
+                        const measured = ctxState.measureText(text).width;
+                        const renderedWidth =
+                          typeof maxWidth === "number" && maxWidth > 0
+                            ? Math.min(measured, maxWidth)
+                            : measured;
+
+                        let left = x;
+                        if (ctxState.textAlign === "center") {
+                          left = x - renderedWidth / 2;
+                        } else if (ctxState.textAlign === "right") {
+                          left = x - renderedWidth;
+                        }
+                        const right = left + renderedWidth;
+
+                        let top = y;
+                        if (ctxState.textBaseline === "middle") {
+                          top = y - fontSize / 2;
+                        } else if (ctxState.textBaseline === "bottom") {
+                          top = y - fontSize;
+                        }
+                        const bottom = top + fontSize;
+
+                        recordedBoxes.push({
+                          type: "fillText",
+                          text,
+                          left,
+                          right,
+                          top,
+                          bottom,
+                          width: renderedWidth,
+                          height: fontSize,
+                        });
+                      },
+                      drawImage: (_img: unknown, x: number, y: number, w: number, h: number) => {
+                        recordedBoxes.push({
+                          type: "drawImage",
+                          left: x,
+                          right: x + w,
+                          top: y,
+                          bottom: y + h,
+                          width: w,
+                          height: h,
+                        });
+                      },
+                      roundRect: (x: number, y: number, w: number, h: number) => {
+                        recordedBoxes.push({
+                          type: "roundRect",
+                          left: x,
+                          right: x + w,
+                          top: y,
+                          bottom: y + h,
+                          width: w,
+                          height: h,
+                        });
+                      },
+                      strokeRect: (x: number, y: number, w: number, h: number) => {
+                        recordedBoxes.push({
+                          type: "strokeRect",
+                          left: x,
+                          right: x + w,
+                          top: y,
+                          bottom: y + h,
+                          width: w,
+                          height: h,
+                        });
+                      },
+                      fillRect: (x: number, y: number, w: number, h: number) => {
+                        recordedBoxes.push({
+                          type: "fillRect",
+                          left: x,
+                          right: x + w,
+                          top: y,
+                          bottom: y + h,
+                          width: w,
+                          height: h,
+                        });
+                      },
+                    };
+                    return ctxState;
+                  },
                 };
                 return canvasObj as unknown as HTMLCanvasElement;
               }
@@ -341,38 +418,54 @@ describe("lib/qr: Modul Utilitas QR & Poster Kanonikal", () => {
           expect(canvas.width).toBeGreaterThan(0);
           expect(canvas.height).toBeGreaterThan(0);
 
-          // 1. Verifikasi seluruh pemanggilan fillText berada dalam batas kanvas
-          const textRecords = records.filter((r) => r.type === "fillText");
-          expect(textRecords.length).toBeGreaterThan(5);
-          for (const t of textRecords) {
-            expect(t.y).toBeGreaterThanOrEqual(0);
-            expect(t.y).toBeLessThanOrEqual(canvas.height);
-            expect(t.x).toBeGreaterThanOrEqual(0);
-            expect(t.x).toBeLessThanOrEqual(canvas.width);
+          // 1. Verifikasi batas horizontal dan vertikal setiap elemen teks (fillText)
+          const textBoxes = recordedBoxes.filter((b) => b.type === "fillText");
+          expect(textBoxes.length).toBeGreaterThan(5);
+          for (const tb of textBoxes) {
+            expect(tb.left).toBeGreaterThanOrEqual(0);
+            expect(tb.right).toBeLessThanOrEqual(canvas.width);
+            expect(tb.top).toBeGreaterThanOrEqual(0);
+            expect(tb.bottom).toBeLessThanOrEqual(canvas.height);
           }
 
-          // 2. Verifikasi posisi gambar QR Code berada di dalam batas kanvas
-          const qrImageRecord = records.find((r) => r.type === "drawImage");
-          expect(qrImageRecord).toBeDefined();
-          expect(qrImageRecord!.y).toBeGreaterThan(0);
-          expect(qrImageRecord!.y! + qrImageRecord!.h!).toBeLessThan(canvas.height);
+          // 2. Verifikasi batas horizontal dan vertikal gambar QR Code (drawImage)
+          const qrImageBox = recordedBoxes.find((b) => b.type === "drawImage");
+          expect(qrImageBox).toBeDefined();
+          expect(qrImageBox!.left).toBeGreaterThanOrEqual(0);
+          expect(qrImageBox!.right).toBeLessThanOrEqual(canvas.width);
+          expect(qrImageBox!.top).toBeGreaterThanOrEqual(0);
+          expect(qrImageBox!.bottom).toBeLessThanOrEqual(canvas.height);
+          // QR Code terpusat secara horizontal di tengah kanvas
+          expect(
+            Math.abs((qrImageBox!.left + qrImageBox!.right) / 2 - canvas.width / 2)
+          ).toBeLessThan(2);
 
-          // 3. Verifikasi posisi elemen langkah berada di bawah QR dan di atas footer
-          const stepRecords = records.filter((r) => r.type === "roundRect");
-          expect(stepRecords.length).toBeGreaterThanOrEqual(4);
-          const stepCards = stepRecords.slice(-3);
-          const footerText = textRecords.find((t) => t.text?.includes("browser:"));
+          // 3. Verifikasi bounding box wadah QR dan kartu 3 langkah pemesanan
+          const roundRectBoxes = recordedBoxes.filter((b) => b.type === "roundRect");
+          // roundRect: 1 wadah QR + 1 badge scan + 3 kartu langkah
+          expect(roundRectBoxes.length).toBeGreaterThanOrEqual(4);
+          for (const box of roundRectBoxes) {
+            expect(box.left).toBeGreaterThanOrEqual(0);
+            expect(box.right).toBeLessThanOrEqual(canvas.width);
+            expect(box.top).toBeGreaterThanOrEqual(0);
+            expect(box.bottom).toBeLessThanOrEqual(canvas.height);
+          }
+
+          // Tiga kartu langkah pemesanan berada di bawah QR Code dan di atas teks footer
+          const stepCards = roundRectBoxes.slice(-3);
+          const footerText = textBoxes.find((t) => t.text?.includes("browser:"));
           expect(footerText).toBeDefined();
 
           for (const step of stepCards) {
-            const stepBottom = step.y! + step.h!;
-            expect(stepBottom).toBeLessThan(footerText!.y!);
-            expect(stepBottom).toBeLessThan(canvas.height);
+            expect(step.top).toBeGreaterThan(qrImageBox!.bottom);
+            expect(step.bottom).toBeLessThan(footerText!.top);
           }
 
-          // 4. Verifikasi teks footer terakhir tidak melebihi kanvas
-          const lastText = textRecords[textRecords.length - 1];
-          expect(lastText.y).toBeLessThan(canvas.height);
+          // 4. Verifikasi teks footer terakhir berada rapi di atas tepi bawah kanvas
+          const lastTextBox = textBoxes[textBoxes.length - 1];
+          expect(lastTextBox.left).toBeGreaterThanOrEqual(0);
+          expect(lastTextBox.right).toBeLessThanOrEqual(canvas.width);
+          expect(lastTextBox.bottom).toBeLessThanOrEqual(canvas.height);
         }
       } finally {
         globalThis.document = originalDocument;
