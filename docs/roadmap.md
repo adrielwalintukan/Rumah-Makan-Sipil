@@ -59,7 +59,7 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 
 ### M6 — Poster QR, polish, rilis (D10)
 - [x] Halaman Poster QR: cetak (A4/A5) + unduh PNG
-- [ ] Empty state, skeleton, toast, cek aksesibilitas & kontras, uji di HP Android murah + iPhone
+- [x] Empty state, skeleton, toast, cek aksesibilitas & kontras, uji di HP Android murah + iPhone
 - [ ] Deploy produksi, buat akun pemilik, upload QRIS asli, cetak poster
 - [ ] Uji coba 1 hari di warung, lalu catat masukan
 
