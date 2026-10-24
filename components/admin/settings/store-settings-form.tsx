@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/toast";
 import { formatRupiah } from "@/lib/format";
 import { updateStoreSettingsSchema } from "@/lib/admin-settings";
 import {
@@ -228,6 +229,11 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
       }
 
       setSuccessMessage("Pengaturan toko berhasil disimpan.");
+      toast({
+        title: "Pengaturan tersimpan",
+        description: "Pengaturan toko berhasil disimpan.",
+        variant: "success",
+      });
       router.refresh();
     } catch (err) {
       const msg =

@@ -8,6 +8,7 @@ import { CashbookDailyTable } from "./cashbook-daily-table";
 import { ExpenseListSection } from "./expense-list-section";
 import { ExpenseFormDialog } from "./expense-form-dialog";
 import { DeleteExpenseDialog } from "./delete-expense-dialog";
+import { toast } from "@/components/ui/toast";
 import type { FinanceData, FinancePreset, Expense, ExpensePayload } from "@/lib/admin-finance";
 
 interface FinanceDashboardClientProps {
@@ -48,6 +49,11 @@ export function FinanceDashboardClient({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.message || "Gagal memperbarui pengeluaran.");
       }
+      toast({
+        title: "Pengeluaran diperbarui",
+        description: "Catatan pengeluaran berhasil diperbarui.",
+        variant: "success",
+      });
     } else {
       const res = await fetch("/api/admin/expenses", {
         method: "POST",
@@ -58,6 +64,11 @@ export function FinanceDashboardClient({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.message || "Gagal menambahkan pengeluaran.");
       }
+      toast({
+        title: "Pengeluaran ditambahkan",
+        description: "Catatan pengeluaran baru berhasil disimpan.",
+        variant: "success",
+      });
     }
 
     router.refresh();
@@ -71,6 +82,12 @@ export function FinanceDashboardClient({
       const body = await res.json().catch(() => ({}));
       throw new Error(body.message || "Gagal menghapus pengeluaran.");
     }
+
+    toast({
+      title: "Pengeluaran dihapus",
+      description: "Catatan pengeluaran berhasil dihapus.",
+      variant: "success",
+    });
 
     router.refresh();
   };

@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CategoryDialog } from "@/components/admin/menu/category-dialog";
+import { toast } from "@/components/ui/toast";
 import { MenuPhoto } from "@/components/pelanggan/menu-photo";
 import { formatRupiah } from "@/lib/format";
 import { getMenuPhotoUrl } from "@/lib/storage";
@@ -317,8 +318,14 @@ export function MenuManagementView({
       }
 
       // Hapus dari state lokal langsung
+      const deletedName = deletingItem.name;
       setMenuItems((prev) => prev.filter((m) => m.id !== deletingItem.id));
       setDeletingItem(null);
+      toast({
+        title: "Menu dihapus",
+        description: `Menu "${deletedName}" berhasil dihapus.`,
+        variant: "success",
+      });
       router.refresh();
     } catch (err) {
       const message =
