@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/toast";
 
 export interface CategoryItem {
   id: string;
@@ -116,6 +117,11 @@ export function CategoryDialog({
       }
 
       setNewCategoryName("");
+      toast({
+        title: "Kategori ditambahkan",
+        description: `Kategori "${trimmed}" berhasil ditambahkan.`,
+        variant: "success",
+      });
       await onCategoriesUpdated();
     } catch (err) {
       const message =
@@ -210,6 +216,11 @@ export function CategoryDialog({
       }
 
       handleCancelEdit();
+      toast({
+        title: "Kategori diperbarui",
+        description: `Kategori berhasil diubah menjadi "${trimmed}".`,
+        variant: "success",
+      });
       await onCategoriesUpdated();
     } catch (err) {
       const message =
@@ -245,6 +256,11 @@ export function CategoryDialog({
       }
 
       setDeletingId(null);
+      toast({
+        title: "Kategori dihapus",
+        description: "Kategori berhasil dihapus.",
+        variant: "success",
+      });
       await onCategoriesUpdated();
     } catch (err) {
       const message =

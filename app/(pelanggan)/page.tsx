@@ -7,7 +7,7 @@ import { getMenu } from "@/lib/menu";
 
 export default function MenuPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 pb-28">
+    <main className="mx-auto w-full max-w-3xl lg:max-w-6xl px-4 pb-28">
       <Suspense fallback={<MenuSkeleton />}>
         <Menu />
       </Suspense>
@@ -21,10 +21,11 @@ async function Menu() {
     <>
       <StoreHeader settings={settings} />
       <ActiveOrderBanner />
-      <MenuView categories={categories} isOpen={settings.is_open} />
-      <div className="mt-8">
-        <PaketDosCard settings={settings} />
-      </div>
+      <MenuView categories={categories} isOpen={settings.is_open}>
+        <div className="mt-8">
+          <PaketDosCard settings={settings} />
+        </div>
+      </MenuView>
     </>
   );
 }

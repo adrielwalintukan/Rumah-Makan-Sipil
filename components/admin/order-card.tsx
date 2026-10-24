@@ -389,7 +389,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
                 placeholder="Misal: Bahan baku ayam habis..."
-                className="h-10 w-full rounded-md border border-line bg-card px-3 text-sm text-ink-900 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100"
+                className="h-10 w-full rounded-md border border-line bg-card px-3 text-base sm:text-sm text-ink-900 outline-none transition focus:border-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus:ring-2 focus:ring-green-100"
               />
             </div>
 

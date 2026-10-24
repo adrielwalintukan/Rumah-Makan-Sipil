@@ -143,7 +143,7 @@ export function ExpenseFormDialog({
               value={expenseDate}
               max={todayStr}
               onChange={(e) => setExpenseDate(e.target.value)}
-              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
+              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-base sm:text-sm text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
               required
             />
           </div>
@@ -157,7 +157,7 @@ export function ExpenseFormDialog({
               id="expense-category"
               value={category}
               onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
+              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-base sm:text-sm text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
             >
               <option value="bahan">Bahan (Belanja Dapur / Mentah)</option>
               <option value="operasional">Operasional (Gas, Sabun, Listrik, Kebersihan)</option>
@@ -178,7 +178,7 @@ export function ExpenseFormDialog({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="Contoh: 50000"
-              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
+              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-base sm:text-sm text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
               required
             />
             {amount && !isNaN(parseInt(amount, 10)) && parseInt(amount, 10) > 0 && (
@@ -200,7 +200,7 @@ export function ExpenseFormDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Contoh: Beli Beras 5kg"
-              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
+              className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-base sm:text-sm text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
               required
             />
             <span className="text-right text-[11px] text-ink-500">
