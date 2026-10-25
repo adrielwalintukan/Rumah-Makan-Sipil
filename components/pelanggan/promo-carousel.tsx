@@ -56,15 +56,15 @@ export function PromoCarousel({
       eyebrow: "Menu unggulan",
       title: item.name,
       body: `${formatRupiah(item.price)}${item.description ? ` · ${item.description}` : ""}`,
-      // Foto penuh setinggi banner di sisi kanan; tepi kirinya di-mask transparan sehingga latar
+      // Foto penuh setinggi banner di sisi kanan; tepi kirinya di-mask transparan bertahap (ease-in) sehingga latar
       // banner tembus dan foto apa pun (latar putih, gelap, potret) menyatu tanpa garis batas.
       media: (
         <MenuPhoto
           name={item.name}
           imageUrl={item.image_url}
           category={category}
-          sizes="(min-width: 640px) 40vw, 55vw"
-          className="absolute inset-y-0 right-0 aspect-auto h-full w-[55%] rounded-none [mask-image:linear-gradient(to_right,transparent,black_45%)] sm:w-2/5"
+          sizes="(min-width: 1024px) 38vw, (min-width: 640px) 50vw, 60vw"
+          className="absolute inset-y-0 right-0 aspect-auto h-full w-[60%] rounded-none [mask-image:linear-gradient(to_right,transparent,rgb(0_0_0/0.12)_15%,rgb(0_0_0/0.45)_35%,rgb(0_0_0/0.8)_55%,black_75%)] sm:w-1/2 lg:w-[38%]"
         />
       ),
       action:
@@ -186,8 +186,15 @@ export function PromoCarousel({
             />
             <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 size-48 rounded-full bg-white/15 blur-2xl" />
             {s.media}
+            {/* Ilustrasi besar di sisi kanan di atas lingkaran sorot, sejajar dengan foto menu unggulan. */}
+            {s.Art && (
+              <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 flex w-[44%] items-center justify-center sm:w-2/5">
+                <div className={`absolute aspect-square w-[88%] max-w-60 rounded-full ${s.dark ? "bg-white/10" : "bg-green-700/10"}`} />
+                <s.Art className="relative w-full max-w-56 drop-shadow-xl" />
+              </div>
+            )}
             <div className="relative flex items-start gap-2">
-              <div className={`min-w-0 flex-1 ${s.media ? "max-w-[55%] sm:max-w-[58%]" : ""}`}>
+              <div className="min-w-0 max-w-[58%] flex-1">
                 <p
                   className={`inline-block rounded-full px-2.5 py-1 text-[11px] leading-none font-bold tracking-wider uppercase ${
                     s.dark ? "bg-white/15" : "bg-green-700 text-cream-50"
@@ -201,7 +208,6 @@ export function PromoCarousel({
                 <h2 className="mt-2 font-display text-xl leading-tight font-bold sm:text-2xl">{s.title}</h2>
                 <p className="mt-1.5 text-sm">{s.body}</p>
               </div>
-              {s.Art && (<s.Art className="-mt-1 -mr-2 w-24 shrink-0 drop-shadow-md sm:w-36 lg:w-44" />)}
             </div>
             {s.cta && (
               <a
