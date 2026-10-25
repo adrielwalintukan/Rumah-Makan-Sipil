@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(6);
+select plan(7);
 
 insert into auth.users (id, email)
 values
@@ -17,8 +17,11 @@ on conflict do nothing;
 insert into public.categories (id, name, sort_order)
 values ('11111111-1111-1111-1111-1111111111f1'::uuid, 'Kategori Unggulan', 1);
 
-insert into public.menu_items (id, category_id, name, price)
-values ('33333333-3333-3333-3333-3333333333f1'::uuid, '11111111-1111-1111-1111-1111111111f1'::uuid, 'Menu Unggulan Uji', 12000);
+insert into public.menu_items (id, category_id, name, price, is_featured, is_active)
+values
+  ('33333333-3333-3333-3333-3333333333f1'::uuid, '11111111-1111-1111-1111-1111111111f1'::uuid, 'Menu Unggulan Uji', 12000, false, true),
+  -- Menu terhapus lunak yang masih ber-flag unggulan tidak boleh sampai ke banner pelanggan
+  ('33333333-3333-3333-3333-3333333333f2'::uuid, '11111111-1111-1111-1111-1111111111f1'::uuid, 'Menu Unggulan Nonaktif', 9000, true, false);
 
 select col_not_null('public', 'menu_items', 'is_featured', 'is_featured wajib terisi');
 select is(
@@ -33,6 +36,11 @@ select is(
   (select is_featured from public.menu_items where id = '33333333-3333-3333-3333-3333333333f1'::uuid),
   false,
   'anon bisa membaca is_featured menu aktif'
+);
+select is(
+  (select count(*) from public.menu_items where is_featured),
+  0::bigint,
+  'menu unggulan yang nonaktif tidak terlihat oleh anon (tidak dipromosikan di banner)'
 );
 update public.menu_items set is_featured = true where id = '33333333-3333-3333-3333-3333333333f1'::uuid;
 reset role;

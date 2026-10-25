@@ -982,6 +982,37 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(mockRevalidatePath).toHaveBeenCalledWith("/");
     });
 
+    it("mengembalikan 404 saat toggle menu unggulan pada menu nonaktif/terhapus", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const isActiveFilters: unknown[] = [];
+
+      mockFrom.mockReturnValueOnce({
+        update: () => ({
+          eq: () => ({
+            eq: (column: string, value: unknown) => {
+              isActiveFilters.push([column, value]);
+              return {
+                select: () => ({
+                  maybeSingle: () => Promise.resolve({ data: null, error: null }),
+                }),
+              };
+            },
+          }),
+        }),
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_featured: true }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+      expect(res.status).toBe(404);
+      expect(isActiveFilters).toEqual([["is_active", true]]);
+    });
+
     it("menolak toggle menu unggulan dengan nilai bukan boolean (400)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
       const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
