@@ -162,3 +162,21 @@ test("tablet & desktop: grid 2 kolom tanpa scroll horizontal", async ({ page }) 
     await page.screenshot({ path: `test-results/layar/menu-${name}.png` });
   }
 });
+
+test("banner geser: titik indikator dan geser manual menyinkronkan slide aktif (US-07)", async ({ page }) => {
+  await page.goto("/");
+  const banner = page.locator('section[aria-roledescription="carousel"]');
+  const dots = banner.getByRole("button", { name: /^Tampilkan banner/ });
+  const track = banner.getByRole("list");
+  const last = (await dots.count()) - 1;
+
+  // Ketuk titik terakhir: slide terakhir aktif (sekaligus menghentikan geser otomatis)
+  await dots.nth(last).click();
+  await expect(dots.nth(last)).toHaveAttribute("aria-current", "true");
+
+  // Geser manual ke awal dan ke akhir track (di viewport HP dengan gutter halaman)
+  await track.evaluate((el) => el.scrollTo({ left: 0 }));
+  await expect(dots.nth(0)).toHaveAttribute("aria-current", "true");
+  await track.evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
+  await expect(dots.nth(last)).toHaveAttribute("aria-current", "true");
+});

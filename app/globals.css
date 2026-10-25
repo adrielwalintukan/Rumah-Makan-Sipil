@@ -39,6 +39,24 @@
 
   --shadow-card: 0 1px 2px rgb(31 61 43 / 0.06), 0 2px 8px rgb(31 61 43 / 0.06);
   --shadow-sheet: 0 -8px 24px rgb(31 61 43 / 0.12);
+
+  /* Animasi ilustrasi hero & banner (design-system §8); dimatikan untuk reduced-motion. */
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-drift: drift 6s ease-in-out infinite;
+  --animate-steam: steam 2.4s ease-out infinite;
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(3px, -8px) rotate(12deg); }
+  }
+  @keyframes steam {
+    0% { transform: translateY(6px); opacity: 0; }
+    40% { opacity: 0.85; }
+    100% { transform: translateY(-10px); opacity: 0; }
+  }
 }
 
 @theme inline {

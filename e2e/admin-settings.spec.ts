@@ -255,10 +255,10 @@ test("alur pengaturan toko: ubah profil, upload QRIS natural ratio, validasi gan
   // Verifikasi tagline baru di header toko
   await expect(page.getByText(NEW_TAGLINE)).toBeVisible();
 
-  // Verifikasi bagian Paket Dos merefleksikan harga baru (Rp3.500 / dos)
-  const paketDosSection = page.locator("section[aria-labelledby='paket-dos']");
+  // Verifikasi slide Paket Dos di banner geser merefleksikan harga baru (Rp3.500 / dos)
+  const paketDosSection = page.getByRole("listitem", { name: /Paket Makanan Dos/ });
   await expect(paketDosSection).toBeVisible();
-  await expect(paketDosSection.getByText("Rp3.500 / dos")).toBeVisible();
+  await expect(paketDosSection.getByText(/Rp3\.500 \/ dos/)).toBeVisible();
 
   // Verifikasi tautan WhatsApp paket dos memuat nomor WhatsApp baru, nama toko baru, dan harga baru
   const waOrderLink = paketDosSection.getByRole("link", { name: /Pesan via WhatsApp/i });
