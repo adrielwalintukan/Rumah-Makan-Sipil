@@ -297,7 +297,7 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
             >
               Nama Toko <span className="text-danger">*</span>
             </label>
-            <span className="text-xs text-ink-500">{storeName.length}/100</span>
+            <span className="text-xs text-ink-600">{storeName.length}/100</span>
           </div>
           <Input
             id="settings-store-name"
@@ -340,9 +340,9 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
               className="text-sm font-semibold text-ink-900"
             >
               Tagline Toko{" "}
-              <span className="text-xs font-normal text-ink-500">(Opsional)</span>
+              <span className="text-xs font-normal text-ink-600">(Opsional)</span>
             </label>
-            <span className="text-xs text-ink-500">{tagline.length}/150</span>
+            <span className="text-xs text-ink-600">{tagline.length}/150</span>
           </div>
           <Input
             id="settings-tagline"
@@ -440,7 +440,7 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
           </div>
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <span className="text-sm font-semibold text-ink-500">Rp</span>
+              <span className="text-sm font-semibold text-ink-600">Rp</span>
             </div>
             <Input
               id="settings-dos-price"
@@ -561,14 +561,14 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
               </div>
 
               {selectedFileName && (
-                <p className="text-xs text-ink-500 truncate max-w-xs text-center">
+                <p className="text-xs text-ink-600 truncate max-w-xs text-center">
                   Gambar baru: {selectedFileName}
                 </p>
               )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-line bg-cream-50/60 p-6 text-center max-w-sm mx-auto gap-3 my-2 w-full">
-              <div className="flex size-14 items-center justify-center rounded-full bg-cream-100 text-ink-500">
+              <div className="flex size-14 items-center justify-center rounded-full bg-cream-100 text-ink-600">
                 <QrCode className="size-8" aria-hidden="true" />
               </div>
               <div className="flex flex-col gap-1">
@@ -581,7 +581,7 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
               </div>
 
               {isProcessingImage ? (
-                <div className="flex items-center gap-2 text-ink-700 min-h-[44px]">
+                <div className="flex items-center gap-2 text-ink-600 min-h-[44px]">
                   <Loader2
                     className="size-5 animate-spin text-green-700 motion-reduce:animate-none"
                     aria-hidden="true"

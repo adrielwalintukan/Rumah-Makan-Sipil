@@ -38,7 +38,7 @@ export function DeleteExpenseDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/40 p-4 backdrop-blur-xs transition-opacity"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4 backdrop-blur-xs transition-opacity"
       role="dialog"
       aria-modal="true"
       aria-labelledby="delete-dialog-title"
@@ -50,11 +50,11 @@ export function DeleteExpenseDialog({
         <p className="mt-2 text-sm text-ink-600">
           Apakah Anda yakin ingin menghapus catatan pengeluaran{" "}
           <strong className="text-ink-900">&quot;{expense.description}&quot;</strong> sebesar{" "}
-          <strong className="text-red-700">{formatRupiah(expense.amount)}</strong>?
+          <strong className="text-danger">{formatRupiah(expense.amount)}</strong>?
         </p>
 
         {errorMsg && (
-          <div className="mt-3 rounded-lg bg-red-50 p-2.5 text-xs text-red-800" role="alert">
+          <div className="mt-3 rounded-lg bg-danger-bg p-2.5 text-xs text-danger" role="alert">
             {errorMsg}
           </div>
         )}
@@ -64,7 +64,7 @@ export function DeleteExpenseDialog({
             type="button"
             onClick={onClose}
             disabled={isDeleting}
-            className="min-h-[44px] min-w-[44px] rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-cream-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
+            className="min-h-[44px] min-w-[44px] rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink-600 hover:bg-cream-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
           >
             Batal
           </button>
@@ -72,7 +72,7 @@ export function DeleteExpenseDialog({
             type="button"
             onClick={handleDelete}
             disabled={isDeleting}
-            className="min-h-[44px] min-w-[44px] rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-red-700 disabled:opacity-50"
+            className="min-h-[44px] min-w-[44px] rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-danger/90 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-danger disabled:opacity-50"
           >
             {isDeleting ? "Menghapus..." : "Hapus Pengeluaran"}
           </button>

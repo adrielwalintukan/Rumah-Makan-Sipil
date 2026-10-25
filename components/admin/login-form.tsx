@@ -73,7 +73,7 @@ export function LoginForm() {
       )}
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="admin-email" className="text-xs font-bold tracking-wider text-ink-700 uppercase">
+        <label htmlFor="admin-email" className="text-xs font-bold tracking-wider text-ink-600 uppercase">
           Email Pemilik
         </label>
         <div className="relative">
@@ -94,7 +94,7 @@ export function LoginForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="admin-password" className="text-xs font-bold tracking-wider text-ink-700 uppercase">
+        <label htmlFor="admin-password" className="text-xs font-bold tracking-wider text-ink-600 uppercase">
           Kata Sandi
         </label>
         <div className="relative">

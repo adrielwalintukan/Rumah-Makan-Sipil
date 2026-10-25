@@ -95,7 +95,7 @@ export function HistoryOrderList({
         );
       case "dimasak":
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900 border border-amber-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-warning-bg px-2 py-0.5 text-xs font-semibold text-warning border border-warning/30">
             <Flame className="size-3" aria-hidden />
             <span>Dimasak</span>
           </span>
@@ -135,7 +135,7 @@ export function HistoryOrderList({
         );
       case "menunggu_verifikasi":
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900 border border-amber-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-warning-bg px-2 py-0.5 text-xs font-semibold text-warning border border-warning/30">
             <Clock className="size-3" aria-hidden />
             <span>Verifikasi</span>
           </span>
@@ -153,7 +153,7 @@ export function HistoryOrderList({
   if (!orders || orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-line bg-card p-8 sm:p-12 text-center shadow-xs">
-        <div className="flex size-14 items-center justify-center rounded-full bg-cream-100 text-ink-500 mb-4">
+        <div className="flex size-14 items-center justify-center rounded-full bg-cream-100 text-ink-600 mb-4">
           <Inbox className="size-7" aria-hidden />
         </div>
         <h3 className="font-display text-lg font-bold text-ink-900">
@@ -197,7 +197,7 @@ export function HistoryOrderList({
                   <span className="font-display text-lg sm:text-xl font-bold text-green-900 group-hover:text-green-700">
                     {dailyNum}
                   </span>
-                  <span className="text-xs text-ink-500 font-medium">
+                  <span className="text-xs text-ink-600 font-medium">
                     {timeFormatted}
                   </span>
                 </div>
@@ -205,8 +205,8 @@ export function HistoryOrderList({
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                     isDineIn
-                      ? "bg-cream-100 text-ink-800 border border-line"
-                      : "bg-brown-100 text-brown-900 border border-brown-200"
+                      ? "bg-cream-100 text-ink-900 border border-line"
+                      : "bg-brown-100 text-brown-700 border border-brown-500/30"
                   }`}
                 >
                   {isDineIn ? (

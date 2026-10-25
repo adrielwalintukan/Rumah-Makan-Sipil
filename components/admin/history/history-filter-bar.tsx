@@ -159,7 +159,7 @@ export function HistoryFilterBar({ currentParams }: HistoryFilterBarProps) {
               className={`inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg border px-3.5 py-2 text-sm font-semibold transition-colors ${
                 isActive
                   ? "border-green-700 bg-green-700 text-white shadow-xs"
-                  : "border-line bg-card text-ink-700 hover:bg-cream-100 hover:text-ink-900"
+                  : "border-line bg-card text-ink-600 hover:bg-cream-100 hover:text-ink-900"
               }`}
             >
               {item.label}

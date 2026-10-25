@@ -76,7 +76,7 @@ export function PaymentCard({ order, qrisImageUrl, onPaymentStatusChange }: Paym
       <div className="flex items-center justify-between border-b border-line pb-3">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold tracking-wide text-ink-900">PEMBAYARAN</span>
-          <span className="rounded-md border border-line bg-cream-50 px-2 py-0.5 text-xs font-bold text-ink-700 uppercase">
+          <span className="rounded-md border border-line bg-cream-50 px-2 py-0.5 text-xs font-bold text-ink-600 uppercase">
             {order.payment_method === "qris" ? "QRIS" : "Cash"}
           </span>
         </div>

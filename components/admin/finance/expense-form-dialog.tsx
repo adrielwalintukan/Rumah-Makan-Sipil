@@ -103,7 +103,7 @@ export function ExpenseFormDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink-950/40 p-0 sm:p-4 backdrop-blur-xs transition-opacity"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink-900/40 p-0 sm:p-4 backdrop-blur-xs transition-opacity"
       role="dialog"
       aria-modal="true"
       aria-labelledby="expense-dialog-title"
@@ -117,7 +117,7 @@ export function ExpenseFormDialog({
           <button
             type="button"
             onClick={onClose}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-ink-500 hover:bg-cream-100 hover:text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-ink-600 hover:bg-cream-100 hover:text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
             aria-label="Tutup form pengeluaran"
           >
             <X className="size-5" aria-hidden="true" />
@@ -127,14 +127,14 @@ export function ExpenseFormDialog({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5 overflow-y-auto">
           {errorMsg && (
-            <div className="rounded-lg bg-red-50 p-3 text-xs font-medium text-red-800" role="alert">
+            <div className="rounded-lg bg-danger-bg p-3 text-xs font-medium text-danger" role="alert">
               {errorMsg}
             </div>
           )}
 
           {/* Tanggal */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="expense-date" className="text-xs font-semibold text-ink-800">
+            <label htmlFor="expense-date" className="text-xs font-semibold text-ink-900">
               Tanggal Transaksi
             </label>
             <input
@@ -150,7 +150,7 @@ export function ExpenseFormDialog({
 
           {/* Kategori */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="expense-category" className="text-xs font-semibold text-ink-800">
+            <label htmlFor="expense-category" className="text-xs font-semibold text-ink-900">
               Kategori Pengeluaran
             </label>
             <select
@@ -167,7 +167,7 @@ export function ExpenseFormDialog({
 
           {/* Nominal */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="expense-amount" className="text-xs font-semibold text-ink-800">
+            <label htmlFor="expense-amount" className="text-xs font-semibold text-ink-900">
               Nominal (Rupiah)
             </label>
             <input
@@ -190,7 +190,7 @@ export function ExpenseFormDialog({
 
           {/* Keterangan */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="expense-description" className="text-xs font-semibold text-ink-800">
+            <label htmlFor="expense-description" className="text-xs font-semibold text-ink-900">
               Keterangan Pengeluaran (Maks 100 Karakter)
             </label>
             <input
@@ -203,7 +203,7 @@ export function ExpenseFormDialog({
               className="min-h-[44px] rounded-lg border border-line bg-card px-3 py-2 text-base sm:text-sm text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
               required
             />
-            <span className="text-right text-[11px] text-ink-500">
+            <span className="text-right text-[11px] text-ink-600">
               {description.length}/100
             </span>
           </div>
@@ -214,7 +214,7 @@ export function ExpenseFormDialog({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="min-h-[44px] min-w-[44px] rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-cream-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
+              className="min-h-[44px] min-w-[44px] rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink-600 hover:bg-cream-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700"
             >
               Batal
             </button>

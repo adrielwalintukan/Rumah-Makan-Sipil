@@ -406,7 +406,7 @@ export function MenuManagementView({
               "inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold min-h-[44px] transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700",
               activeCategoryId === "all"
                 ? "bg-green-700 text-white shadow-xs"
-                : "border border-line bg-card text-ink-700 hover:bg-cream-100 hover:text-ink-900"
+                : "border border-line bg-card text-ink-600 hover:bg-cream-100 hover:text-ink-900"
             )}
             aria-pressed={activeCategoryId === "all"}
           >
@@ -435,7 +435,7 @@ export function MenuManagementView({
                   "inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold min-h-[44px] transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700",
                   isSelected
                     ? "bg-green-700 text-white shadow-xs"
-                    : "border border-line bg-card text-ink-700 hover:bg-cream-100 hover:text-ink-900"
+                    : "border border-line bg-card text-ink-600 hover:bg-cream-100 hover:text-ink-900"
                 )}
                 aria-pressed={isSelected}
               >
@@ -581,7 +581,7 @@ export function MenuManagementView({
                         {item.name}
                       </h2>
                       {categoryName && (
-                        <span className="inline-flex items-center rounded-sm bg-cream-100 px-2 py-0.5 text-xs font-medium text-ink-700">
+                        <span className="inline-flex items-center rounded-sm bg-cream-100 px-2 py-0.5 text-xs font-medium text-ink-600">
                           {categoryName}
                         </span>
                       )}
@@ -639,8 +639,8 @@ export function MenuManagementView({
                       className={cn(
                         "flex items-center gap-2.5 rounded-lg border px-3 py-1.5 min-h-[44px] transition-colors cursor-pointer select-none text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 disabled:opacity-50 disabled:cursor-not-allowed",
                         item.is_available
-                          ? "border-green-600/30 bg-green-50/70 hover:bg-green-100/70 text-green-950"
-                          : "border-line bg-cream-100/70 hover:bg-cream-200/70 text-ink-700"
+                          ? "border-green-600/30 bg-green-50/70 hover:bg-green-100/70 text-green-900"
+                          : "border-line bg-cream-100/70 hover:bg-cream-200/70 text-ink-600"
                       )}
                       aria-label={`Status ketersediaan ${item.name}: ${
                         item.is_available ? "Tersedia" : "Habis"
@@ -696,7 +696,7 @@ export function MenuManagementView({
                       variant="outline"
                       size="sm"
                       asChild
-                      className="min-h-[44px] px-3.5 text-sm text-ink-800 hover:text-green-800"
+                      className="min-h-[44px] px-3.5 text-sm text-ink-900 hover:text-green-800"
                     >
                       <Link
                         href={`/admin/menu/${item.id}`}

@@ -48,8 +48,8 @@ export function ReportTopItems({ topItems }: ReportTopItemsProps) {
                   <div
                     className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs ${
                       isRank1
-                        ? "bg-amber-100 text-amber-900 font-bold border border-amber-300"
-                        : "bg-cream-100 text-ink-700 font-medium"
+                        ? "bg-warning-bg text-warning font-bold border border-warning/30"
+                        : "bg-cream-100 text-ink-600 font-medium"
                     }`}
                   >
                     {rank}

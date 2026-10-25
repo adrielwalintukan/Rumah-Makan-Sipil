@@ -160,7 +160,7 @@ export function OrderDetailSheet({
         );
       case "dimasak":
         return (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900 border border-amber-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-warning-bg px-2.5 py-1 text-xs font-semibold text-warning border border-warning/30">
             <Flame className="size-3.5" aria-hidden />
             <span>Sedang Dimasak</span>
           </span>
@@ -200,7 +200,7 @@ export function OrderDetailSheet({
         );
       case "menunggu_verifikasi":
         return (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900 border border-amber-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-warning-bg px-2.5 py-1 text-xs font-semibold text-warning border border-warning/30">
             <Clock className="size-3.5" aria-hidden />
             <span>Menunggu Verifikasi</span>
           </span>
@@ -217,7 +217,7 @@ export function OrderDetailSheet({
 
   const renderPaymentMethodBadge = (method: PaymentMethod) => {
     return (
-      <span className="rounded-md border border-line bg-card px-2.5 py-1 text-xs font-bold text-ink-700 uppercase">
+      <span className="rounded-md border border-line bg-card px-2.5 py-1 text-xs font-bold text-ink-600 uppercase">
         {method === "qris" ? "QRIS" : "Tunai (Cash)"}
       </span>
     );
@@ -275,8 +275,8 @@ export function OrderDetailSheet({
               <span
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
                   isDineIn
-                    ? "bg-cream-100 text-ink-800 border border-line"
-                    : "bg-brown-100 text-brown-900 border border-brown-200"
+                    ? "bg-cream-100 text-ink-900 border border-line"
+                    : "bg-brown-100 text-brown-700 border border-brown-500/30"
                 }`}
               >
                 {isDineIn ? (
@@ -310,7 +310,7 @@ export function OrderDetailSheet({
           </h4>
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <User className="size-4 text-ink-500 shrink-0" aria-hidden />
+              <User className="size-4 text-ink-600 shrink-0" aria-hidden />
               <span className="font-semibold text-ink-900 text-sm">
                 {activeOrder.customer_name}
               </span>
@@ -318,13 +318,13 @@ export function OrderDetailSheet({
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-line/60">
               <div className="flex items-center gap-2 text-xs">
-                <Phone className="size-3.5 text-ink-500 shrink-0" aria-hidden />
+                <Phone className="size-3.5 text-ink-600 shrink-0" aria-hidden />
                 {activeOrder.customer_phone ? (
                   <span className="font-medium text-ink-900">
                     {activeOrder.customer_phone}
                   </span>
                 ) : (
-                  <span className="text-ink-500 italic">
+                  <span className="text-ink-600 italic">
                     Tidak ada nomor telepon
                   </span>
                 )}
@@ -352,15 +352,15 @@ export function OrderDetailSheet({
           </h4>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div>
-              <span className="text-ink-500 block mb-1">Status Masak:</span>
+              <span className="text-ink-600 block mb-1">Status Masak:</span>
               {renderOrderStatusBadge(activeOrder.status)}
             </div>
             <div>
-              <span className="text-ink-500 block mb-1">Status Bayar:</span>
+              <span className="text-ink-600 block mb-1">Status Bayar:</span>
               {renderPaymentStatusBadge(activeOrder.payment_status)}
             </div>
             <div className="col-span-2 pt-1.5 border-t border-line/60 flex items-center justify-between">
-              <span className="text-ink-500">Metode Bayar:</span>
+              <span className="text-ink-600">Metode Bayar:</span>
               {renderPaymentMethodBadge(activeOrder.payment_method)}
             </div>
           </div>
@@ -372,7 +372,7 @@ export function OrderDetailSheet({
                 <Ban className="size-3.5 shrink-0" aria-hidden />
                 <span>Alasan Pembatalan:</span>
               </p>
-              <p className="mt-1 text-ink-800 font-medium">
+              <p className="mt-1 text-ink-900 font-medium">
                 {activeOrder.cancel_reason ||
                   "Tidak ada catatan alasan pembatalan."}
               </p>
@@ -421,7 +421,7 @@ export function OrderDetailSheet({
 
                     {item.note && (
                       <div className="pl-5 pt-0.5">
-                        <span className="inline-block rounded bg-amber-50 px-2 py-0.5 text-xs italic text-amber-900 border border-amber-200/60">
+                        <span className="inline-block rounded bg-warning-bg px-2 py-0.5 text-xs italic text-warning border border-warning/30">
                           Catatan: &ldquo;{item.note}&rdquo;
                         </span>
                       </div>
@@ -430,7 +430,7 @@ export function OrderDetailSheet({
                 );
               })
             ) : (
-              <p className="text-xs text-ink-500 italic py-2">
+              <p className="text-xs text-ink-600 italic py-2">
                 Tidak ada data rincian item.
               </p>
             )}
@@ -439,7 +439,7 @@ export function OrderDetailSheet({
 
         {/* 4. Rincian Total Pesanan */}
         <div className="rounded-xl border border-line bg-cream-50 p-4 flex items-center justify-between">
-          <span className="text-sm font-bold text-ink-700 uppercase tracking-wider">
+          <span className="text-sm font-bold text-ink-600 uppercase tracking-wider">
             Total Pesanan
           </span>
           <span className="font-display text-2xl font-bold text-green-900 tabular-nums">
@@ -488,7 +488,7 @@ export function OrderDetailSheet({
             type="button"
             onClick={onClose}
             data-testid="order-detail-close-button"
-            className="inline-flex min-h-[44px] min-w-[44px] w-full sm:w-auto items-center justify-center rounded-lg border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-cream-100 transition-colors"
+            className="inline-flex min-h-[44px] min-w-[44px] w-full sm:w-auto items-center justify-center rounded-lg border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink-600 hover:bg-cream-100 transition-colors"
           >
             Tutup
           </button>

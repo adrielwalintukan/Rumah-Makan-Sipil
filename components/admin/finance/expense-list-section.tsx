@@ -70,7 +70,7 @@ export function ExpenseListSection({
             className={`min-h-[44px] min-w-[44px] rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700 ${
               filterCategory === cat
                 ? "bg-ink-900 text-white shadow-xs"
-                : "border border-line bg-cream-100 text-ink-700 hover:bg-cream-200"
+                : "border border-line bg-cream-100 text-ink-600 hover:bg-cream-200"
             }`}
           >
             {cat}
@@ -90,7 +90,7 @@ export function ExpenseListSection({
           {/* Desktop Table (>= 640px) */}
           <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-line bg-cream-50 text-xs font-semibold uppercase tracking-wider text-ink-700">
+              <thead className="border-b border-line bg-cream-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
                 <tr>
                   <th scope="col" className="px-4 py-3">Tanggal</th>
                   <th scope="col" className="px-4 py-3">Keterangan</th>
@@ -109,11 +109,11 @@ export function ExpenseListSection({
                       {expense.description}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-block rounded-md bg-cream-200 px-2 py-0.5 text-xs font-semibold capitalize text-ink-800">
+                      <span className="inline-block rounded-md bg-cream-200 px-2 py-0.5 text-xs font-semibold capitalize text-ink-900">
                         {expense.category}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-red-800 tabular-nums whitespace-nowrap">
+                    <td className="px-4 py-3 text-right font-bold text-danger tabular-nums whitespace-nowrap">
                       {formatRupiah(expense.amount)}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -129,7 +129,7 @@ export function ExpenseListSection({
                         <button
                           type="button"
                           onClick={() => onDeleteExpense(expense)}
-                          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-red-600 hover:bg-red-50 hover:text-red-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-red-600"
+                          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-danger hover:bg-danger-bg hover:text-danger focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-danger"
                           aria-label={`Hapus pengeluaran ${expense.description}`}
                         >
                           <Trash2 className="size-4" aria-hidden="true" />
@@ -151,26 +151,26 @@ export function ExpenseListSection({
               >
                 <div className="flex items-start justify-between gap-2 border-b border-line pb-2">
                   <div>
-                    <span className="text-xs text-ink-500">
+                    <span className="text-xs text-ink-600">
                       {formatDateIndo(expense.expense_date)}
                     </span>
                     <h3 className="font-semibold text-ink-900 text-sm">
                       {expense.description}
                     </h3>
                   </div>
-                  <span className="font-bold text-red-800 text-sm tabular-nums whitespace-nowrap">
+                  <span className="font-bold text-danger text-sm tabular-nums whitespace-nowrap">
                     {formatRupiah(expense.amount)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between pt-1">
-                  <span className="rounded-md bg-cream-200 px-2 py-0.5 text-xs font-semibold capitalize text-ink-800">
+                  <span className="rounded-md bg-cream-200 px-2 py-0.5 text-xs font-semibold capitalize text-ink-900">
                     {expense.category}
                   </span>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => onEditExpense(expense)}
-                      className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-ink-700 hover:bg-cream-100"
+                      className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-ink-600 hover:bg-cream-100"
                       aria-label={`Ubah pengeluaran ${expense.description}`}
                     >
                       <Edit2 className="size-4" aria-hidden="true" />
@@ -178,7 +178,7 @@ export function ExpenseListSection({
                     <button
                       type="button"
                       onClick={() => onDeleteExpense(expense)}
-                      className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-red-600 hover:bg-red-50"
+                      className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-danger hover:bg-danger-bg"
                       aria-label={`Hapus pengeluaran ${expense.description}`}
                     >
                       <Trash2 className="size-4" aria-hidden="true" />

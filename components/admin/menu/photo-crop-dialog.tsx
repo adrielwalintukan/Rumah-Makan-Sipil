@@ -234,7 +234,7 @@ export function PhotoCropDialog({
 
           {/* Kontrol Zoom & Reset */}
           <div className="space-y-2 bg-surface-warm-50 p-3 rounded-lg border border-border-warm-200">
-            <div className="flex items-center justify-between text-xs font-semibold text-ink-800">
+            <div className="flex items-center justify-between text-xs font-semibold text-ink-900">
               <label htmlFor="photo-zoom-slider">Skala / Zoom</label>
               <span className="text-ink-600 font-mono">
                 {Math.round(transform.zoom * 100)}%
@@ -250,7 +250,7 @@ export function PhotoCropDialog({
                 className="size-11 min-h-[44px] min-w-[44px] p-0 flex items-center justify-center shrink-0"
                 aria-label="Perkecil zoom foto"
               >
-                <Minus className="size-4 text-ink-700" aria-hidden />
+                <Minus className="size-4 text-ink-600" aria-hidden />
               </Button>
 
               <input
@@ -273,7 +273,7 @@ export function PhotoCropDialog({
                 className="size-11 min-h-[44px] min-w-[44px] p-0 flex items-center justify-center shrink-0"
                 aria-label="Perbesar zoom foto"
               >
-                <Plus className="size-4 text-ink-700" aria-hidden />
+                <Plus className="size-4 text-ink-600" aria-hidden />
               </Button>
             </div>
 

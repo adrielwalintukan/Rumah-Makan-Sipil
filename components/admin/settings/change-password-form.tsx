@@ -197,7 +197,7 @@ export function ChangePasswordForm() {
                   ? "Sembunyikan password baru"
                   : "Tampilkan password baru"
               }
-              className="absolute right-0 top-0 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-r-md text-ink-500 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
+              className="absolute right-0 top-0 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-r-md text-ink-600 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
             >
               {showNewPassword ? (
                 <EyeOff className="size-4 shrink-0" aria-hidden="true" />
@@ -268,7 +268,7 @@ export function ChangePasswordForm() {
                   ? "Sembunyikan konfirmasi password"
                   : "Tampilkan konfirmasi password"
               }
-              className="absolute right-0 top-0 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-r-md text-ink-500 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
+              className="absolute right-0 top-0 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-r-md text-ink-600 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700"
             >
               {showConfirmPassword ? (
                 <EyeOff className="size-4 shrink-0" aria-hidden="true" />

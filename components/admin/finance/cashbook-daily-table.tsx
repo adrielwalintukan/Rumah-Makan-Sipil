@@ -43,7 +43,7 @@ export function CashbookDailyTable({ daily }: CashbookDailyTableProps) {
           {/* Desktop Table (>= 640px) */}
           <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-line bg-cream-50 text-xs font-semibold uppercase tracking-wider text-ink-700">
+              <thead className="border-b border-line bg-cream-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
                 <tr>
                   <th scope="col" className="px-4 py-3">Tanggal</th>
                   <th scope="col" className="px-4 py-3 text-right">Pemasukan</th>
@@ -64,7 +64,7 @@ export function CashbookDailyTable({ daily }: CashbookDailyTableProps) {
                       <td className="px-4 py-3 text-right font-medium text-green-800 tabular-nums">
                         {formatRupiah(item.income)}
                       </td>
-                      <td className="px-4 py-3 text-right font-medium text-red-800 tabular-nums">
+                      <td className="px-4 py-3 text-right font-medium text-danger tabular-nums">
                         {formatRupiah(item.expense)}
                       </td>
                       <td
@@ -72,8 +72,8 @@ export function CashbookDailyTable({ daily }: CashbookDailyTableProps) {
                           isPositive
                             ? "text-green-800"
                             : isNegative
-                            ? "text-red-800"
-                            : "text-ink-700"
+                            ? "text-danger"
+                            : "text-ink-600"
                         }`}
                       >
                         {isPositive ? `+${formatRupiah(item.grossProfit)}` : formatRupiah(item.grossProfit)}
@@ -105,8 +105,8 @@ export function CashbookDailyTable({ daily }: CashbookDailyTableProps) {
                         isPositive
                           ? "text-green-800"
                           : isNegative
-                          ? "text-red-800"
-                          : "text-ink-700"
+                          ? "text-danger"
+                          : "text-ink-600"
                       }`}
                     >
                       {isPositive ? `+${formatRupiah(item.grossProfit)}` : formatRupiah(item.grossProfit)}
@@ -114,14 +114,14 @@ export function CashbookDailyTable({ daily }: CashbookDailyTableProps) {
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-ink-500">Pemasukan: </span>
+                      <span className="text-ink-600">Pemasukan: </span>
                       <span className="font-semibold text-green-800 tabular-nums">
                         {formatRupiah(item.income)}
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-ink-500">Pengeluaran: </span>
-                      <span className="font-semibold text-red-800 tabular-nums">
+                      <span className="text-ink-600">Pengeluaran: </span>
+                      <span className="font-semibold text-danger tabular-nums">
                         {formatRupiah(item.expense)}
                       </span>
                     </div>

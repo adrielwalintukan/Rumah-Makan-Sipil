@@ -238,7 +238,7 @@ export function QrPosterDashboard({
                   ? "Unduh Word dinonaktifkan di production karena URL masih localhost"
                   : "Unduh Dokumen Word"
               }
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-line bg-white px-4 py-2.5 font-sans text-sm font-semibold text-ink-800 shadow-2xs hover:bg-cream-50 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-line bg-white px-4 py-2.5 font-sans text-sm font-semibold text-ink-900 shadow-2xs hover:bg-cream-50 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isDownloadingWord ? (
                 <>

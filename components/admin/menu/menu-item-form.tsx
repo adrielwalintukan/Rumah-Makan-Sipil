@@ -464,7 +464,7 @@ export function MenuItemForm({
               )}
             </select>
             <ChevronDown
-              className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-500"
+              className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-600"
               aria-hidden
             />
           </div>
@@ -486,7 +486,7 @@ export function MenuItemForm({
             <label htmlFor="name" className="text-sm font-semibold text-ink-900">
               Nama Menu <span className="text-danger">*</span>
             </label>
-            <span className="text-xs text-ink-500">{name.length}/80</span>
+            <span className="text-xs text-ink-600">{name.length}/80</span>
           </div>
           <Input
             id="name"
@@ -538,7 +538,7 @@ export function MenuItemForm({
           </div>
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <span className="text-sm font-semibold text-ink-500">Rp</span>
+              <span className="text-sm font-semibold text-ink-600">Rp</span>
             </div>
             <Input
               id="price"
@@ -583,11 +583,11 @@ export function MenuItemForm({
               className="text-sm font-semibold text-ink-900"
             >
               Deskripsi{" "}
-              <span className="text-xs font-normal text-ink-500">
+              <span className="text-xs font-normal text-ink-600">
                 (Opsional)
               </span>
             </label>
-            <span className="text-xs text-ink-500">
+            <span className="text-xs text-ink-600">
               {description.length}/500
             </span>
           </div>
@@ -713,7 +713,7 @@ export function MenuItemForm({
               </div>
 
               {photoFile && (
-                <p className="text-xs text-ink-500 truncate max-w-xs">
+                <p className="text-xs text-ink-600 truncate max-w-xs">
                   Foto baru: {photoFile.name}
                 </p>
               )}
@@ -726,7 +726,7 @@ export function MenuItemForm({
               )}
             >
               {isProcessingPhoto ? (
-                <div className="flex flex-col items-center justify-center gap-2 text-ink-700">
+                <div className="flex flex-col items-center justify-center gap-2 text-ink-600">
                   <Loader2
                     className="size-8 animate-spin text-green-700 motion-reduce:animate-none"
                     aria-hidden="true"
@@ -744,7 +744,7 @@ export function MenuItemForm({
                     <span className="text-sm font-semibold text-ink-900">
                       Belum ada foto menu
                     </span>
-                    <span className="text-xs text-ink-500">
+                    <span className="text-xs text-ink-600">
                       Rasio 4:3, maks. 5 MB
                     </span>
                   </div>
@@ -792,8 +792,8 @@ export function MenuItemForm({
             className={cn(
               "flex items-center justify-between gap-4 rounded-xl border p-3.5 min-h-[44px] transition-all motion-reduce:transition-none cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed",
               isAvailable
-                ? "border-green-600/30 bg-green-50/80 text-green-950 hover:bg-green-100/70"
-                : "border-line bg-cream-50/60 text-ink-700 hover:bg-cream-100/70"
+                ? "border-green-600/30 bg-green-50/80 text-green-900 hover:bg-green-100/70"
+                : "border-line bg-cream-50/60 text-ink-600 hover:bg-cream-100/70"
             )}
           >
             <div className="flex flex-col gap-0.5">
@@ -957,7 +957,7 @@ export function MenuItemForm({
               <Trash2 className="size-5 shrink-0" aria-hidden />
               <span>Hapus Menu</span>
             </DialogTitle>
-            <DialogDescription className="text-ink-700 pt-2 leading-relaxed">
+            <DialogDescription className="text-ink-600 pt-2 leading-relaxed">
               Hapus menu ini? Menu akan disembunyikan dari pelanggan, namun
               riwayat pesanan terdahulu tetap tersimpan.
             </DialogDescription>

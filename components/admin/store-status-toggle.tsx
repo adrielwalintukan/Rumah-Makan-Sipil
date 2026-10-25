@@ -80,7 +80,7 @@ export function StoreStatusToggle({
         onClick={handleToggle}
         className={`group flex items-center justify-between gap-3.5 rounded-xl border px-3 py-1.5 transition-all motion-reduce:transition-none min-h-[44px] cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed ${
           isOpen
-            ? "border-green-600/30 bg-green-50/80 text-green-950 hover:bg-green-100/70 hover:border-green-600/50"
+            ? "border-green-600/30 bg-green-50/80 text-green-900 hover:bg-green-100/70 hover:border-green-600/50"
             : "border-line bg-card text-ink-900 hover:bg-cream-50 hover:border-ink-400/40"
         }`}
       >
