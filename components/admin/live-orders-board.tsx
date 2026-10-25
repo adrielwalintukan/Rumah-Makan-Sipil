@@ -226,7 +226,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
             variant="outline"
             onClick={refreshOrders}
             disabled={isRefreshing}
-            className="h-8 border-danger/40 bg-card text-danger hover:bg-danger-bg"
+            className="h-11 border-danger/40 bg-card text-danger hover:bg-danger-bg"
           >
             <RefreshCw className={`size-3.5 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`} aria-hidden />
             Coba Lagi
@@ -261,7 +261,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
               connectionStatus === "connected"
                 ? "border-green-700/20 bg-green-50 text-green-800"
                 : connectionStatus === "connecting"
-                ? "border-amber-200 bg-amber-50 text-amber-800"
+                ? "border-warning/30 bg-warning-bg text-warning"
                 : "border-danger/30 bg-danger-bg text-danger"
             }`}
           >
@@ -291,10 +291,10 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
             size="sm"
             onClick={handleToggleSound}
             aria-pressed={isSoundEnabled}
-            className={`h-8 min-h-[36px] text-xs font-semibold ${
+            className={`h-11 text-sm font-semibold ${
               isSoundEnabled
                 ? "border-green-700/30 bg-green-50 text-green-800 hover:bg-green-100"
-                : "border-line text-ink-700 hover:bg-cream-100"
+                : "border-line text-ink-600 hover:bg-cream-100"
             }`}
           >
             {isSoundEnabled ? (
@@ -315,8 +315,8 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
             <span
               className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
                 isWakeLockActive
-                  ? "border-brown-200 bg-brown-50 text-brown-900"
-                  : "border-line bg-card text-ink-500"
+                  ? "border-brown-500/30 bg-brown-100 text-brown-700"
+                  : "border-line bg-card text-ink-600"
               }`}
               title={isWakeLockActive ? "Layar dijaga tetap menyala" : "Layar dapat meredup"}
             >
@@ -333,7 +333,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
             onClick={refreshOrders}
             disabled={isRefreshing}
             aria-label="Segarkan daftar pesanan"
-            className="h-8 min-h-[36px] border-line px-2.5 text-ink-700 hover:bg-cream-100"
+            className="size-11 border-line px-0 text-ink-600 hover:bg-cream-100"
           >
             <RefreshCw className={`size-3.5 ${isRefreshing ? "animate-spin" : ""}`} aria-hidden />
           </Button>
@@ -348,12 +348,12 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
           <div className="flex flex-col gap-3 rounded-xl border border-line bg-cream-50/70 p-3.5">
             <div className="flex items-center justify-between border-b border-line/60 pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="size-2.5 rounded-full bg-amber-500" />
+                <span className="size-2.5 rounded-full bg-warning" />
                 <h2 className="font-display text-sm font-bold text-ink-900">
                   Pesanan Baru
                 </h2>
               </div>
-              <span className="rounded-full bg-card border border-line px-2 py-0.5 text-xs font-bold text-ink-700">
+              <span className="rounded-full bg-card border border-line px-2 py-0.5 text-xs font-bold text-ink-600">
                 {ordersBaru.length}
               </span>
             </div>
@@ -370,7 +370,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
                 ))
               ) : (
                 <div className="flex flex-col items-center justify-center p-6 text-center text-ink-400">
-                  <Sparkles className="size-6 text-ink-300 mb-1" aria-hidden />
+                  <Sparkles className="size-6 text-ink-400 mb-1" aria-hidden />
                   <p className="text-xs font-medium">Tidak ada pesanan baru</p>
                 </div>
               )}
@@ -386,7 +386,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
                   Sedang Dimasak
                 </h2>
               </div>
-              <span className="rounded-full bg-card border border-line px-2 py-0.5 text-xs font-bold text-ink-700">
+              <span className="rounded-full bg-card border border-line px-2 py-0.5 text-xs font-bold text-ink-600">
                 {ordersDimasak.length}
               </span>
             </div>
@@ -403,7 +403,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
                 ))
               ) : (
                 <div className="flex flex-col items-center justify-center p-6 text-center text-ink-400">
-                  <Utensils className="size-6 text-ink-300 mb-1" aria-hidden />
+                  <Utensils className="size-6 text-ink-400 mb-1" aria-hidden />
                   <p className="text-xs font-medium">Dapur sedang santai</p>
                 </div>
               )}
@@ -419,7 +419,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
                   Siap Diambil
                 </h2>
               </div>
-              <span className="rounded-full bg-card border border-line px-2 py-0.5 text-xs font-bold text-ink-700">
+              <span className="rounded-full bg-card border border-line px-2 py-0.5 text-xs font-bold text-ink-600">
                 {ordersSiap.length}
               </span>
             </div>
@@ -507,9 +507,9 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
             </div>
           ) : (
             <div className="rounded-xl border border-line bg-card p-8 text-center">
-              <Utensils className="mx-auto size-10 text-ink-300 mb-2" aria-hidden />
-              <p className="font-semibold text-ink-800">Belum ada pesanan aktif</p>
-              <p className="text-xs text-ink-500 mt-1">
+              <Utensils className="mx-auto size-10 text-ink-400 mb-2" aria-hidden />
+              <p className="font-semibold text-ink-900">Belum ada pesanan aktif</p>
+              <p className="text-xs text-ink-600 mt-1">
                 Pesanan baru yang masuk akan otomatis tampil di sini.
               </p>
             </div>
