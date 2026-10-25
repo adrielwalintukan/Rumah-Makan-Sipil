@@ -36,14 +36,14 @@ export function MenuCard({
   return (
     <article
       data-testid="menu-card"
-      className={`flex gap-3 rounded-lg border bg-card p-3 shadow-card sm:flex-col ${soldOut ? "opacity-50" : ""}`}
+      className={`flex gap-3.5 rounded-xl border bg-card p-3 shadow-card transition-shadow hover:shadow-md ${soldOut ? "opacity-50" : ""}`}
     >
       <MenuPhoto
         name={item.name}
         imageUrl={item.image_url}
         category={category}
-        sizes="(min-width: 640px) 360px, 96px"
-        className="w-24 self-start sm:w-full"
+        sizes="(min-width: 640px) 112px, 96px"
+        className="w-24 self-start rounded-md sm:w-28"
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <h3 className="line-clamp-2 text-lg leading-6 font-semibold text-ink-900">
@@ -55,7 +55,7 @@ export function MenuCard({
         <p className="mt-0.5 min-h-5 truncate text-sm text-ink-600">{summary}</p>
         <div className="mt-auto flex items-end justify-between gap-2 pt-2">
           <div>
-            <p className="font-semibold text-brown-700 tabular-nums">{formatRupiah(item.price)}</p>
+            <p className="font-bold text-brown-700 tabular-nums">{formatRupiah(item.price)}</p>
             {hasOptions && inCart > 0 && <p className="text-xs text-ink-600">{inCart} di keranjang</p>}
           </div>
           {soldOut ? (

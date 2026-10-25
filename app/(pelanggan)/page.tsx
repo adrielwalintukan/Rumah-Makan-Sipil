@@ -32,15 +32,15 @@ async function Menu() {
 
 function MenuSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Memuat menu" className="animate-pulse pt-8">
-      <div className="mx-auto h-28 w-48 rounded-lg bg-cream-100" />
+    <div aria-busy="true" aria-label="Memuat menu" className="animate-pulse">
+      <div className="-mx-4 h-48 rounded-b-[2rem] bg-green-900 lg:mx-0 lg:mt-4 lg:rounded-xl" />
       <div className="mt-8 flex gap-2">
         <div className="h-11 w-28 rounded-full bg-cream-100" />
         <div className="h-11 w-28 rounded-full bg-cream-100" />
       </div>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className="h-24 rounded-lg bg-cream-100" />
+          <div key={i} className="h-24 rounded-xl bg-cream-100" />
         ))}
       </div>
     </div>
