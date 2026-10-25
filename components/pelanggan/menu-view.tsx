@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { CartBar } from "@/components/pelanggan/cart-bar";
 import { DesktopCartPanel } from "@/components/pelanggan/desktop-cart-panel";
 import { MenuCard } from "@/components/pelanggan/menu-card";
@@ -12,11 +12,9 @@ import { useCart } from "@/lib/use-cart";
 export function MenuView({
   categories,
   isOpen,
-  children,
 }: {
   categories: Category[];
   isOpen: boolean;
-  children?: ReactNode;
 }) {
   const cart = useCart();
   const { count, total } = resolveCart(cart, categories);
@@ -41,7 +39,7 @@ export function MenuView({
 
   return (
     <>
-      <div className="lg:flex lg:items-start lg:gap-8">
+      <div id="menu" className="scroll-mt-2 lg:flex lg:items-start lg:gap-8">
         <div className="flex-1 min-w-0 max-w-3xl">
           <nav
             aria-label="Kategori menu"
@@ -82,8 +80,6 @@ export function MenuView({
               </div>
             </section>
           ))}
-
-          {children}
         </div>
 
         <aside className="hidden lg:block lg:w-80 lg:shrink-0 sticky top-20">
