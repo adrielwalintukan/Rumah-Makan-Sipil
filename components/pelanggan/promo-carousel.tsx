@@ -89,7 +89,8 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
     el.scrollTo({ left: slide.offsetLeft, behavior: reduce ? "auto" : "smooth" });
   };
 
-  // Slide aktif = slide yang posisinya paling dekat dengan posisi scroll.
+  // Slide aktif = slide yang posisinya paling dekat dengan posisi scroll. Track `relative` = offsetParent
+  // tiap slide, jadi offsetLeft dan scrollLeft memakai origin yang sama (jangan hapus kelas `relative`).
   const onScroll = () => {
     const el = track.current;
     if (!el) return;
