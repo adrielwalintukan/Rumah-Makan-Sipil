@@ -87,7 +87,7 @@ stateDiagram-v2
 
 | Rute | Layar | Isi utama |
 |---|---|---|
-| `/` | Menu | Header (logo, tagline, status buka/tutup), tab kategori, kartu menu, kartu Paket Dos, bar keranjang |
+| `/` | Menu | Header (logo, tagline, status buka/tutup), banner geser (Paket Dos, cara pesan, cara bayar), tab kategori, kartu menu, bar keranjang |
 | (sheet) | Detail/pilihan menu | Opsi, catatan, jumlah, tombol Tambah |
 | `/keranjang` | Keranjang | Daftar item, ubah jumlah, total, tombol Lanjut |
 | `/checkout` | Checkout | Jenis pesanan, nama, no. HP, metode bayar, ringkasan, tombol Pesan Sekarang |
