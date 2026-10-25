@@ -127,6 +127,7 @@ erDiagram
         int price
         text image_path
         bool is_available
+        bool is_featured
         bool is_active
         int sort_order
     }
@@ -206,6 +207,7 @@ Catatan kolom:
 | Semua harga/nominal | `integer` Rupiah, `check (>= 0)` |
 | `option_groups.type` | `'single'` (pilih satu, radio) / `'multiple'` (tambahan, checkbox) |
 | `menu_items.is_active` | `false` = disembunyikan (hapus lunak), agar riwayat pesanan tetap utuh |
+| `menu_items.is_featured` | `true` = menu unggulan, tampil sebagai banner di halaman pelanggan (D12). Default `false`; diubah lewat toggle cepat `PATCH /api/admin/menu/[id]` `{ is_featured }` |
 | `orders.order_type` | `'dine_in'` / `'takeaway'` |
 | `orders.payment_method` | `'qris'` / `'cash'` |
 | `orders.payment_status` | `'belum_bayar'` / `'menunggu_verifikasi'` / `'lunas'` |
