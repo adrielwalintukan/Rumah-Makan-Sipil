@@ -122,3 +122,47 @@ export function PayArt({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/** Mangkuk mie kuah hangat dengan telur, daging, daun bawang, dan sumpit (hero toko). */
+export function BowlArt({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 200 170" aria-hidden className={className}>
+      <ellipse cx="100" cy="158" rx="70" ry="8" fill="#000" opacity=".22" />
+      <g fill="none" stroke="#FBF8F2" strokeWidth="3.5" strokeLinecap="round" opacity=".7">
+        <path d="M76 52c-6-8 6-13 0-22" />
+        <path d="M100 46c-6-8 6-13 0-22" />
+        <path d="M124 52c-6-8 6-13 0-22" />
+      </g>
+      <ellipse cx="100" cy="148" rx="36" ry="8" fill="#E9E0CF" />
+      <path d="M20 88c4 58 156 58 160 0Z" fill="#FBF8F2" />
+      <path d="M30 108c40 16 100 16 140 0" fill="none" stroke="#A86A32" strokeWidth="5" strokeLinecap="round" />
+      <path d="M38 122c34 12 90 12 124 0" fill="none" stroke="#A86A32" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="2 8" />
+      <ellipse cx="100" cy="88" rx="80" ry="19" fill="#F4EEE3" />
+      <ellipse cx="100" cy="90" rx="71" ry="14" fill="#E3A33B" />
+      <g fill="none" stroke="#F6D37A" strokeWidth="3" strokeLinecap="round">
+        <path d="M42 92c8-6 14 6 22 0s14 6 22 0" />
+        <path d="M96 96c8-6 14 6 22 0s14 6 22 0" />
+        <path d="M60 99c8-5 14 5 22 0" />
+      </g>
+      <rect x="104" y="78" width="30" height="12" rx="4" fill="#A86A32" transform="rotate(-8 119 84)" />
+      <rect x="128" y="84" width="24" height="10" rx="4" fill="#7A4E24" transform="rotate(6 140 89)" />
+      <ellipse cx="74" cy="84" rx="15" ry="9" fill="#FFFFFF" />
+      <circle cx="74" cy="84" r="5.5" fill="#F2B33D" />
+      <g fill="#3A6E4E">
+        <circle cx="96" cy="86" r="2.5" />
+        <circle cx="58" cy="93" r="2" />
+        <circle cx="120" cy="96" r="2.5" />
+        <circle cx="146" cy="92" r="2" />
+        <circle cx="90" cy="96" r="2" />
+      </g>
+      <g fill="#B42318">
+        <circle cx="108" cy="92" r="2" />
+        <circle cx="64" cy="88" r="1.8" />
+      </g>
+      <g stroke="#7A4E24" strokeWidth="5" strokeLinecap="round">
+        <path d="M118 84L176 22" />
+        <path d="M128 86L190 34" />
+      </g>
+    </svg>
+  );
+}
