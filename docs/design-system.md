@@ -26,11 +26,14 @@ Diambil dari banner. Tulis sebagai CSS variable / token Tailwind.
 | `green-700` (**primary**) | `#2E5A3F` | Tombol utama, tab aktif, link |
 | `green-600` | `#3A6E4E` | Hover/pressed primary |
 | `green-100` | `#E3EDE5` | Latar badge hijau, highlight lembut |
+| `green-200` | `#C7DED0` | Border hijau lembut |
+| `green-50` | `#F2F7F3` | Latar banner hijau sangat lembut |
 | `brown-700` | `#7A4E24` | Teks aksen, harga |
 | `brown-500` (**accent**) | `#A86A32` | Ikon kategori, badge aksen, garis dekoratif |
 | `brown-100` | `#F1E3D3` | Latar kartu aksen (Paket Dos) |
 | `cream-50` (**background**) | `#FBF8F2` | Latar halaman |
 | `cream-100` | `#F4EEE3` | Latar section, placeholder foto |
+| `cream-200` | `#E9E0CF` | Skeleton di atas `cream-100`, hover chip krem |
 | `white` (**surface**) | `#FFFFFF` | Kartu, sheet, input |
 
 ### 2.2 Netral
@@ -122,7 +125,7 @@ Dua tata letak dengan ukuran yang **sama**, sehingga daftar tetap rapi walau han
 - Kanan: nama (`h3`, maks. 2 baris), ringkasan pilihan/deskripsi (`small`, `ink-600`, 1 baris + elipsis), dan harga (`brown-700`, 600).
 - Tombol `+` bulat 40 px `green-700` di kanan bawah. Jika item sudah di keranjang, berubah menjadi stepper `– 2 +`.
 - **Habis**: kartu opacity 50%, badge `muted` "Habis", tombol hilang.
-- Desktop/tablet: kartu menjadi grid 2–3 kolom, foto di atas (rasio 4:3 penuh lebar).
+- Tablet/desktop: kartu menjadi grid 2 kolom dengan tata letak **tetap horizontal** (foto kiri 112×84 px). Foto penuh lebar ditinggalkan karena placeholder raksasa mendominasi halaman saat sebagian besar menu belum berfoto.
 
 ### 6.3 Bottom sheet pilihan menu
 
@@ -166,6 +169,7 @@ Bentuk *pill* (radius full), ikon kecil + teks `caption`, dengan warna sesuai §
 - Nomor antrean memakai Fraunces 28 px. Catatan pelanggan ditulis miring dengan latar `brown-100` agar tidak terlewat.
 - Garis kiri 4 px berwarna status bayar (merah = belum bayar, kuning = menunggu verifikasi, hijau = lunas).
 - Pesanan baru: animasi *pulse* singkat + bunyi.
+- Tombol aksi: aksi masak utama (Mulai masak → Siap → Selesai) **penuh lebar, tinggi 48 px** di baris paling bawah (zona jempol). Aksi bayar/batal ada di baris atasnya, tinggi 44 px. Tombol ini dipakai di dapur, jadi jangan dikecilkan.
 
 ### 6.7 Input & form
 
@@ -175,11 +179,12 @@ Bentuk *pill* (radius full), ikon kecil + teks `caption`, dengan warna sesuai §
 
 ### 6.8 Lain-lain
 
+- **Hero toko** (menu pelanggan): blok `green-900` dengan sudut bawah membulat (penuh lebar di HP, kartu `radius-xl` di desktop), dua cahaya *blur* dekoratif `green-600` dan `brown-500`, "RUMAH MAKAN" + **SIPIL** (Fraunces, `cream-50`), tagline `green-100`, dan pill status Buka/Tutup.
 - **Tab kategori**: chip horizontal yang bisa digeser dan *sticky* di bawah header. Chip aktif `green-700`.
 - **Kartu statistik** (laporan): label `small` + angka besar `h1` tabular, dan perbandingan kecil (mis. "vs kemarin").
 - **Empty state**: ilustrasi ikon sederhana + kalimat ramah ("Belum ada pesanan. Santai dulu ☕").
 - **Toast**: muncul di atas, hilang otomatis setelah 3 detik.
-- **Skeleton loading** berwarna `cream-100` untuk daftar menu & pesanan.
+- **Skeleton loading** berwarna `cream-100` (atau `cream-200` bila di atas permukaan `cream-100`) untuk daftar menu & pesanan.
 
 ## 7. Layout & breakpoint
 
@@ -210,7 +215,7 @@ Bentuk *pill* (radius full), ikon kecil + teks `caption`, dengan warna sesuai §
 
 ## 11. Implementasi (Tailwind + shadcn/ui)
 
-- Token warna ada di `app/globals.css` (Tailwind v4 `@theme`, tanpa `tailwind.config`): kelas memakai nama token dokumen ini (`bg-green-700`, `text-brown-700`, `bg-cream-50`, `bg-danger-bg`, …), dan palet `green` bawaan Tailwind dinonaktifkan agar tidak tercampur.
+- Token warna ada di `app/globals.css` (Tailwind v4 `@theme`, tanpa `tailwind.config`): kelas memakai nama token dokumen ini (`bg-green-700`, `text-brown-700`, `bg-cream-50`, `bg-danger-bg`, …), dan palet `green` bawaan Tailwind dinonaktifkan agar tidak tercampur. **Hanya pakai token yang tercantum di dokumen ini.** Langkah yang tidak ada (mis. `ink-700`, `green-300`, `brown-50`) tidak menghasilkan style apa pun, dan palet bawaan Tailwind (`amber-*`, `red-*`, …) tidak dipakai; gunakan token status `warning` / `danger`.
 - Variabel shadcn dipetakan ke token brand: `--primary` = `green-700`, `--background` = `cream-50`, `--border` = `line`. `--accent` shadcn adalah latar *hover* (`green-100`), **bukan** warna aksen coklat. Untuk coklat, pakai kelas `brown-*` atau varian tombol `accent`.
 - Font dimuat via `next/font/google` (Fraunces, Plus Jakarta Sans) dengan `display: swap`.
 - v1 hanya memakai **tema terang** (warung, layar di bawah cahaya). Tema gelap bisa ditambahkan nanti lewat token yang sama.
