@@ -133,6 +133,11 @@ export const quickToggleAvailabilitySchema = z.object({
   is_available: z.boolean(),
 }).strict();
 
+/** Toggle cepat menu unggulan (tampil di banner pelanggan, Issue #63). */
+export const quickToggleFeaturedSchema = z.object({
+  is_featured: z.boolean(),
+}).strict();
+
 export const reorderSchema = z.object({
   items: z.array(
     z.object({

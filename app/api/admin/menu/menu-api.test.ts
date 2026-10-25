@@ -949,6 +949,53 @@ describe("Menu Items API: /api/admin/menu", () => {
       expect(mockRevalidatePath).toHaveBeenCalledWith("/admin/menu");
     });
 
+    it("berhasil toggle menu unggulan is_featured (200)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const updatedItem = { id: validMenuId, name: "Ayam Goreng", is_featured: true };
+
+      mockFrom.mockReturnValueOnce({
+        update: (updatePayload: unknown) => {
+          expect(updatePayload).toEqual({ is_featured: true });
+          return {
+            eq: () => ({
+              eq: () => ({
+                select: () => ({
+                  maybeSingle: () => Promise.resolve({ data: updatedItem, error: null }),
+                }),
+              }),
+            }),
+          };
+        },
+      });
+
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_featured: true }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.data.is_featured).toBe(true);
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+    });
+
+    it("menolak toggle menu unggulan dengan nilai bukan boolean (400)", async () => {
+      mockGetAdminUser.mockResolvedValueOnce(validAdmin);
+      const req = new Request(`http://localhost/api/admin/menu/${validMenuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_featured: "ya" }),
+      });
+      const res = await updateMenuItemHandler(req, {
+        params: Promise.resolve({ id: validMenuId }),
+      });
+      expect(res.status).toBe(400);
+      expect(mockFrom).not.toHaveBeenCalled();
+    });
+
     it("berhasil update sebagian field (nama, harga) tanpa menimpa field lain dengan default Zod (200)", async () => {
       mockGetAdminUser.mockResolvedValueOnce(validAdmin);
       const updatedItem = {

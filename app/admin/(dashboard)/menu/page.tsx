@@ -25,7 +25,7 @@ async function MenuManagementLoader() {
     supabase
       .from("menu_items")
       .select(
-        "id, category_id, name, description, price, image_path, is_available, is_active, sort_order, category:categories(id, name)"
+        "id, category_id, name, description, price, image_path, is_available, is_featured, is_active, sort_order, category:categories(id, name)"
       )
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
@@ -58,6 +58,7 @@ async function MenuManagementLoader() {
       price: item.price,
       image_path: item.image_path,
       is_available: item.is_available,
+      is_featured: item.is_featured,
       is_active: item.is_active,
       sort_order: item.sort_order,
       category: cat,

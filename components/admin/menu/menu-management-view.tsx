@@ -11,6 +11,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  Star,
   Trash2,
   UtensilsCrossed,
   X,
@@ -39,6 +40,8 @@ export interface AdminMenuItem {
   price: number;
   image_path?: string | null;
   is_available: boolean;
+  /** Menu unggulan: tampil di banner pelanggan (Issue #63). */
+  is_featured?: boolean;
   is_active: boolean;
   sort_order: number;
   category?: {
@@ -222,6 +225,42 @@ export function MenuManagementView({
           ? err.message
           : "Gagal memperbarui status ketersediaan menu.";
       setActionError(message);
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  // Quick Toggle Menu Unggulan / banner (Optimistic Update, pola sama dengan toggle Habis)
+  const handleToggleFeatured = async (item: AdminMenuItem) => {
+    if (togglingId === item.id) return;
+    setActionError(null);
+
+    const previousFeatured = item.is_featured ?? false;
+    const newFeatured = !previousFeatured;
+
+    setMenuItems((prev) =>
+      prev.map((m) => (m.id === item.id ? { ...m, is_featured: newFeatured } : m))
+    );
+    setTogglingId(item.id);
+
+    try {
+      const res = await fetch(`/api/admin/menu/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_featured: newFeatured }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal memperbarui menu unggulan.");
+      }
+
+      router.refresh();
+    } catch (err) {
+      setMenuItems((prev) =>
+        prev.map((m) => (m.id === item.id ? { ...m, is_featured: previousFeatured } : m))
+      );
+      setActionError(err instanceof Error ? err.message : "Gagal memperbarui menu unggulan.");
     } finally {
       setTogglingId(null);
     }
@@ -687,6 +726,25 @@ export function MenuManagementView({
                           />
                         )}
                       </div>
+                    </button>
+
+                    {/* Quick Toggle Menu Unggulan (banner pelanggan) */}
+                    <button
+                      type="button"
+                      aria-pressed={item.is_featured ?? false}
+                      disabled={isToggling}
+                      onClick={() => handleToggleFeatured(item)}
+                      aria-label={`Tampilkan ${item.name} di banner`}
+                      title={item.is_featured ? "Tampil di banner pelanggan" : "Tampilkan di banner pelanggan"}
+                      className={cn(
+                        "inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border px-3 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 disabled:cursor-not-allowed disabled:opacity-50",
+                        item.is_featured
+                          ? "border-brown-500/40 bg-brown-100 text-brown-700 hover:bg-brown-100/70"
+                          : "border-line bg-card text-ink-600 hover:bg-cream-100"
+                      )}
+                    >
+                      <Star className={cn("size-4", item.is_featured && "fill-current")} aria-hidden />
+                      Banner
                     </button>
                   </div>
 
