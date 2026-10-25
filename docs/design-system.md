@@ -179,8 +179,7 @@ Bentuk *pill* (radius full), ikon kecil + teks `caption`, dengan warna sesuai §
 
 ### 6.8 Lain-lain
 
-- **Hero toko** (menu pelanggan, gaya aplikasi franchise): blok `green-900` (sudut bawah membulat di HP, kartu `radius-2xl` di desktop) dengan pola titik halus dan cahaya *blur* `green-600`/`brown-500`. Baris atas: emblem monogram **S** (lingkaran `cream-50`, cincin `brown-500`) + nama toko, dan pill status Buka (titik berdenyut)/Tutup di kanan. Isi: "RUMAH MAKAN" + **SIPIL** besar rata kiri (Fraunces, `cream-50`), tagline `brown-100`, ilustrasi SVG mangkuk mie hangat di atas lingkaran "piring" di kanan, dan chip layanan (Makan di sini, Bungkus, Pesan dari HP). Hanya data yang ada; jangan menambah rating/jam buka/lokasi karangan.
-- **Banner geser** (di bawah hero): carousel *scroll-snap* tanpa library. Slide `radius-2xl`, min. 176 px, ±86% lebar layar di HP (slide berikutnya mengintip sebagai petunjuk bisa digeser), 2 slide sekaligus di desktop. Isi v1 hanya info yang sudah ada: **Paket Dos** (`brown-700`, tombol WhatsApp, P9), **Pesan dari HP** (`green-700`, tombol "Lihat menu"), dan **QRIS atau tunai** (`cream-100`). Promo/diskon menunggu fase berikutnya. Tiap slide punya **ilustrasi SVG inline** di kanan atas (kotak nasi, HP dengan notifikasi "Siap!", kartu QR + uang), pola titik halus, dan cahaya lembut. Tombol WhatsApp memakai **logo WhatsApp asli** di lingkaran `#25D366`; hijau ini satu-satunya warna di luar token dan hanya untuk logo pihak ketiga. Indikator titik (target 44 px) + panah di ≥ 640 px. **Tanpa autoplay**, karena konten yang bergerak sendiri wajib punya tombol jeda (WCAG 2.2.2).
+- **Hero toko** (menu pelanggan, gaya aplikasi franchise): blok `green-900` (sudut bawah membulat di HP, kartu `radius-2xl` di desktop) dengan pola titik halus dan cahaya *blur* `green-600`/`brown-500`. Kiri: pill status Buka (titik berdenyut)/Tutup, "RUMAH MAKAN" + **SIPIL** besar (Fraunces, `cream-50`), dan tagline `brown-100`. Kanan: ilustrasi SVG **sepiring nasi campur** beralas daun (ayam goreng, telur ceplok, sambal, timun) di atas lingkaran "piring" yang melayang perlahan, dengan uap naik dan cabai/daun/kilau yang bergoyang. Bawah: chip layanan (Makan di sini, Bungkus, Pesan dari HP). Tanpa emblem/nama ganda, dan tanpa rating/jam buka/lokasi karangan.
 - **Tab kategori**: chip horizontal yang bisa digeser dan *sticky* di bawah header. Chip aktif `green-700`.
 - **Kartu statistik** (laporan): label `small` + angka besar `h1` tabular, dan perbandingan kecil (mis. "vs kemarin").
 - **Empty state**: ilustrasi ikon sederhana + kalimat ramah ("Belum ada pesanan. Santai dulu ☕").
@@ -199,7 +198,8 @@ Bentuk *pill* (radius full), ikon kecil + teks `caption`, dengan warna sesuai §
 
 - Durasi 150–250 ms, easing `ease-out`.
 - Bottom sheet slide-up 250 ms, dan item yang ditambah ke keranjang memicu *bounce* kecil pada bar keranjang.
-- Hormati `prefers-reduced-motion`: matikan animasi non-esensial.
+- Ilustrasi hero & banner memakai animasi dekoratif berulang yang lambat: `animate-float` (melayang 6 px, 4 dtk), `animate-drift` (bergoyang + rotasi kecil, 6 dtk), `animate-steam` (uap naik & memudar, 2,4 dtk). Token-nya ada di `app/globals.css`.
+- Hormati `prefers-reduced-motion`: matikan animasi non-esensial. Elemen beranimasi diberi `motion-reduce:animate-none` agar tetap tampil statis (uap tetap terlihat).
 
 ## 9. Aksesibilitas
 

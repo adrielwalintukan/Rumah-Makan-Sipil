@@ -3,6 +3,11 @@
  * tanpa file gambar, tajam di semua layar, dan dekoratif (aria-hidden).
  */
 
+// Animasi dekoratif (token di globals.css); motion-reduce mematikannya agar tetap tampil statis.
+const FLOAT = "animate-float [transform-box:fill-box] origin-center motion-reduce:animate-none";
+const DRIFT = "animate-drift [transform-box:fill-box] origin-center motion-reduce:animate-none";
+const STEAM = "animate-steam [transform-box:fill-box] motion-reduce:animate-none";
+
 /** Glyph WhatsApp resmi (Simple Icons, CC0); warnanya mengikuti `currentColor`. */
 export function WhatsAppGlyph({ className }: { className?: string }) {
   return (
@@ -17,10 +22,10 @@ export function DosArt({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 160 140" aria-hidden className={className}>
       <ellipse cx="80" cy="128" rx="58" ry="7" fill="#000" opacity=".18" />
-      <g fill="none" stroke="#FBF8F2" strokeWidth="3" strokeLinecap="round" opacity=".75">
-        <path d="M62 30c-5-6 5-10 0-17" />
-        <path d="M80 26c-5-6 5-10 0-17" />
-        <path d="M98 30c-5-6 5-10 0-17" />
+      <g fill="none" stroke="#FBF8F2" strokeWidth="3" strokeLinecap="round">
+        <path className={STEAM} d="M62 30c-5-6 5-10 0-17" />
+        <path className={STEAM} style={{ animationDelay: ".8s" }} d="M80 26c-5-6 5-10 0-17" />
+        <path className={STEAM} style={{ animationDelay: "1.6s" }} d="M98 30c-5-6 5-10 0-17" />
       </g>
       <polygon points="30,64 46,38 142,38 128,64" fill="#E4CDB3" />
       <ellipse cx="66" cy="64" rx="30" ry="11" fill="#FFFFFF" />
@@ -61,7 +66,7 @@ export function PhoneArt({ className }: { className?: string }) {
         </g>
       ))}
       <rect x="55" y="114" width="52" height="7" rx="3.5" fill="#2E5A3F" />
-      <g>
+      <g className={FLOAT}>
         <rect x="100" y="26" width="54" height="24" rx="12" fill="#E2F3E8" stroke="#1F7A45" strokeOpacity=".25" />
         <circle cx="113" cy="38" r="7" fill="#1F7A45" />
         <path d="M109.5 38l2.5 2.5 4.5-5" stroke="#FFFFFF" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -117,51 +122,72 @@ export function PayArt({ className }: { className?: string }) {
           Rp
         </text>
       </g>
-      <circle cx="138" cy="122" r="9" fill="#A86A32" stroke="#7A4E24" strokeWidth="2" />
-      <circle cx="124" cy="126" r="7" fill="#A86A32" stroke="#7A4E24" strokeWidth="2" />
+      <g className={DRIFT}>
+        <circle cx="138" cy="122" r="9" fill="#A86A32" stroke="#7A4E24" strokeWidth="2" />
+        <circle cx="124" cy="126" r="7" fill="#A86A32" stroke="#7A4E24" strokeWidth="2" />
+      </g>
     </svg>
   );
 }
 
-/** Mangkuk mie kuah hangat dengan telur, daging, daun bawang, dan sumpit (hero toko). */
-export function BowlArt({ className }: { className?: string }) {
+/** Sepiring nasi campur beralas daun: nasi, ayam goreng, telur ceplok, sambal, timun (hero toko). */
+export function NasiArt({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 200 170" aria-hidden className={className}>
-      <ellipse cx="100" cy="158" rx="70" ry="8" fill="#000" opacity=".22" />
-      <g fill="none" stroke="#FBF8F2" strokeWidth="3.5" strokeLinecap="round" opacity=".7">
-        <path d="M76 52c-6-8 6-13 0-22" />
-        <path d="M100 46c-6-8 6-13 0-22" />
-        <path d="M124 52c-6-8 6-13 0-22" />
+    <svg viewBox="0 0 220 190" aria-hidden className={className}>
+      <ellipse cx="110" cy="176" rx="70" ry="8" fill="#000" opacity=".22" />
+      <g className={FLOAT}>
+        <g fill="none" stroke="#FBF8F2" strokeWidth="3.5" strokeLinecap="round">
+          <path className={STEAM} d="M82 68c-6-8 6-13 0-22" />
+          <path className={STEAM} style={{ animationDelay: ".8s" }} d="M100 62c-6-8 6-13 0-22" />
+          <path className={STEAM} style={{ animationDelay: "1.6s" }} d="M118 68c-6-8 6-13 0-22" />
+        </g>
+        <ellipse cx="110" cy="124" rx="94" ry="40" fill="#FBF8F2" />
+        <ellipse cx="110" cy="124" rx="86" ry="35" fill="none" stroke="#A86A32" strokeWidth="2" strokeDasharray="3 9" />
+        <ellipse cx="110" cy="122" rx="76" ry="29" fill="#FFFFFF" stroke="#E9E0CF" />
+        <ellipse cx="96" cy="118" rx="58" ry="20" fill="#3A6E4E" transform="rotate(-8 96 118)" />
+        <path d="M44 124L150 108" stroke="#264A34" strokeWidth="1.5" />
+        <path d="M60 118C58 82 122 74 130 112C114 124 78 126 60 118Z" fill="#FFFFFF" />
+        <g fill="#F4EEE3">
+          <ellipse cx="84" cy="96" rx="3" ry="1.6" />
+          <ellipse cx="100" cy="90" rx="3" ry="1.6" />
+          <ellipse cx="110" cy="104" rx="3" ry="1.6" />
+          <ellipse cx="76" cy="110" rx="3" ry="1.6" />
+        </g>
+        <g transform="rotate(-22 152 110)">
+          <ellipse cx="148" cy="110" rx="27" ry="18" fill="#B5743A" />
+          <ellipse cx="142" cy="104" rx="12" ry="6" fill="#C98A4B" />
+          <g fill="#8E5626">
+            <circle cx="136" cy="114" r="2.2" />
+            <circle cx="152" cy="118" r="2" />
+            <circle cx="160" cy="106" r="2.2" />
+          </g>
+          <path d="M172 110h16" stroke="#FBF8F2" strokeWidth="7" strokeLinecap="round" />
+          <circle cx="190" cy="106" r="4.5" fill="#FBF8F2" />
+          <circle cx="190" cy="114" r="4.5" fill="#FBF8F2" />
+        </g>
+        <path d="M60 136c-6-10 10-18 20-14 12-6 26 4 18 14 4 10-12 14-20 10-10 4-24-2-18-10Z" fill="#FFFFFF" stroke="#F4EEE3" />
+        <circle cx="79" cy="133" r="7.5" fill="#F2B33D" />
+        <circle cx="76.5" cy="130.5" r="2.2" fill="#FBF8F2" opacity=".8" />
+        <circle cx="122" cy="138" r="9" fill="#B42318" />
+        <circle cx="119" cy="135" r="2.5" fill="#FDE7E5" opacity=".7" />
+        <g fill="#C7DED0" stroke="#3A6E4E" strokeWidth="2">
+          <circle cx="146" cy="138" r="7" />
+          <circle cx="160" cy="132" r="7" />
+        </g>
       </g>
-      <ellipse cx="100" cy="148" rx="36" ry="8" fill="#E9E0CF" />
-      <path d="M20 88c4 58 156 58 160 0Z" fill="#FBF8F2" />
-      <path d="M30 108c40 16 100 16 140 0" fill="none" stroke="#A86A32" strokeWidth="5" strokeLinecap="round" />
-      <path d="M38 122c34 12 90 12 124 0" fill="none" stroke="#A86A32" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="2 8" />
-      <ellipse cx="100" cy="88" rx="80" ry="19" fill="#F4EEE3" />
-      <ellipse cx="100" cy="90" rx="71" ry="14" fill="#E3A33B" />
-      <g fill="none" stroke="#F6D37A" strokeWidth="3" strokeLinecap="round">
-        <path d="M42 92c8-6 14 6 22 0s14 6 22 0" />
-        <path d="M96 96c8-6 14 6 22 0s14 6 22 0" />
-        <path d="M60 99c8-5 14 5 22 0" />
+      <g className={DRIFT}>
+        <path d="M24 52c8-10 22-10 28-2-8 2-18 6-28 2Z" fill="#B42318" />
+        <path d="M50 50l6-6" stroke="#3A6E4E" strokeWidth="3" strokeLinecap="round" />
       </g>
-      <rect x="104" y="78" width="30" height="12" rx="4" fill="#A86A32" transform="rotate(-8 119 84)" />
-      <rect x="128" y="84" width="24" height="10" rx="4" fill="#7A4E24" transform="rotate(6 140 89)" />
-      <ellipse cx="74" cy="84" rx="15" ry="9" fill="#FFFFFF" />
-      <circle cx="74" cy="84" r="5.5" fill="#F2B33D" />
-      <g fill="#3A6E4E">
-        <circle cx="96" cy="86" r="2.5" />
-        <circle cx="58" cy="93" r="2" />
-        <circle cx="120" cy="96" r="2.5" />
-        <circle cx="146" cy="92" r="2" />
-        <circle cx="90" cy="96" r="2" />
+      <g className={DRIFT} style={{ animationDelay: "1.5s" }}>
+        <path d="M176 30c14-6 26 2 28 14-14 4-26-2-28-14Z" fill="#3A6E4E" />
+        <path d="M178 31c8 4 16 8 24 12" stroke="#264A34" strokeWidth="1.5" />
       </g>
-      <g fill="#B42318">
-        <circle cx="108" cy="92" r="2" />
-        <circle cx="64" cy="88" r="1.8" />
+      <g fill="#F2B33D" className={DRIFT} style={{ animationDelay: ".7s" }}>
+        <path d="M196 96l3 7 7 3-7 3-3 7-3-7-7-3 7-3Z" />
       </g>
-      <g stroke="#7A4E24" strokeWidth="5" strokeLinecap="round">
-        <path d="M118 84L176 22" />
-        <path d="M128 86L190 34" />
+      <g fill="#FBF8F2" className={DRIFT} style={{ animationDelay: "2.2s" }}>
+        <path d="M18 108l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" />
       </g>
     </svg>
   );
