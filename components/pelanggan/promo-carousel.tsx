@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState, type ComponentType } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
+import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { DosArt, PayArt, PhoneArt, WhatsAppGlyph } from "@/components/pelanggan/promo-art";
 import { formatRupiah } from "@/lib/format";
+import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import type { StoreSettings } from "@/lib/menu";
 
 type Slide = {
@@ -19,13 +20,14 @@ type Slide = {
   dark: boolean;
 };
 
-// Jarak tepi kiri track (px-4) — dipakai untuk menghitung posisi snap tiap slide.
-const PAD = 16;
+// Lama tiap banner tampil sebelum bergeser otomatis.
+const AUTOPLAY_MS = 4500;
 
 /**
  * Banner geser di atas menu (design-system §6.8). Hanya info yang sudah ada di v1,
  * bukan promo/diskon (PRD §4.3). Paket Dos tetap dipesan via WhatsApp (P9, US-07).
- * Sengaja tanpa autoplay: konten bergerak sendiri butuh tombol jeda (WCAG 2.2.2).
+ * Bergeser otomatis dengan tombol jeda (WCAG 2.2.2); berhenti sementara saat disentuh,
+ * di-hover, atau difokus, dan tidak otomatis sama sekali bila prefers-reduced-motion.
  */
 export function PromoCarousel({ settings }: { settings: StoreSettings }) {
   const price = formatRupiah(settings.dos_price);
@@ -71,37 +73,60 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
 
   const track = useRef<HTMLUListElement>(null);
   const [index, setIndex] = useState(0);
+  const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  // null = belum dipilih pengguna: ikuti preferensi gerak perangkat.
+  const [paused, setPaused] = useState<boolean | null>(null);
+  const playing = paused === null ? !reduceMotion : !paused;
+  const [held, setHeld] = useState(false);
+  const count = slides.length;
 
   const goTo = (i: number) => {
     const el = track.current;
-    const slide = el?.children[i] as HTMLElement | undefined;
+    const slide = el?.children[(i + count) % count] as HTMLElement | undefined;
     if (!el || !slide) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    el.scrollTo({ left: slide.offsetLeft - PAD, behavior: reduce ? "auto" : "smooth" });
+    el.scrollTo({ left: slide.offsetLeft, behavior: reduce ? "auto" : "smooth" });
   };
 
-  // Slide aktif = slide yang posisi snap-nya paling dekat dengan posisi scroll.
+  // Slide aktif = slide yang posisinya paling dekat dengan posisi scroll.
   const onScroll = () => {
     const el = track.current;
     if (!el) return;
     const kids = Array.from(el.children) as HTMLElement[];
-    const dist = (k: HTMLElement) => Math.abs(k.offsetLeft - PAD - el.scrollLeft);
+    const dist = (k: HTMLElement) => Math.abs(k.offsetLeft - el.scrollLeft);
     setIndex(kids.reduce((best, k, i) => (dist(k) < dist(kids[best]) ? i : best), 0));
   };
 
+  // Timer diulang tiap index berubah, jadi geser manual juga mereset hitungan.
+  useEffect(() => {
+    if (!playing || held || count < 2) return;
+    const t = window.setTimeout(() => goTo(index + 1), AUTOPLAY_MS);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- goTo hanya membaca ref & count
+  }, [index, playing, held, count]);
+
   return (
-    <section aria-roledescription="carousel" aria-label="Info Rumah Makan Sipil" className="relative mt-2 mb-2">
+    <section
+      aria-roledescription="carousel"
+      aria-label="Info Rumah Makan Sipil"
+      className="relative mt-2 mb-2"
+      onPointerEnter={() => setHeld(true)}
+      onPointerLeave={() => setHeld(false)}
+      onFocus={() => setHeld(true)}
+      onBlur={() => setHeld(false)}
+    >
       <ul
         ref={track}
         onScroll={onScroll}
-        className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:mx-0 lg:scroll-px-0 lg:px-0 [&::-webkit-scrollbar]:hidden"
+        aria-live={playing ? "off" : "polite"}
+        className="relative flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {slides.map((s, i) => (
           <li
             key={s.id}
             aria-roledescription="slide"
             aria-label={`${i + 1} dari ${slides.length}: ${s.title}`}
-            className={`relative flex min-h-44 w-[86%] shrink-0 snap-start flex-col gap-3 overflow-hidden rounded-2xl p-4 shadow-card sm:w-[62%] sm:p-5 lg:w-[calc(50%-0.375rem)] ${s.tone}`}
+            className={`relative flex min-h-44 w-full shrink-0 snap-center snap-always flex-col gap-3 overflow-hidden rounded-2xl p-4 sm:p-6 lg:min-h-52 lg:px-10 ${s.tone}`}
           >
             {/* Pola titik + cahaya: hiasan agar banner tidak datar. */}
             <div
@@ -125,7 +150,7 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
                 <h2 className="mt-2 font-display text-xl leading-tight font-bold sm:text-2xl">{s.title}</h2>
                 <p className="mt-1.5 text-sm">{s.body}</p>
               </div>
-              <s.Art className="-mt-1 -mr-2 w-24 shrink-0 drop-shadow-md sm:w-36" />
+              <s.Art className="-mt-1 -mr-2 w-24 shrink-0 drop-shadow-md sm:w-36 lg:w-44" />
             </div>
             {s.cta && (
               <a
@@ -153,10 +178,9 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
       <div className="mt-1 flex items-center justify-center">
         <button
           type="button"
-          onClick={() => goTo(Math.max(0, index - 1))}
-          disabled={index === 0}
+          onClick={() => goTo(index - 1)}
           aria-label="Banner sebelumnya"
-          className="hidden size-11 items-center justify-center rounded-full text-green-900 hover:bg-accent disabled:opacity-30 sm:inline-flex"
+          className="hidden size-11 items-center justify-center rounded-full text-green-900 hover:bg-accent sm:inline-flex"
         >
           <ChevronLeft className="size-5" aria-hidden />
         </button>
@@ -177,12 +201,20 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
         ))}
         <button
           type="button"
-          onClick={() => goTo(Math.min(slides.length - 1, index + 1))}
-          disabled={index === slides.length - 1}
+          onClick={() => goTo(index + 1)}
           aria-label="Banner berikutnya"
-          className="hidden size-11 items-center justify-center rounded-full text-green-900 hover:bg-accent disabled:opacity-30 sm:inline-flex"
+          className="hidden size-11 items-center justify-center rounded-full text-green-900 hover:bg-accent sm:inline-flex"
         >
           <ChevronRight className="size-5" aria-hidden />
+        </button>
+        <button
+          type="button"
+          onClick={() => setPaused(playing)}
+          aria-label={playing ? "Jeda geser otomatis banner" : "Putar geser otomatis banner"}
+          aria-pressed={!playing}
+          className="inline-flex size-11 items-center justify-center rounded-full text-green-900 hover:bg-accent"
+        >
+          {playing ? <Pause className="size-4" aria-hidden /> : <Play className="size-4" aria-hidden />}
         </button>
       </div>
     </section>
