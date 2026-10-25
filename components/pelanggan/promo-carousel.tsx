@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, type ComponentType } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight, MessageCircle, Package, QrCode, Smartphone } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { DosArt, PayArt, PhoneArt, WhatsAppGlyph } from "@/components/pelanggan/promo-art";
 import { formatRupiah } from "@/lib/format";
 import type { StoreSettings } from "@/lib/menu";
 
@@ -10,10 +11,12 @@ type Slide = {
   eyebrow: string;
   title: string;
   body: string;
-  Icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  Art: ComponentType<{ className?: string }>;
   cta?: { label: string; href: string; external?: boolean };
   tone: string;
   ctaTone: string;
+  /** Warna titik pola latar & pill eyebrow (terang di slide gelap, gelap di slide krem). */
+  dark: boolean;
 };
 
 // Jarak tepi kiri track (px-4) — dipakai untuk menghitung posisi snap tiap slide.
@@ -30,10 +33,10 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
   const slides: Slide[] = [
     {
       id: "dos",
-      eyebrow: "Untuk acara & pesanan banyak",
+      eyebrow: "Pesanan banyak",
       title: "Paket Makanan Dos",
       body: `${price} / dos. Pesan dulu lewat WhatsApp.`,
-      Icon: Package,
+      Art: DosArt,
       cta: {
         label: "Pesan via WhatsApp",
         href: `https://wa.me/${settings.whatsapp_number}?text=${encodeURIComponent(waText)}`,
@@ -41,25 +44,28 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
       },
       tone: "bg-brown-700 text-cream-50",
       ctaTone: "bg-cream-50 text-brown-700",
+      dark: true,
     },
     {
       id: "pesan",
-      eyebrow: "Tanpa antre di kasir",
+      eyebrow: "Tanpa antre",
       title: "Pesan langsung dari HP",
       body: "Pilih menu, isi nama, dan kami panggil saat pesanan siap.",
-      Icon: Smartphone,
+      Art: PhoneArt,
       cta: { label: "Lihat menu", href: "#menu" },
       tone: "bg-green-700 text-cream-50",
       ctaTone: "bg-cream-50 text-green-900",
+      dark: true,
     },
     {
       id: "bayar",
-      eyebrow: "Bayar sesukamu",
+      eyebrow: "Bayar mudah",
       title: "QRIS atau tunai",
       body: "Scan QRIS dari semua bank & e-wallet, atau bayar cash di kasir.",
-      Icon: QrCode,
+      Art: PayArt,
       tone: "border border-line bg-cream-100 text-green-900",
       ctaTone: "",
+      dark: false,
     },
   ];
 
@@ -95,21 +101,49 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
             key={s.id}
             aria-roledescription="slide"
             aria-label={`${i + 1} dari ${slides.length}: ${s.title}`}
-            className={`relative flex min-h-44 w-[86%] shrink-0 snap-start flex-col overflow-hidden rounded-2xl p-5 shadow-card sm:w-[62%] lg:w-[calc(50%-0.375rem)] ${s.tone}`}
+            className={`relative flex min-h-44 w-[86%] shrink-0 snap-start flex-col gap-3 overflow-hidden rounded-2xl p-4 shadow-card sm:w-[62%] sm:p-5 lg:w-[calc(50%-0.375rem)] ${s.tone}`}
           >
-            <s.Icon aria-hidden className="pointer-events-none absolute -right-5 -bottom-5 size-36 opacity-15" />
-            <p className="text-xs font-semibold tracking-wider uppercase opacity-90">{s.eyebrow}</p>
-            <h2 className="mt-1 font-display text-2xl leading-tight font-bold">{s.title}</h2>
-            <p className="mt-1.5 max-w-[30ch] text-sm">{s.body}</p>
+            {/* Pola titik + cahaya: hiasan agar banner tidak datar. */}
+            <div
+              aria-hidden
+              className={`pointer-events-none absolute inset-0 [background-size:16px_16px] ${
+                s.dark
+                  ? "bg-[radial-gradient(rgb(255_255_255/0.12)_1.5px,transparent_1.5px)]"
+                  : "bg-[radial-gradient(rgb(31_61_43/0.08)_1.5px,transparent_1.5px)]"
+              }`}
+            />
+            <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 size-48 rounded-full bg-white/15 blur-2xl" />
+            <div className="relative flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <p
+                  className={`inline-block rounded-full px-2.5 py-1 text-[11px] leading-none font-bold tracking-wider uppercase ${
+                    s.dark ? "bg-white/15" : "bg-green-700 text-cream-50"
+                  }`}
+                >
+                  {s.eyebrow}
+                </p>
+                <h2 className="mt-2 font-display text-xl leading-tight font-bold sm:text-2xl">{s.title}</h2>
+                <p className="mt-1.5 text-sm">{s.body}</p>
+              </div>
+              <s.Art className="-mt-1 -mr-2 w-24 shrink-0 drop-shadow-md sm:w-36" />
+            </div>
             {s.cta && (
               <a
                 href={s.cta.href}
                 {...(s.cta.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                className={`relative mt-auto inline-flex h-11 w-fit items-center gap-2 self-start rounded-full px-4 text-sm font-bold shadow-sm transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-cream-50 focus-visible:ring-offset-2 focus-visible:ring-offset-green-900 focus-visible:outline-none ${s.ctaTone}`}
+                className={`relative mt-auto inline-flex h-11 w-fit items-center gap-2 self-start rounded-full pr-4 pl-1.5 text-sm font-bold shadow-sm transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-cream-50 focus-visible:ring-offset-2 focus-visible:ring-offset-green-900 focus-visible:outline-none ${s.ctaTone}`}
               >
-                {s.cta.external ? <MessageCircle className="size-4" aria-hidden /> : null}
+                {s.cta.external ? (
+                  // Hijau WhatsApp resmi hanya untuk logo pihak ketiga, bukan token brand (design-system §11).
+                  <span className="inline-flex size-8 items-center justify-center rounded-full bg-[#25D366] text-white">
+                    <WhatsAppGlyph className="size-5" />
+                  </span>
+                ) : (
+                  <span className="inline-flex size-8 items-center justify-center rounded-full bg-green-700 text-cream-50">
+                    <ArrowRight className="size-4" aria-hidden />
+                  </span>
+                )}
                 {s.cta.label}
-                {!s.cta.external ? <ArrowRight className="size-4" aria-hidden /> : null}
               </a>
             )}
           </li>
