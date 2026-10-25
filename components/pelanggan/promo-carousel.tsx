@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ComponentType } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { DosArt, PayArt, PhoneArt, WhatsAppGlyph } from "@/components/pelanggan/promo-art";
 import { formatRupiah } from "@/lib/format";
 import { useMediaQuery } from "@/lib/hooks/use-media-query";
@@ -26,8 +26,9 @@ const AUTOPLAY_MS = 4500;
 /**
  * Banner geser di atas menu (design-system §6.8). Hanya info yang sudah ada di v1,
  * bukan promo/diskon (PRD §4.3). Paket Dos tetap dipesan via WhatsApp (P9, US-07).
- * Bergeser otomatis dengan tombol jeda (WCAG 2.2.2); berhenti sementara saat disentuh,
- * di-hover, atau difokus, dan tidak otomatis sama sekali bila prefers-reduced-motion.
+ * Bergeser otomatis; berhenti sementara saat di-hover, berhenti permanen begitu disentuh,
+ * digeser, atau difokus, dan tidak otomatis sama sekali bila prefers-reduced-motion.
+ * shortcut: tanpa tombol jeda atas permintaan pemilik (WCAG 2.2.2 menyarankan tombol), tambahkan bila ada keluhan.
  */
 export function PromoCarousel({ settings }: { settings: StoreSettings }) {
   const price = formatRupiah(settings.dos_price);
@@ -74,9 +75,9 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
   const track = useRef<HTMLUListElement>(null);
   const [index, setIndex] = useState(0);
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-  // null = belum dipilih pengguna: ikuti preferensi gerak perangkat.
-  const [paused, setPaused] = useState<boolean | null>(null);
-  const playing = paused === null ? !reduceMotion : !paused;
+  // Sekali pelanggan berinteraksi, banner tidak bergeser sendiri lagi agar tidak "dikejar" saat membaca.
+  const [stopped, setStopped] = useState(false);
+  const playing = !reduceMotion && !stopped;
   const [held, setHeld] = useState(false);
   const count = slides.length;
 
@@ -112,8 +113,8 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
       className="relative mt-2 mb-2"
       onPointerEnter={() => setHeld(true)}
       onPointerLeave={() => setHeld(false)}
-      onFocus={() => setHeld(true)}
-      onBlur={() => setHeld(false)}
+      onPointerDown={() => setStopped(true)}
+      onFocus={() => setStopped(true)}
     >
       <ul
         ref={track}
@@ -206,15 +207,6 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
           className="hidden size-11 items-center justify-center rounded-full text-green-900 hover:bg-accent sm:inline-flex"
         >
           <ChevronRight className="size-5" aria-hidden />
-        </button>
-        <button
-          type="button"
-          onClick={() => setPaused(playing)}
-          aria-label={playing ? "Jeda geser otomatis banner" : "Putar geser otomatis banner"}
-          aria-pressed={!playing}
-          className="inline-flex size-11 items-center justify-center rounded-full text-green-900 hover:bg-accent"
-        >
-          {playing ? <Pause className="size-4" aria-hidden /> : <Play className="size-4" aria-hidden />}
         </button>
       </div>
     </section>
