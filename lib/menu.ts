@@ -28,7 +28,8 @@ export type StoreSettings = {
   whatsapp_number: string;
   dos_price: number;
 };
-export type Menu = { categories: Category[]; settings: StoreSettings };
+/** `featuredIds` = menu unggulan pilihan pemilik untuk banner (Issue #63), urut seperti daftar menu. */
+export type Menu = { categories: Category[]; settings: StoreSettings; featuredIds: string[] };
 
 const bySort = <T extends { sort_order: number; name?: string }>(a: T, b: T) =>
   a.sort_order - b.sort_order || (a.name ?? "").localeCompare(b.name ?? "");
@@ -41,7 +42,7 @@ export async function getMenu(): Promise<Menu> {
     supabase
       .from("categories")
       .select(
-        "id, name, sort_order, menu_items(id, name, description, price, image_path, is_available, sort_order, option_groups(id, name, type, required, sort_order, options(id, name, price_delta, is_available, sort_order)))",
+        "id, name, sort_order, menu_items(id, name, description, price, image_path, is_available, is_featured, sort_order, option_groups(id, name, type, required, sort_order, options(id, name, price_delta, is_available, sort_order)))",
       ),
     supabase.from("settings").select("is_open, store_name, tagline, whatsapp_number, dos_price").single(),
   ]);
@@ -76,5 +77,10 @@ export async function getMenu(): Promise<Menu> {
     }))
     .filter((c) => c.items.length > 0);
 
-  return { categories, settings: settings.data };
+  const featuredIds = menu.data
+    .flatMap((c) => c.menu_items)
+    .filter((m) => m.is_featured)
+    .map((m) => m.id);
+
+  return { categories, settings: settings.data, featuredIds };
 }

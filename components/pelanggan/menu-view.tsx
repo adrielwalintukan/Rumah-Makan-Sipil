@@ -5,17 +5,21 @@ import { CartBar } from "@/components/pelanggan/cart-bar";
 import { DesktopCartPanel } from "@/components/pelanggan/desktop-cart-panel";
 import { MenuCard } from "@/components/pelanggan/menu-card";
 import { OptionSheet } from "@/components/pelanggan/option-sheet";
-import { resolveCart } from "@/lib/cart";
-import type { Category, MenuItem } from "@/lib/menu";
-import { useCart } from "@/lib/use-cart";
+import { PromoCarousel } from "@/components/pelanggan/promo-carousel";
+import { addLine, resolveCart } from "@/lib/cart";
+import type { Category, MenuItem, StoreSettings } from "@/lib/menu";
+import { useCart, writeCart } from "@/lib/use-cart";
 
 export function MenuView({
   categories,
-  isOpen,
+  settings,
+  featuredIds,
 }: {
   categories: Category[];
-  isOpen: boolean;
+  settings: StoreSettings;
+  featuredIds: string[];
 }) {
+  const isOpen = settings.is_open;
   const cart = useCart();
   const { count, total } = resolveCart(cart, categories);
   const [selected, setSelected] = useState<{ item: MenuItem; category: string } | null>(null);
@@ -37,8 +41,21 @@ export function MenuView({
     return () => observer.disconnect();
   }, [categories]);
 
+  // Menu unggulan yang Habis tidak dipromosikan di banner.
+  const featured = featuredIds.flatMap((id) =>
+    categories.flatMap((c) =>
+      c.items.filter((item) => item.id === id && item.is_available).map((item) => ({ item, category: c.name })),
+    ),
+  );
+  // Sama dengan kartu menu: tanpa pilihan langsung masuk keranjang, berpilihan buka bottom sheet.
+  const pick = (item: MenuItem, category: string) =>
+    item.option_groups.length > 0
+      ? setSelected({ item, category })
+      : writeCart((lines) => addLine(lines, { menuItemId: item.id, optionIds: [], note: "", quantity: 1 }));
+
   return (
     <>
+      <PromoCarousel settings={settings} featured={featured} canOrder={isOpen} onPick={pick} />
       <div id="menu" className="scroll-mt-2 lg:flex lg:items-start lg:gap-8">
         <div className="flex-1 min-w-0 max-w-3xl">
           <nav

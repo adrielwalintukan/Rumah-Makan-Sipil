@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { ActiveOrderBanner } from "@/components/pelanggan/active-order-banner";
 import { MenuView } from "@/components/pelanggan/menu-view";
-import { PromoCarousel } from "@/components/pelanggan/promo-carousel";
 import { StoreHeader } from "@/components/pelanggan/store-header";
 import { getMenu } from "@/lib/menu";
 
@@ -16,13 +15,12 @@ export default function MenuPage() {
 }
 
 async function Menu() {
-  const { categories, settings } = await getMenu();
+  const { categories, settings, featuredIds } = await getMenu();
   return (
     <>
       <StoreHeader settings={settings} />
       <ActiveOrderBanner />
-      <PromoCarousel settings={settings} />
-      <MenuView categories={categories} isOpen={settings.is_open} />
+      <MenuView categories={categories} settings={settings} featuredIds={featuredIds} />
     </>
   );
 }
