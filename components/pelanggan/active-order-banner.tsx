@@ -68,7 +68,7 @@ export function ActiveOrderBanner() {
     baru: {
       label: "Menunggu dimasak",
       icon: Bell,
-      badgeClass: "bg-cream-100 text-ink-700 border-line",
+      badgeClass: "bg-cream-100 text-ink-600 border-line",
     },
     dimasak: {
       label: "Sedang dimasak",
@@ -83,7 +83,7 @@ export function ActiveOrderBanner() {
   }[activeOrder.status as "baru" | "dimasak" | "siap"] || {
     label: "Diproses",
     icon: Bell,
-    badgeClass: "bg-cream-100 text-ink-700 border-line",
+    badgeClass: "bg-cream-100 text-ink-600 border-line",
   };
 
   const StatusIcon = statusConfig.icon;
@@ -92,7 +92,7 @@ export function ActiveOrderBanner() {
     <section aria-label="Pesanan aktif" className="mb-4">
       <Link
         href={`/pesanan/${activeOrder.public_token}`}
-        className="group flex items-center justify-between gap-3 rounded-lg border border-green-300 bg-green-50/90 p-3.5 transition-all hover:border-green-700 hover:bg-green-100/80 active:scale-[0.99]"
+        className="group flex items-center justify-between gap-3 rounded-lg border border-green-200 bg-green-50/90 p-3.5 transition-all hover:border-green-700 hover:bg-green-100/80 active:scale-[0.99]"
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-green-700 text-white shadow-xs">
@@ -104,7 +104,7 @@ export function ActiveOrderBanner() {
             </p>
             <div className="mt-0.5 flex items-center gap-1.5">
               <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.2 text-[11px] font-medium ${statusConfig.badgeClass}`}
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${statusConfig.badgeClass}`}
               >
                 {statusConfig.label}
               </span>

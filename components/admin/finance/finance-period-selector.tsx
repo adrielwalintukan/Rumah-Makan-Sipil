@@ -87,7 +87,7 @@ export function FinancePeriodSelector({
           Periode Buku Kas
         </span>
         {isPending && (
-          <span className="text-xs text-ink-500 animate-pulse">Memuat data...</span>
+          <span className="text-xs text-ink-600 animate-pulse">Memuat data...</span>
         )}
       </div>
 
@@ -99,7 +99,7 @@ export function FinancePeriodSelector({
           className={`min-h-[44px] min-w-[44px] rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700 ${
             activeTab === "today"
               ? "bg-green-700 text-white shadow-xs"
-              : "border border-line bg-cream-100 text-ink-700 hover:bg-cream-200"
+              : "border border-line bg-cream-100 text-ink-600 hover:bg-cream-200"
           }`}
           aria-pressed={activeTab === "today"}
         >
@@ -112,7 +112,7 @@ export function FinancePeriodSelector({
           className={`min-h-[44px] min-w-[44px] rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700 ${
             activeTab === "this_month"
               ? "bg-green-700 text-white shadow-xs"
-              : "border border-line bg-cream-100 text-ink-700 hover:bg-cream-200"
+              : "border border-line bg-cream-100 text-ink-600 hover:bg-cream-200"
           }`}
           aria-pressed={activeTab === "this_month"}
         >
@@ -125,7 +125,7 @@ export function FinancePeriodSelector({
           className={`min-h-[44px] min-w-[44px] rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700 ${
             activeTab === "custom"
               ? "bg-green-700 text-white shadow-xs"
-              : "border border-line bg-cream-100 text-ink-700 hover:bg-cream-200"
+              : "border border-line bg-cream-100 text-ink-600 hover:bg-cream-200"
           }`}
           aria-pressed={activeTab === "custom"}
         >
@@ -138,7 +138,7 @@ export function FinancePeriodSelector({
         <form onSubmit={handleCustomSubmit} className="mt-2 flex flex-col gap-3 pt-3 border-t border-line">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
-              <label htmlFor="custom-from" className="text-xs font-medium text-ink-700">
+              <label htmlFor="custom-from" className="text-xs font-medium text-ink-600">
                 Dari Tanggal
               </label>
               <div className="relative">
@@ -155,7 +155,7 @@ export function FinancePeriodSelector({
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="custom-to" className="text-xs font-medium text-ink-700">
+              <label htmlFor="custom-to" className="text-xs font-medium text-ink-600">
                 Sampai Tanggal
               </label>
               <div className="relative">
@@ -173,7 +173,7 @@ export function FinancePeriodSelector({
           </div>
 
           {validationError && (
-            <p className="text-xs font-medium text-red-700" role="alert">
+            <p className="text-xs font-medium text-danger" role="alert">
               {validationError}
             </p>
           )}

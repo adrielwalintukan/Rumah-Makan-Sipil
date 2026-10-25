@@ -53,7 +53,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
     order.payment_status === "lunas"
       ? "border-l-green-700"
       : order.payment_status === "menunggu_verifikasi"
-        ? "border-l-amber-500"
+        ? "border-l-warning"
         : "border-l-danger";
 
   const isDineIn = order.order_type === "dine_in";
@@ -99,7 +99,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
     <div
       data-testid="admin-order-card"
       className={`flex flex-col rounded-xl border border-line bg-card shadow-xs transition-all border-l-4 ${paymentBorderColor} ${
-        isNew ? "animate-pulse ring-2 ring-amber-400" : ""
+        isNew ? "animate-pulse ring-2 ring-warning/30" : ""
       }`}
     >
       {/* Header Kartu: Nomor Antrean, Nama, Tipe Pesanan */}
@@ -113,7 +113,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
               {order.customer_name}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-ink-500 mt-0.5">
+          <div className="flex items-center gap-1.5 text-xs text-ink-600 mt-0.5">
             <Clock className="size-3.5" aria-hidden />
             <span suppressHydrationWarning>{formatRelativeTime(order.created_at)}</span>
           </div>
@@ -123,8 +123,8 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
         <span
           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
             isDineIn
-              ? "bg-cream-100 text-ink-800 border border-line"
-              : "bg-brown-100 text-brown-900 border border-brown-200"
+              ? "bg-cream-100 text-ink-900 border border-line"
+              : "bg-brown-100 text-brown-700 border border-brown-500/30"
           }`}
         >
           {isDineIn ? (
@@ -167,7 +167,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
 
                 {/* Catatan Item */}
                 {item.note && (
-                  <p className="text-xs italic text-brown-900 bg-brown-50 rounded px-2 py-0.5 mt-1 ml-5 inline-block">
+                  <p className="text-xs italic text-brown-700 bg-brown-100 rounded px-2 py-0.5 mt-1 ml-5 inline-block">
                     &ldquo;{item.note}&rdquo;
                   </p>
                 )}
@@ -175,14 +175,14 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
             );
           })
         ) : (
-          <p className="text-xs text-ink-500 italic">Memuat item pesanan...</p>
+          <p className="text-xs text-ink-600 italic">Memuat item pesanan...</p>
         )}
       </div>
 
       {/* Footer Kartu: Total & Status Pembayaran */}
       <div className="border-t border-line/60 bg-cream-50/50 p-4 pt-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <span className="text-[11px] font-semibold text-ink-500 uppercase tracking-wider block">
+          <span className="text-[11px] font-semibold text-ink-600 uppercase tracking-wider block">
             Total
           </span>
           <span className="text-base font-bold text-brown-700">
@@ -192,7 +192,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
 
         {/* Badge Metode & Status Bayar */}
         <div className="flex items-center gap-1.5">
-          <span className="rounded-md border border-line bg-card px-2 py-0.5 text-xs font-bold text-ink-700 uppercase">
+          <span className="rounded-md border border-line bg-card px-2 py-0.5 text-xs font-bold text-ink-600 uppercase">
             {order.payment_method === "qris" ? "QRIS" : "Cash"}
           </span>
 
@@ -202,7 +202,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
               <span>Lunas</span>
             </span>
           ) : order.payment_status === "menunggu_verifikasi" ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+            <span className="inline-flex items-center gap-1 rounded-full bg-warning-bg px-2.5 py-0.5 text-xs font-semibold text-warning">
               <Clock className="size-3.5" aria-hidden />
               <span>Perlu Verifikasi</span>
             </span>
@@ -230,9 +230,9 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
       )}
 
       {/* Baris Tombol Aksi Pesanan (M3: Issue #13) */}
-      <div className="border-t border-line/60 bg-card p-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="border-t border-line/60 bg-card p-3 flex flex-col gap-2">
         {/* Sisi Kiri: Aksi Pembayaran & Pembatalan */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Tombol Tandai Lunas (tersedia selama belum lunas) */}
           {order.payment_status !== "lunas" && (
             <Button
@@ -241,7 +241,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
               variant="outline"
               onClick={() => handleAction("tandai_lunas")}
               disabled={loadingAction !== null}
-              className="h-9 min-h-[36px] text-xs font-bold border-green-700/30 bg-green-50 text-green-800 hover:bg-green-100"
+              className="h-11 text-sm font-bold border-green-700/30 bg-green-50 text-green-800 hover:bg-green-100"
             >
               {loadingAction === "tandai_lunas" ? (
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -261,12 +261,12 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
               onClick={() => handleAction("pembayaran_belum_masuk")}
               disabled={loadingAction !== null}
               title="Kembalikan status bayar ke Belum Bayar jika uang belum masuk"
-              className="h-9 min-h-[36px] text-xs font-medium border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
+              className="h-11 text-sm font-medium border-warning/30 bg-warning-bg text-warning hover:bg-warning/20"
             >
               {loadingAction === "pembayaran_belum_masuk" ? (
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
               ) : (
-                <RotateCcw className="size-3.5 text-amber-700" aria-hidden />
+                <RotateCcw className="size-3.5 text-warning" aria-hidden />
               )}
               <span>Belum Masuk</span>
             </Button>
@@ -283,7 +283,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
                 setIsCancelDialogOpen(true);
               }}
               disabled={loadingAction !== null}
-              className="h-9 min-h-[36px] text-xs text-ink-500 hover:text-danger hover:bg-danger-bg"
+              className="h-11 text-sm text-ink-600 hover:text-danger hover:bg-danger-bg"
             >
               <Ban className="size-3.5" aria-hidden />
               <span>Batal</span>
@@ -299,12 +299,12 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
               size="sm"
               onClick={() => handleAction("mulai_masak")}
               disabled={loadingAction !== null}
-              className="h-9 min-h-[36px] text-xs font-bold bg-green-700 text-white hover:bg-green-800 shadow-xs"
+              className="h-12 w-full text-base font-bold shadow-xs"
             >
               {loadingAction === "mulai_masak" ? (
                 <Loader2 className="size-3.5 animate-spin mr-1" aria-hidden />
               ) : (
-                <Flame className="size-3.5 mr-1 text-amber-200" aria-hidden />
+                <Flame className="size-3.5 mr-1 text-brown-100" aria-hidden />
               )}
               <span>Mulai Masak</span>
               <ArrowRight className="size-3.5 ml-1" aria-hidden />
@@ -317,7 +317,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
               size="sm"
               onClick={() => handleAction("siap")}
               disabled={loadingAction !== null}
-              className="h-9 min-h-[36px] text-xs font-bold bg-green-700 text-white hover:bg-green-800 shadow-xs"
+              className="h-12 w-full text-base font-bold shadow-xs"
             >
               {loadingAction === "siap" ? (
                 <Loader2 className="size-3.5 animate-spin mr-1" aria-hidden />
@@ -335,7 +335,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
               size="sm"
               onClick={() => handleAction("selesai")}
               disabled={loadingAction !== null}
-              className="h-9 min-h-[36px] text-xs font-bold bg-green-700 text-white hover:bg-green-800 shadow-xs"
+              className="h-12 w-full text-base font-bold shadow-xs"
             >
               {loadingAction === "selesai" ? (
                 <Loader2 className="size-3.5 animate-spin mr-1" aria-hidden />
@@ -360,7 +360,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
             </DialogHeader>
 
             <div className="space-y-2">
-              <label htmlFor={`cancel-reason-${order.id}`} className="text-xs font-bold uppercase tracking-wider text-ink-700">
+              <label htmlFor={`cancel-reason-${order.id}`} className="text-xs font-bold uppercase tracking-wider text-ink-600">
                 Alasan Pembatalan (Opsional)
               </label>
 
@@ -374,7 +374,7 @@ export function OrderCard({ order, isNew, onOrderUpdated }: OrderCardProps) {
                     className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
                       cancelReason === preset
                         ? "border-green-700 bg-green-50 text-green-900 font-bold"
-                        : "border-line bg-card text-ink-700 hover:bg-cream-100"
+                        : "border-line bg-card text-ink-600 hover:bg-cream-100"
                     }`}
                   >
                     {preset}

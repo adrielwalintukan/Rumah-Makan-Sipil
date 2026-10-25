@@ -257,7 +257,7 @@ export function OptionGroupEditor({
               Grup Pilihan & Opsi (Opsional)
             </h3>
             {groups.length > 0 && (
-              <span className="inline-flex items-center rounded-full bg-cream-100 px-2.5 py-0.5 text-xs font-semibold text-ink-700">
+              <span className="inline-flex items-center rounded-full bg-cream-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600">
                 {groups.length} grup
               </span>
             )}
@@ -392,7 +392,7 @@ export function OptionGroupEditor({
                 <div className="flex flex-col gap-1.5">
                   <label
                     htmlFor={`group-name-${groupIndex}`}
-                    className="text-xs font-semibold text-ink-700"
+                    className="text-xs font-semibold text-ink-600"
                   >
                     Nama Grup Pilihan <span className="text-danger">*</span>
                   </label>
@@ -423,7 +423,7 @@ export function OptionGroupEditor({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
                   {/* Tipe: Segmented Radio Pills */}
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-xs font-semibold text-ink-700">
+                    <span className="text-xs font-semibold text-ink-600">
                       Aturan Pilihan
                     </span>
                     <div
@@ -443,7 +443,7 @@ export function OptionGroupEditor({
                           "flex-1 sm:flex-initial inline-flex items-center justify-center rounded-md px-3 py-2 text-xs font-semibold min-h-[44px] transition-all cursor-pointer select-none",
                           group.type === "single"
                             ? "bg-green-700 text-white shadow-xs"
-                            : "text-ink-700 hover:text-ink-900 hover:bg-cream-200/50"
+                            : "text-ink-600 hover:text-ink-900 hover:bg-cream-200/50"
                         )}
                       >
                         Pilih Satu (Single)
@@ -460,7 +460,7 @@ export function OptionGroupEditor({
                           "flex-1 sm:flex-initial inline-flex items-center justify-center rounded-md px-3 py-2 text-xs font-semibold min-h-[44px] transition-all cursor-pointer select-none",
                           group.type === "multiple"
                             ? "bg-green-700 text-white shadow-xs"
-                            : "text-ink-700 hover:text-ink-900 hover:bg-cream-200/50"
+                            : "text-ink-600 hover:text-ink-900 hover:bg-cream-200/50"
                         )}
                       >
                         Boleh Lebih dari Satu (Multiple)
@@ -500,7 +500,7 @@ export function OptionGroupEditor({
                 {/* Daftar Opsi di dalam Grup */}
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-ink-700">
+                    <span className="text-xs font-bold uppercase tracking-wider text-ink-600">
                       Daftar Opsi
                     </span>
                     <span className="text-xs text-ink-600 font-medium">
@@ -756,7 +756,7 @@ export function OptionGroupEditor({
               <Trash2 className="size-5 shrink-0" aria-hidden="true" />
               <span>Hapus Grup Pilihan</span>
             </DialogTitle>
-            <DialogDescription className="text-ink-700 pt-2 leading-relaxed">
+            <DialogDescription className="text-ink-600 pt-2 leading-relaxed">
               {groupToDelete !== null && groups[groupToDelete] ? (
                 <>
                   Apakah Anda yakin ingin menghapus grup pilihan{" "}

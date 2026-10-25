@@ -276,7 +276,7 @@ describe("ReportTopItems", () => {
     const html = renderToString(<ReportTopItems topItems={sampleTopItems} />);
 
     // Rank 1 badge distinct styling
-    expect(html).toContain("bg-amber-100 text-amber-900");
+    expect(html).toContain("bg-warning-bg text-warning");
   });
 
   it("merender dengan rapi saat hanya terdapat 1 item menu", () => {

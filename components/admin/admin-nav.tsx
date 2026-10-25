@@ -85,8 +85,8 @@ export function AdminNav({ userEmail }: AdminNavProps) {
       {/* Top Bar Ringkas (Mobile & Desktop) */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-card/95 px-4 backdrop-blur-xs md:hidden">
         <div className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-green-700 text-xs font-bold text-white">
-            RMS
+          <div className="flex size-8 items-center justify-center rounded-lg bg-green-700 font-display text-lg font-extrabold text-white" aria-hidden>
+            S
           </div>
           <span className="font-display text-base font-bold text-green-900">Dashboard</span>
         </div>
@@ -95,7 +95,7 @@ export function AdminNav({ userEmail }: AdminNavProps) {
           onClick={handleLogout}
           disabled={isLoggingOut}
           aria-label="Keluar dari akun"
-          className="inline-flex size-9 items-center justify-center rounded-md border border-line text-ink-600 hover:bg-cream-100 hover:text-danger active:scale-95 transition"
+          className="inline-flex size-11 items-center justify-center rounded-md border border-line text-ink-600 hover:bg-cream-100 hover:text-danger active:scale-95 transition"
         >
           <LogOut className="size-4" aria-hidden />
         </button>
@@ -105,8 +105,8 @@ export function AdminNav({ userEmail }: AdminNavProps) {
       <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:border-r md:border-line md:bg-card">
         {/* Header Sidebar */}
         <div className="flex h-16 items-center gap-3 border-b border-line px-5">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-green-700 font-display text-sm font-bold text-white shadow-xs">
-            RMS
+          <div className="flex size-9 items-center justify-center rounded-lg bg-green-700 font-display text-lg font-extrabold text-white shadow-xs" aria-hidden>
+            S
           </div>
           <div className="min-w-0">
             <h2 className="truncate font-display text-base font-bold text-green-900 leading-tight">
@@ -134,7 +134,7 @@ export function AdminNav({ userEmail }: AdminNavProps) {
                     className={`flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors ${
                       active
                         ? "bg-green-700 text-white shadow-xs"
-                        : "text-ink-700 hover:bg-cream-100 hover:text-ink-900"
+                        : "text-ink-600 hover:bg-cream-100 hover:text-ink-900"
                     }`}
                   >
                     <Icon className="size-4.5 shrink-0" aria-hidden />

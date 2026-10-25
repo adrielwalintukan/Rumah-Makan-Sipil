@@ -124,7 +124,7 @@ export function OrderTracker({ initialOrder, qrisImageUrl }: OrderTrackerProps) 
     baru: {
       label: "Menunggu Dimasak",
       icon: Bell,
-      className: "border-line bg-cream-100 text-ink-700",
+      className: "border-line bg-cream-100 text-ink-600",
       description: "Pesanan kamu sudah diterima dan menunggu antrean masak.",
     },
     dimasak: {
@@ -154,7 +154,7 @@ export function OrderTracker({ initialOrder, qrisImageUrl }: OrderTrackerProps) 
   }[order.status] || {
     label: "Diproses",
     icon: Bell,
-    className: "border-line bg-cream-100 text-ink-700",
+    className: "border-line bg-cream-100 text-ink-600",
     description: "Pesanan sedang diproses.",
   };
 
@@ -207,7 +207,7 @@ export function OrderTracker({ initialOrder, qrisImageUrl }: OrderTrackerProps) 
             <div>
               <p className="font-bold text-danger text-base">Pesanan dibatalkan</p>
               {order.cancel_reason ? (
-                <p className="text-xs text-ink-700 mt-1">
+                <p className="text-xs text-ink-600 mt-1">
                   Alasan pembatalan: <strong className="font-semibold text-danger">{order.cancel_reason}</strong>
                 </p>
               ) : (

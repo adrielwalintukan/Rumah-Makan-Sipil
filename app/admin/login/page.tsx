@@ -28,7 +28,7 @@ export default function AdminLoginPage() {
 
         <div className="flex flex-col items-center text-center gap-1.5">
           <div className="flex size-14 items-center justify-center rounded-2xl bg-green-700 text-white shadow-sm mb-2">
-            <span className="font-display text-2xl font-bold tracking-wider">RMS</span>
+            <span aria-hidden className="font-display text-3xl font-extrabold">S</span>
           </div>
           <h1 className="font-display text-2xl font-bold text-green-900">
             Rumah Makan Sipil

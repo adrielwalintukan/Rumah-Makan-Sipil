@@ -33,28 +33,28 @@ export function FinanceSummaryCards({ summary }: FinanceSummaryCardsProps) {
       </div>
 
       {/* 2. Total Pengeluaran */}
-      <div className="flex flex-col justify-between rounded-xl border border-red-200 bg-red-50/80 p-5 shadow-xs">
+      <div className="flex flex-col justify-between rounded-xl border border-danger/30 bg-danger-bg/80 p-5 shadow-xs">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-red-900">
+          <span className="text-xs font-semibold uppercase tracking-wider text-danger">
             Total Pengeluaran
           </span>
-          <div className="flex size-9 items-center justify-center rounded-full bg-red-200/60 text-red-800">
+          <div className="flex size-9 items-center justify-center rounded-full bg-danger/30 text-danger">
             <ArrowDownRight className="size-5" aria-hidden="true" />
           </div>
         </div>
         <div className="mt-3">
-          <div className="font-display text-2xl sm:text-3xl font-bold text-red-900 tabular-nums">
+          <div className="font-display text-2xl sm:text-3xl font-bold text-danger tabular-nums">
             {formatRupiah(summary.totalExpense)}
           </div>
           {/* Breakdown Kategori */}
-          <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-red-800">
-            <span className="rounded-md bg-red-100 px-2 py-0.5">
+          <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-danger">
+            <span className="rounded-md bg-danger-bg px-2 py-0.5">
               {`Bahan: ${formatRupiah(summary.expenseByCategory.bahan)}`}
             </span>
-            <span className="rounded-md bg-red-100 px-2 py-0.5">
+            <span className="rounded-md bg-danger-bg px-2 py-0.5">
               {`Operasional: ${formatRupiah(summary.expenseByCategory.operasional)}`}
             </span>
-            <span className="rounded-md bg-red-100 px-2 py-0.5">
+            <span className="rounded-md bg-danger-bg px-2 py-0.5">
               {`Lainnya: ${formatRupiah(summary.expenseByCategory.lainnya)}`}
             </span>
           </div>
@@ -64,7 +64,7 @@ export function FinanceSummaryCards({ summary }: FinanceSummaryCardsProps) {
       {/* 3. Laba Kotor */}
       <div className="flex flex-col justify-between rounded-xl border border-line bg-card p-5 shadow-xs">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-ink-700">
+          <span className="text-xs font-semibold uppercase tracking-wider text-ink-600">
             Laba Kotor
           </span>
           <span
@@ -72,8 +72,8 @@ export function FinanceSummaryCards({ summary }: FinanceSummaryCardsProps) {
               isSurplus
                 ? "bg-green-100 text-green-800"
                 : isDeficit
-                ? "bg-red-100 text-red-800"
-                : "bg-cream-200 text-ink-700"
+                ? "bg-danger-bg text-danger"
+                : "bg-cream-200 text-ink-600"
             }`}
           >
             {isSurplus ? (
@@ -97,7 +97,7 @@ export function FinanceSummaryCards({ summary }: FinanceSummaryCardsProps) {
               isSurplus
                 ? "text-green-800"
                 : isDeficit
-                ? "text-red-800"
+                ? "text-danger"
                 : "text-ink-900"
             }`}
           >

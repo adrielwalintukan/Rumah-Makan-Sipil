@@ -94,7 +94,7 @@ export function ReportPeriodSelector({
               className={`min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-700 ${
                 isActive
                   ? "bg-green-700 text-white shadow-xs"
-                  : "bg-cream-100 text-ink-700 hover:bg-cream-200"
+                  : "bg-cream-100 text-ink-600 hover:bg-cream-200"
               }`}
             >
               {option.label}
@@ -112,7 +112,7 @@ export function ReportPeriodSelector({
           <div className="flex flex-col gap-1.5 min-w-[140px] flex-1">
             <label
               htmlFor="report-custom-from"
-              className="text-xs font-semibold text-ink-700"
+              className="text-xs font-semibold text-ink-600"
             >
               Dari Tanggal
             </label>
@@ -132,7 +132,7 @@ export function ReportPeriodSelector({
           <div className="flex flex-col gap-1.5 min-w-[140px] flex-1">
             <label
               htmlFor="report-custom-to"
-              className="text-xs font-semibold text-ink-700"
+              className="text-xs font-semibold text-ink-600"
             >
               Sampai Tanggal
             </label>

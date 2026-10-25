@@ -60,7 +60,7 @@ export function ReportPaymentMethods({ summary }: ReportPaymentMethodsProps) {
             )}
             {qrisPercentage > 0 && (
               <div
-                className="bg-amber-600 transition-all"
+                className="bg-warning transition-all"
                 style={{ width: `${qrisPercentage}%` }}
                 title={`QRIS: ${qrisPercentage}%`}
               />
@@ -77,7 +77,7 @@ export function ReportPaymentMethods({ summary }: ReportPaymentMethodsProps) {
                     className="size-3 shrink-0 rounded-full bg-green-700"
                     aria-hidden
                   />
-                  <span className="text-xs font-semibold text-ink-700">
+                  <span className="text-xs font-semibold text-ink-600">
                     Tunai (Cash)
                   </span>
                 </div>
@@ -98,14 +98,14 @@ export function ReportPaymentMethods({ summary }: ReportPaymentMethodsProps) {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span
-                    className="size-3 shrink-0 rounded-full bg-amber-600"
+                    className="size-3 shrink-0 rounded-full bg-warning"
                     aria-hidden
                   />
-                  <span className="text-xs font-semibold text-ink-700">
+                  <span className="text-xs font-semibold text-ink-600">
                     QRIS (DANA Bisnis)
                   </span>
                 </div>
-                <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full tabular-nums">
+                <span className="text-xs font-bold text-warning bg-warning-bg px-2 py-0.5 rounded-full tabular-nums">
                   {qrisPercentage}%
                 </span>
               </div>
