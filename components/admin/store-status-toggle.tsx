@@ -86,12 +86,12 @@ export function StoreStatusToggle({
       >
         <div className="flex items-center gap-2.5">
           <Store
-            className={`size-4.5 shrink-0 ${
+            className={`size-4.5 shrink-0 max-[359px]:hidden ${
               isOpen ? "text-green-700" : "text-ink-600"
             }`}
             aria-hidden
           />
-          <div className="flex flex-col leading-tight">
+          <div className="flex flex-col leading-tight whitespace-nowrap">
             <div className="flex items-center gap-1.5">
               <span
                 className={`size-2 rounded-full shrink-0 ${

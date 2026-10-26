@@ -233,96 +233,86 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
         </div>
       )}
 
-      {/* Bar Kontrol Atas: Judul, Status Koneksi, Audio, Wake Lock */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-line pb-4">
-        <div>
+      {/* Bar kontrol atas. HP: baris judul + status kecil, lalu satu baris kontrol (toggle melebar, ikon 44 px). */}
+      <div className="flex flex-col gap-3 border-b border-line pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <div className="flex items-center gap-2.5">
-            <h1 className="font-display text-2xl font-bold text-green-900">
-              Pesanan Live
-            </h1>
+            <h1 className="font-display text-2xl font-bold text-green-900">Pesanan Live</h1>
             <span className="inline-flex size-6 items-center justify-center rounded-full bg-green-700 text-xs font-bold text-white">
               {orders.length}
             </span>
           </div>
-          <p className="text-xs text-ink-600 mt-0.5">
-            Pesanan masuk langsung diperbarui tanpa memuat ulang halaman.
-          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+            {/* Status Koneksi */}
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 ${
+                connectionStatus === "connected"
+                  ? "bg-green-50 text-green-800"
+                  : connectionStatus === "connecting"
+                  ? "bg-warning-bg text-warning"
+                  : "bg-danger-bg text-danger"
+              }`}
+            >
+              {connectionStatus === "connected" ? (
+                <>
+                  <Wifi className="size-3.5" aria-hidden />
+                  <span>Terhubung</span>
+                </>
+              ) : connectionStatus === "connecting" ? (
+                <>
+                  <RefreshCw className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
+                  <span>Menghubungkan...</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="size-3.5" aria-hidden />
+                  <span>Terputus</span>
+                </>
+              )}
+            </span>
+
+            {/* Indikator Screen Wake Lock */}
+            {isWakeLockSupported && (
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 ${
+                  isWakeLockActive ? "bg-brown-100 text-brown-700" : "bg-cream-100 text-ink-600"
+                }`}
+                title={isWakeLockActive ? "Layar dijaga tetap menyala" : "Layar dapat meredup"}
+              >
+                <Monitor className="size-3.5" aria-hidden />
+                <span>{isWakeLockActive ? "Layar Aktif" : "Layar Normal"}</span>
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Toolbar Tombol Aksi & Indikator */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Toggle Saklar Buka / Tutup Toko */}
-          <StoreStatusToggle initialIsOpen={initialIsOpen} />
+        <div className="flex items-center gap-2">
+          {/* Toggle Buka / Tutup Toko: melebar di HP */}
+          <div className="min-w-0 flex-1 sm:flex-none">
+            <StoreStatusToggle initialIsOpen={initialIsOpen} />
+          </div>
 
-          {/* Status Koneksi */}
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
-              connectionStatus === "connected"
-                ? "border-green-700/20 bg-green-50 text-green-800"
-                : connectionStatus === "connecting"
-                ? "border-warning/30 bg-warning-bg text-warning"
-                : "border-danger/30 bg-danger-bg text-danger"
-            }`}
-          >
-            {connectionStatus === "connected" ? (
-              <>
-                <Wifi className="size-3.5" aria-hidden />
-                <span className="size-1.5 rounded-full bg-green-700 animate-pulse" />
-                <span>Terhubung</span>
-              </>
-            ) : connectionStatus === "connecting" ? (
-              <>
-                <RefreshCw className="size-3.5 animate-spin" aria-hidden />
-                <span>Menghubungkan...</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="size-3.5" aria-hidden />
-                <span>Terputus</span>
-              </>
-            )}
-          </span>
-
-          {/* Tombol Suara Notifikasi */}
+          {/* Tombol Suara Notifikasi: ikon saja di HP, teks tetap jadi nama aksesibel */}
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleToggleSound}
             aria-pressed={isSoundEnabled}
-            className={`h-11 text-sm font-semibold ${
+            title={isSoundEnabled ? "Suara Aktif" : "Aktifkan Suara"}
+            className={`h-11 min-w-11 shrink-0 px-3 text-sm font-semibold ${
               isSoundEnabled
                 ? "border-green-700/30 bg-green-50 text-green-800 hover:bg-green-100"
                 : "border-line text-ink-600 hover:bg-cream-100"
             }`}
           >
             {isSoundEnabled ? (
-              <>
-                <Bell className="size-3.5 mr-1.5 text-green-700" aria-hidden />
-                <span>Suara Aktif</span>
-              </>
+              <Bell className="size-4 text-green-700 sm:mr-1.5" aria-hidden />
             ) : (
-              <>
-                <BellOff className="size-3.5 mr-1.5 text-ink-400" aria-hidden />
-                <span>Aktifkan Suara</span>
-              </>
+              <BellOff className="size-4 text-ink-400 sm:mr-1.5" aria-hidden />
             )}
+            <span className="sr-only sm:not-sr-only">{isSoundEnabled ? "Suara Aktif" : "Aktifkan Suara"}</span>
           </Button>
-
-          {/* Indikator Screen Wake Lock */}
-          {isWakeLockSupported && (
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                isWakeLockActive
-                  ? "border-brown-500/30 bg-brown-100 text-brown-700"
-                  : "border-line bg-card text-ink-600"
-              }`}
-              title={isWakeLockActive ? "Layar dijaga tetap menyala" : "Layar dapat meredup"}
-            >
-              <Monitor className="size-3.5" aria-hidden />
-              <span>{isWakeLockActive ? "Layar Aktif" : "Layar Normal"}</span>
-            </span>
-          )}
 
           {/* Tombol Sinkronisasi Manual */}
           <Button
@@ -332,9 +322,10 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
             onClick={refreshOrders}
             disabled={isRefreshing}
             aria-label="Segarkan daftar pesanan"
-            className="size-11 border-line px-0 text-ink-600 hover:bg-cream-100"
+            title="Segarkan daftar pesanan"
+            className="size-11 shrink-0 border-line px-0 text-ink-600 hover:bg-cream-100"
           >
-            <RefreshCw className={`size-3.5 ${isRefreshing ? "animate-spin" : ""}`} aria-hidden />
+            <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin motion-reduce:animate-none" : ""}`} aria-hidden />
           </Button>
         </div>
       </div>
