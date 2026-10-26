@@ -67,6 +67,7 @@ Rumah Makan Sipil adalah warung makan kecil (10–20 meja) dengan **satu orang**
 | D9 | **Catatan keuangan**: pemasukan otomatis (dari pesanan lunas) + **pengeluaran manual** (tanggal, keterangan, nominal, kategori Bahan/Operasional/Lainnya), lalu **laba kotor** harian/bulanan |
 | D10 | **Poster QR**: poster berisi logo, QR, dan tulisan "Scan untuk pesan", siap dicetak (A4/A5) atau diunduh (PNG) |
 | D11 | **Pengaturan**: upload gambar QRIS, nomor WhatsApp, nama & tagline toko, harga Paket Dos |
+| D12 | **Menu unggulan**: tandai ⭐ Banner pada menu tertentu agar tampil sebagai banner geser di halaman menu pelanggan (ditambahkan atas permintaan pemilik sebelum rilis v1, #63) |
 
 ### 4.3 Di luar lingkup v1 (fase berikutnya)
 
@@ -142,6 +143,7 @@ Sebagai pelanggan, saya ingin melihat menu dan harga di HP agar bisa memilih tan
 - [ ] Upload foto (JPG/PNG/WebP, maks. 5 MB). Foto otomatis dipotong rasio 4:3 dan dikompres.
 - [ ] Grup pilihan: nama, tipe (*pilih satu* / *boleh lebih dari satu*), wajib/tidak, dan daftar opsi dengan tambahan harga.
 - [ ] Toggle Habis berlaku langsung di halaman pelanggan.
+- [ ] Toggle ⭐ Banner menampilkan menu sebagai banner "Menu unggulan" di halaman pelanggan (foto, nama, harga, tombol Tambah/Pilih). Menu Habis tidak ditampilkan, dan tombol tidak muncul saat toko tutup.
 - [ ] Mengubah harga **tidak** mengubah pesanan lama, karena harga disalin saat pesanan dibuat.
 
 **US-14: Riwayat & laporan**

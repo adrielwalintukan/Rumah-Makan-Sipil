@@ -1,0 +1,231 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* dark: hanya aktif lewat kelas .dark (tidak dipakai di v1), bukan dari setelan OS. */
+@custom-variant dark (&:is(.dark *));
+
+/* Token brand dari docs/design-system.md §2–4. v1 hanya tema terang (§11). */
+@theme {
+  --color-green-*: initial;
+  --color-green-900: #1f3d2b;
+  --color-green-800: #264a34;
+  --color-green-700: #2e5a3f;
+  --color-green-600: #3a6e4e;
+  --color-green-100: #e3ede5;
+  --color-green-200: #c7ded0;
+  --color-green-50: #f2f7f3;
+  --color-brown-700: #7a4e24;
+  --color-brown-500: #a86a32;
+  --color-brown-100: #f1e3d3;
+  --color-cream-50: #fbf8f2;
+  --color-cream-100: #f4eee3;
+  --color-cream-200: #e9e0cf;
+  --color-ink-900: #1c1b18;
+  --color-ink-600: #5c5a54;
+  --color-ink-400: #9a978f;
+  --color-line: #e7e1d6;
+
+  --color-info: #1e5aa8;
+  --color-info-bg: #e4eefb;
+  --color-warning: #a15c00;
+  --color-warning-bg: #fdf0d9;
+  --color-success: #1f7a45;
+  --color-success-bg: #e2f3e8;
+  --color-danger: #b42318;
+  --color-danger-bg: #fde7e5;
+  --color-muted-status: #5c5a54;
+  --color-muted-status-bg: #eeebe5;
+
+  --shadow-card: 0 1px 2px rgb(31 61 43 / 0.06), 0 2px 8px rgb(31 61 43 / 0.06);
+  --shadow-sheet: 0 -8px 24px rgb(31 61 43 / 0.12);
+
+  /* Animasi ilustrasi hero & banner (design-system §8); dimatikan untuk reduced-motion. */
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-drift: drift 6s ease-in-out infinite;
+  --animate-steam: steam 2.4s ease-out infinite;
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(3px, -8px) rotate(12deg); }
+  }
+  @keyframes steam {
+    0% { transform: translateY(6px); opacity: 0; }
+    40% { opacity: 0.85; }
+    100% { transform: translateY(-10px); opacity: 0; }
+  }
+}
+
+@theme inline {
+  --font-sans: var(--font-jakarta);
+  --font-display: var(--font-fraunces);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--color-green-900);
+  --color-destructive: var(--color-danger);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+}
+
+/* Variabel shadcn dipetakan ke token brand. `accent` shadcn = latar hover, bukan coklat brand. */
+:root {
+  --background: var(--color-cream-50);
+  --foreground: var(--color-ink-900);
+  --card: #ffffff;
+  --card-foreground: var(--color-ink-900);
+  --popover: #ffffff;
+  --popover-foreground: var(--color-ink-900);
+  --primary: var(--color-green-700);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-cream-100);
+  --secondary-foreground: var(--color-green-900);
+  --muted: var(--color-cream-100);
+  --muted-foreground: var(--color-ink-600);
+  --accent: var(--color-green-100);
+  --accent-foreground: var(--color-green-900);
+  --destructive: var(--color-danger);
+  --border: var(--color-line);
+  --input: var(--color-line);
+  --ring: var(--color-green-700);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Utilitas Safe Area untuk perangkat mobile (iOS & Android) */
+@utility pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+
+@media print {
+  @page {
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #1c1b18 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Sembunyikan SEMUA elemen non-cetak dari layout dashboard */
+  .no-print,
+  header:not(#poster-print-target *),
+  footer:not(#poster-print-target *),
+  nav:not(#poster-print-target *),
+  aside:not(#poster-print-target *) {
+    display: none !important;
+  }
+
+  /* Reset layout wrapper admin agar tidak memiliki padding/margin/min-height */
+  body > div,
+  .md\:pl-64,
+  main:not(#poster-print-target *):not(#poster-print-target),
+  .poster-preview-wrapper,
+  .poster-preview-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Target poster: tata letak cetak satu halaman di tengah halaman dengan rasio proporsional */
+  #poster-print-target {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    margin: auto !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-before: avoid !important;
+    break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Pastikan seluruh bagian poster (header toko, QR, dan footer panduan) selalu tampil utuh */
+  #poster-print-target header,
+  #poster-print-target footer {
+    display: flex !important;
+    visibility: visible !important;
+  }
+
+  #poster-print-target main {
+    display: flex !important;
+    visibility: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  #poster-print-target * {
+    visibility: visible !important;
+  }
+}

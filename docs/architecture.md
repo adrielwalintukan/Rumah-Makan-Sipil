@@ -71,6 +71,11 @@ rumah-makan-sipil/
 │  │  ├─ page.tsx                  # pesanan live
 │  │  ├─ menu/…  riwayat/…  laporan/…  keuangan/…  qr/…  pengaturan/…
 │  └─ api/
+│     ├─ admin/
+│     │  ├─ orders/[id]/
+│     │  │  └─ route.ts            # PATCH aksi pesanan (mulai_masak, siap, selesai, lunas, batal, dll)
+│     │  └─ settings/
+│     │     └─ route.ts            # GET & PATCH status buka/tutup toko
 │     └─ orders/
 │        ├─ route.ts               # POST buat pesanan
 │        └─ [token]/
@@ -81,14 +86,17 @@ rumah-makan-sipil/
 │  ├─ pelanggan/                   # MenuCard, OptionSheet, CartBar, …
 │  └─ admin/                       # OrderCard, StatusBadge, StatCard, …
 ├─ lib/
-│  ├─ supabase/                    # client browser, server, service (server-only)
-│  ├─ cart.ts                      # keranjang di localStorage
-│  ├─ format.ts                    # formatRupiah, formatWaktu (WITA)
+│  ├─ supabase/                    # public.ts (anon, server-only); browser/service menyusul di M2–M3
+│  ├─ menu.ts                      # getMenu(): menu aktif + pengaturan, per request (server-only)
+│  ├─ cart.ts                      # logika keranjang murni (gabung baris, harga, validasi pilihan)
+│  ├─ use-cart.ts                  # store keranjang di localStorage (useSyncExternalStore)
+│  ├─ format.ts                    # formatRupiah, formatWaktu (WITA) + format.test.ts (Vitest, di samping file)
 │  └─ schemas.ts                   # skema Zod
 ├─ supabase/
 │  ├─ migrations/                  # skema, RLS, fungsi SQL
 │  ├─ seed.sql                     # data dari menu-seed.md
 │  └─ tests/                       # pgTAP untuk fungsi SQL
+├─ e2e/                            # tes Playwright (viewport HP)
 ├─ public/                         # logo, ikon, suara notifikasi
 └─ docs/
 ```
@@ -119,6 +127,7 @@ erDiagram
         int price
         text image_path
         bool is_available
+        bool is_featured
         bool is_active
         int sort_order
     }
@@ -198,6 +207,7 @@ Catatan kolom:
 | Semua harga/nominal | `integer` Rupiah, `check (>= 0)` |
 | `option_groups.type` | `'single'` (pilih satu, radio) / `'multiple'` (tambahan, checkbox) |
 | `menu_items.is_active` | `false` = disembunyikan (hapus lunak), agar riwayat pesanan tetap utuh |
+| `menu_items.is_featured` | `true` = menu unggulan, tampil sebagai banner di halaman pelanggan (D12). Default `false`; diubah lewat toggle cepat `PATCH /api/admin/menu/[id]` `{ is_featured }` |
 | `orders.order_type` | `'dine_in'` / `'takeaway'` |
 | `orders.payment_method` | `'qris'` / `'cash'` |
 | `orders.payment_status` | `'belum_bayar'` / `'menunggu_verifikasi'` / `'lunas'` |
@@ -246,6 +256,13 @@ Error dikembalikan dengan kode yang jelas (`STORE_CLOSED`, `ITEM_UNAVAILABLE` + 
 - `top_items(from, to, limit)`: menu terlaris berdasarkan jumlah porsi.
 - `cashbook(from, to)`: per tanggal → pemasukan, pengeluaran, laba kotor.
 
+### 5.4 `reorder_categories(p_items jsonb)` dan `reorder_menu_items(p_items jsonb)` — Postgres, `security definer`
+
+Hanya bisa dipanggil oleh akun pemilik (`public.is_owner()`). Dalam **satu transaksi atomik**:
+1. Memvalidasi format array `p_items`.
+2. Memperbarui `sort_order` setiap baris secara berurutan.
+3. Jika terdapat ID yang tidak ditemukan atau tidak aktif, membatalkan (*rollback*) seluruh perubahan dan melempar error `P0002`.
+
 ## 6. Keamanan (RLS)
 
 RLS **aktif di semua tabel**. Pendaftaran user baru di Supabase Auth **dimatikan**, dan akun pemilik dibuat manual satu kali.
@@ -259,8 +276,10 @@ $$ select exists (select 1 from admins where user_id = auth.uid()) $$;
 
 | Tabel | anon (pelanggan) | pemilik (`is_owner()`) |
 |---|---|---|
-| `categories`, `menu_items`, `option_groups`, `options` | `select` jika `is_active` | semua |
-| `settings` | `select` kolom publik (lewat view `public_settings`) | semua |
+| `categories` | `select` semua | semua |
+| `menu_items` | `select` jika `is_active` | semua |
+| `option_groups`, `options` | `select` jika menu induknya `is_active` | semua |
+| `settings` | `select` (semua kolomnya memang data publik toko) | `update` |
 | `orders`, `order_items` | **tidak ada** (hanya via fungsi di server) | semua |
 | `expenses`, `daily_counters`, `admins` | tidak ada | semua (`admins`: select) |
 
@@ -311,4 +330,4 @@ Alur deploy: push ke `main` di GitHub → Vercel build otomatis. Migrasi DB dija
 |---|---|---|
 | SQL | pgTAP (`supabase test db`) | `create_order`: harga dihitung server, nomor harian berurutan & reset, menu habis ditolak, toko tutup ditolak, rate limit, idempotensi. RLS: anon tidak bisa baca `orders` |
 | Unit | Vitest | `formatRupiah`, hitung total keranjang, skema Zod |
-| E2E | Playwright (viewport HP) | Pesan → QRIS → "Sudah bayar" → pemilik Lunas → Siap → pelanggan melihat "Siap" |
+| E2E | Playwright (viewport HP) | Pesan → QRIS → "Sudah bayar" → pemilik Lunas → Siap → pelanggan melihat "Siap". Berjalan di CI terhadap Supabase **lokal** (`supabase start`); tes yang mengubah data otomatis di-skip bila URL bukan localhost |

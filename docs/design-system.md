@@ -26,11 +26,14 @@ Diambil dari banner. Tulis sebagai CSS variable / token Tailwind.
 | `green-700` (**primary**) | `#2E5A3F` | Tombol utama, tab aktif, link |
 | `green-600` | `#3A6E4E` | Hover/pressed primary |
 | `green-100` | `#E3EDE5` | Latar badge hijau, highlight lembut |
+| `green-200` | `#C7DED0` | Border hijau lembut |
+| `green-50` | `#F2F7F3` | Latar banner hijau sangat lembut |
 | `brown-700` | `#7A4E24` | Teks aksen, harga |
 | `brown-500` (**accent**) | `#A86A32` | Ikon kategori, badge aksen, garis dekoratif |
 | `brown-100` | `#F1E3D3` | Latar kartu aksen (Paket Dos) |
 | `cream-50` (**background**) | `#FBF8F2` | Latar halaman |
 | `cream-100` | `#F4EEE3` | Latar section, placeholder foto |
+| `cream-200` | `#E9E0CF` | Skeleton di atas `cream-100`, hover chip krem |
 | `white` (**surface**) | `#FFFFFF` | Kartu, sheet, input |
 
 ### 2.2 Netral
@@ -97,9 +100,11 @@ Format harga: **`Rp15.000`** (titik ribuan, tanpa desimal). Pada daftar menu yan
 |---|---|---|
 | Primary | Latar `green-700`, teks putih | Aksi utama (Tambah, Pesan Sekarang, Mulai masak) |
 | Secondary | Border `green-700`, teks `green-700`, latar putih | Aksi kedua (Lihat QRIS, Riwayat) |
-| Accent | Latar `brown-500`, teks putih | **Lunas**, Pesan via WhatsApp |
+| Accent | Latar `brown-700`, teks putih | **Lunas**, Pesan via WhatsApp |
 | Ghost | Tanpa latar, teks `ink-600` | Batal kecil, tutup |
 | Danger | Teks/border `danger` | Batal pesanan, hapus |
+
+Teks putih di atas `brown-500` hanya ±4,4:1 (gagal AA), jadi tombol Accent memakai `brown-700` (±7:1); `brown-500` tetap untuk ikon & dekorasi.
 
 Tinggi minimal **48 px** (mobile) dan target sentuh ≥ **44×44 px**. State: hover, pressed (sedikit lebih gelap + `scale(0.98)`), disabled (opacity 40%), loading (spinner + label tetap).
 
@@ -120,7 +125,7 @@ Dua tata letak dengan ukuran yang **sama**, sehingga daftar tetap rapi walau han
 - Kanan: nama (`h3`, maks. 2 baris), ringkasan pilihan/deskripsi (`small`, `ink-600`, 1 baris + elipsis), dan harga (`brown-700`, 600).
 - Tombol `+` bulat 40 px `green-700` di kanan bawah. Jika item sudah di keranjang, berubah menjadi stepper `– 2 +`.
 - **Habis**: kartu opacity 50%, badge `muted` "Habis", tombol hilang.
-- Desktop/tablet: kartu menjadi grid 2–3 kolom, foto di atas (rasio 4:3 penuh lebar).
+- Tablet/desktop: kartu menjadi grid 2 kolom dengan tata letak **tetap horizontal** (foto kiri 112×84 px). Foto penuh lebar ditinggalkan karena placeholder raksasa mendominasi halaman saat sebagian besar menu belum berfoto.
 
 ### 6.3 Bottom sheet pilihan menu
 
@@ -164,6 +169,7 @@ Bentuk *pill* (radius full), ikon kecil + teks `caption`, dengan warna sesuai §
 - Nomor antrean memakai Fraunces 28 px. Catatan pelanggan ditulis miring dengan latar `brown-100` agar tidak terlewat.
 - Garis kiri 4 px berwarna status bayar (merah = belum bayar, kuning = menunggu verifikasi, hijau = lunas).
 - Pesanan baru: animasi *pulse* singkat + bunyi.
+- Tombol aksi: aksi masak utama (Mulai masak → Siap → Selesai) **penuh lebar, tinggi 48 px** di baris paling bawah (zona jempol). Aksi bayar/batal ada di baris atasnya, tinggi 44 px. Tombol ini dipakai di dapur, jadi jangan dikecilkan.
 
 ### 6.7 Input & form
 
@@ -173,11 +179,13 @@ Bentuk *pill* (radius full), ikon kecil + teks `caption`, dengan warna sesuai §
 
 ### 6.8 Lain-lain
 
+- **Hero toko** (menu pelanggan, gaya aplikasi franchise): blok `green-900` (sudut bawah membulat di HP, kartu `radius-2xl` di desktop) dengan pola titik halus dan cahaya *blur* `green-600`/`brown-500`. Kiri: pill status Buka (titik berdenyut)/Tutup, "RUMAH MAKAN" + **SIPIL** besar (Fraunces, `cream-50`), dan tagline `brown-100`. Kanan: ilustrasi SVG **sepiring nasi campur** beralas daun (ayam goreng, telur ceplok, sambal, timun) di atas lingkaran "piring" yang melayang perlahan, dengan uap naik dan cabai/daun/kilau yang bergoyang. Bawah: chip layanan (Makan di sini, Bungkus, Pesan dari HP). Tanpa emblem/nama ganda, dan tanpa rating/jam buka/lokasi karangan.
+- **Banner geser** (di bawah hero): carousel *scroll-snap* tanpa library. Slide `radius-2xl`, min. 176 px, **satu banner penuh selebar konten** di semua layar, bisa digeser. Urutan: dulu **menu unggulan** pilihan pemilik (D12; `green-900`, pill ⭐ "Menu unggulan", foto/placeholder menu setinggi banner di sisi kanan (55% di HP, 40% di ≥ 640 px) dengan tepi kiri memudar (`mask-image`) agar foto apa pun menyatu dengan latar banner agar foto apa pun menyatu dengan latar banner, nama, harga, tombol **Tambah** atau **Pilih** dengan logika yang sama seperti kartu menu; Habis disembunyikan, dan tanpa tombol saat toko tutup), lalu info yang sudah ada: **Paket Dos** (`brown-700`, tombol WhatsApp, P9), **Pesan dari HP** (`green-700`, tombol "Lihat menu"), dan **QRIS atau tunai** (`cream-100`); promo/diskon menunggu fase berikutnya. Tiap slide info punya **ilustrasi SVG inline besar** di sisi kanan (±40% lebar, di atas lingkaran sorot transparan); teks dibatasi 58% lebar di kiri (kotak nasi, HP dengan notifikasi "Siap!", kartu QR + uang), pola titik halus, dan cahaya lembut. Tombol WhatsApp memakai **logo WhatsApp asli** di lingkaran `#25D366`; hijau ini satu-satunya warna di luar token dan hanya untuk logo pihak ketiga. Indikator titik (target 44 px), panah di ≥ 640 px (berputar dari slide terakhir ke pertama), **Geser otomatis tiap 4,5 detik** dengan transisi *smooth scroll* cepat. Berhenti sementara saat di-hover, **berhenti permanen** begitu banner disentuh, digeser, atau difokus, dan tidak otomatis sama sekali bila `prefers-reduced-motion`. Tanpa tombol jeda atas permintaan pemilik; WCAG 2.2.2 menyarankan tombol jeda, jadi tambahkan bila ada keluhan.
 - **Tab kategori**: chip horizontal yang bisa digeser dan *sticky* di bawah header. Chip aktif `green-700`.
 - **Kartu statistik** (laporan): label `small` + angka besar `h1` tabular, dan perbandingan kecil (mis. "vs kemarin").
 - **Empty state**: ilustrasi ikon sederhana + kalimat ramah ("Belum ada pesanan. Santai dulu ☕").
 - **Toast**: muncul di atas, hilang otomatis setelah 3 detik.
-- **Skeleton loading** berwarna `cream-100` untuk daftar menu & pesanan.
+- **Skeleton loading** berwarna `cream-100` (atau `cream-200` bila di atas permukaan `cream-100`) untuk daftar menu & pesanan.
 
 ## 7. Layout & breakpoint
 
@@ -191,7 +199,8 @@ Bentuk *pill* (radius full), ikon kecil + teks `caption`, dengan warna sesuai §
 
 - Durasi 150–250 ms, easing `ease-out`.
 - Bottom sheet slide-up 250 ms, dan item yang ditambah ke keranjang memicu *bounce* kecil pada bar keranjang.
-- Hormati `prefers-reduced-motion`: matikan animasi non-esensial.
+- Ilustrasi hero & banner memakai animasi dekoratif berulang yang lambat: `animate-float` (melayang 6 px, 4 dtk), `animate-drift` (bergoyang + rotasi kecil, 6 dtk), `animate-steam` (uap naik & memudar, 2,4 dtk). Token-nya ada di `app/globals.css`.
+- Hormati `prefers-reduced-motion`: matikan animasi non-esensial. Elemen beranimasi diberi `motion-reduce:animate-none` agar tetap tampil statis (uap tetap terlihat).
 
 ## 9. Aksesibilitas
 
@@ -208,6 +217,7 @@ Bentuk *pill* (radius full), ikon kecil + teks `caption`, dengan warna sesuai §
 
 ## 11. Implementasi (Tailwind + shadcn/ui)
 
-- Token warna dimasukkan ke `tailwind.config` / CSS variable shadcn (`--primary`, `--accent`, `--background`, dst.) sehingga komponen shadcn otomatis memakai warna brand.
+- Token warna ada di `app/globals.css` (Tailwind v4 `@theme`, tanpa `tailwind.config`): kelas memakai nama token dokumen ini (`bg-green-700`, `text-brown-700`, `bg-cream-50`, `bg-danger-bg`, …), dan palet `green` bawaan Tailwind dinonaktifkan agar tidak tercampur. **Hanya pakai token yang tercantum di dokumen ini.** Langkah yang tidak ada (mis. `ink-700`, `green-300`, `brown-50`) tidak menghasilkan style apa pun, dan palet bawaan Tailwind (`amber-*`, `red-*`, …) tidak dipakai; gunakan token status `warning` / `danger`.
+- Variabel shadcn dipetakan ke token brand: `--primary` = `green-700`, `--background` = `cream-50`, `--border` = `line`. `--accent` shadcn adalah latar *hover* (`green-100`), **bukan** warna aksen coklat. Untuk coklat, pakai kelas `brown-*` atau varian tombol `accent`.
 - Font dimuat via `next/font/google` (Fraunces, Plus Jakarta Sans) dengan `display: swap`.
 - v1 hanya memakai **tema terang** (warung, layar di bawah cahaya). Tema gelap bisa ditambahkan nanti lewat token yang sama.
