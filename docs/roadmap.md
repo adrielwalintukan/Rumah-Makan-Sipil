@@ -60,8 +60,8 @@ Dokumen terkait: [PRD](PRD.md) · [Arsitektur](architecture.md)
 ### M6 — Poster QR, polish, rilis (D10)
 - [x] Halaman Poster QR: cetak (A4/A5) + unduh PNG
 - [x] Empty state, skeleton, toast, cek aksesibilitas & kontras, uji di HP Android murah + iPhone
-- [ ] Landing pelanggan: hero gaya franchise + banner geser (#61), menu unggulan ⭐ Banner (D12, #63)
-- [ ] Deploy produksi, buat akun pemilik, upload QRIS asli, cetak poster
+- [x] Landing pelanggan: hero gaya franchise + banner geser (#61), menu unggulan ⭐ Banner (D12, #63)
+- [x] Deploy produksi, buat akun pemilik, upload QRIS asli, cetak poster
 - [ ] Uji coba 1 hari di warung, lalu catat masukan
 
 ## Fase berikutnya (urut perkiraan prioritas)
