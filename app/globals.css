@@ -116,6 +116,9 @@
   }
   html {
     -webkit-text-size-adjust: 100%;
+    /* Scrollbar browser desktop: tipis, jalur transparan, pegangan krem-abu agar menyatu dengan latar. */
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--color-ink-400) 45%, transparent) transparent;
   }
   body {
     @apply bg-background text-foreground font-sans;

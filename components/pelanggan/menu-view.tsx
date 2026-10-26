@@ -32,7 +32,7 @@ export function MenuView({
         const visible = entries.find((e) => e.isIntersecting);
         if (visible) setActive(visible.target.id.replace("kategori-", ""));
       },
-      { rootMargin: "-120px 0px -60% 0px" },
+      { rootMargin: "-130px 0px -60% 0px" },
     );
     categories.forEach((c) => {
       const el = document.getElementById(`kategori-${c.id}`);
@@ -56,11 +56,11 @@ export function MenuView({
   return (
     <>
       <PromoCarousel settings={settings} featured={featured} canOrder={isOpen} onPick={pick} />
-      <div id="menu" className="scroll-mt-2 lg:flex lg:items-start lg:gap-8">
+      <div id="menu" className="scroll-mt-14 lg:flex lg:items-start lg:gap-8">
         <div className="flex-1 min-w-0 max-w-3xl">
           <nav
             aria-label="Kategori menu"
-            className="sticky top-0 z-30 -mx-4 flex gap-2 overflow-x-auto bg-background/95 px-4 py-3 backdrop-blur"
+            className="sticky top-14 z-30 -mx-4 flex gap-2 overflow-x-auto bg-background/95 px-4 py-3 backdrop-blur"
           >
             {categories.map((c) => (
               <a
@@ -79,7 +79,7 @@ export function MenuView({
           </nav>
 
           {categories.map((c) => (
-            <section key={c.id} id={`kategori-${c.id}`} aria-labelledby={`judul-${c.id}`} className="scroll-mt-20 pt-4">
+            <section key={c.id} id={`kategori-${c.id}`} aria-labelledby={`judul-${c.id}`} className="scroll-mt-32 pt-4">
               <h2 id={`judul-${c.id}`} className="mb-3 font-display text-2xl font-bold text-green-900">
                 {c.name}
               </h2>

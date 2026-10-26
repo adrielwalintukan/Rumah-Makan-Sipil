@@ -138,7 +138,13 @@ test("alur pengaturan toko: ubah profil, upload QRIS natural ratio, validasi gan
   await expect(page).toHaveURL(/\/admin/);
   await expect(page.getByRole("heading", { level: 1, name: "Pesanan Live" })).toBeVisible();
 
-  await page.goto("/admin/pengaturan");
+  // Di HP, Riwayat/Laporan/Poster QR/Pengaturan dibuka lewat panel "Lainnya" di tab bawah
+  await page.getByRole("button", { name: "Lainnya" }).click();
+  const moreSheet = page.getByRole("dialog", { name: "Menu lainnya" });
+  for (const label of ["Riwayat Pesanan", "Laporan", "Poster QR"]) {
+    await expect(moreSheet.getByRole("link", { name: label })).toBeVisible();
+  }
+  await moreSheet.getByRole("link", { name: "Pengaturan Toko" }).click();
   await expect(page).toHaveURL(/\/admin\/pengaturan$/);
   await expect(page.getByRole("heading", { level: 1, name: "Pengaturan Toko" })).toBeVisible();
 

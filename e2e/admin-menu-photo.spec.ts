@@ -226,6 +226,13 @@ test("alur upload foto menu: pratinjau 4:3, simpan, cek foto di admin & pelangga
   await expect(customerCardWithPhoto).toBeVisible();
   await expect(customerCardWithPhoto.locator("img")).toBeVisible();
 
+  // Foto bisa diketuk untuk dilihat besar (Issue #68), lalu ditutup dengan Esc
+  await customerCardWithPhoto.getByRole("button", { name: `Lihat foto ${MENU_NAME}` }).click();
+  const photoDialog = page.getByRole("dialog", { name: MENU_NAME });
+  await expect(photoDialog.locator("img")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(photoDialog).toHaveCount(0);
+
   // -------------------------------------------------------------
   // 9. Kembali ke /admin/menu dan Buka Halaman Ubah Menu
   // -------------------------------------------------------------

@@ -122,23 +122,30 @@ export function QrPosterDashboard({
             };
             margin: 0;
           }
+          /* Poster sedikit lebih kecil dari kertas (margin putih 4-6 mm) agar bingkai tidak terpotong
+             area tak tercetak printer; body memusatkannya di halaman. */
           #poster-print-target {
             width: ${
-              size === "a6" ? "105mm" : size === "a5" ? "148mm" : "210mm"
+              size === "a6" ? "97mm" : size === "a5" ? "138mm" : "198mm"
             } !important;
             height: ${
-              size === "a6" ? "148mm" : size === "a5" ? "210mm" : "297mm"
+              size === "a6" ? "140mm" : size === "a5" ? "200mm" : "285mm"
             } !important;
             max-width: ${
-              size === "a6" ? "105mm" : size === "a5" ? "148mm" : "210mm"
+              size === "a6" ? "97mm" : size === "a5" ? "138mm" : "198mm"
             } !important;
             max-height: ${
-              size === "a6" ? "148mm" : size === "a5" ? "210mm" : "297mm"
+              size === "a6" ? "140mm" : size === "a5" ? "200mm" : "285mm"
             } !important;
             padding: ${
               size === "a6" ? "3.5mm 4mm" : size === "a5" ? "5.5mm 6mm" : "8mm 9mm"
             } !important;
             border-width: ${size === "a6" ? "2px" : "3px"} !important;
+          }
+          /* QR diperbesar sesuai kertas agar tidak menyisakan ruang krem kosong yang luas. */
+          #poster-print-target [data-poster-qr] {
+            width: ${size === "a6" ? "55mm" : size === "a5" ? "78mm" : "110mm"} !important;
+            height: auto !important;
           }
           #poster-print-target header,
           #poster-print-target footer {
@@ -329,8 +336,9 @@ export function QrPosterDashboard({
 
       {/* Area Pratinjau Poster */}
       <div className="poster-preview-wrapper flex flex-col items-center justify-center rounded-2xl border border-line bg-cream-100/40 p-4 sm:p-8">
+        {/* poster-preview-container: direset di CSS cetak (globals.css) agar max-w pratinjau tidak menggeser poster. */}
         <div
-          className={`w-full transition-all duration-300 ${
+          className={`poster-preview-container w-full transition-all duration-300 ${
             size === "a6"
               ? "max-w-[260px] sm:max-w-[280px]"
               : size === "a5"
