@@ -63,8 +63,8 @@ export function PromoCarousel({
           name={item.name}
           imageUrl={item.image_url}
           category={category}
-          sizes="(min-width: 1024px) 38vw, (min-width: 640px) 50vw, 60vw"
-          className="absolute inset-y-0 right-0 aspect-auto h-full w-[60%] rounded-none [mask-image:linear-gradient(to_right,transparent,rgb(0_0_0/0.12)_15%,rgb(0_0_0/0.45)_35%,rgb(0_0_0/0.8)_55%,black_75%)] sm:w-1/2 lg:w-[38%]"
+          sizes="(min-width: 1024px) 38vw, 50vw"
+          className="absolute inset-y-0 right-0 aspect-auto h-full w-1/2 rounded-none [mask-image:linear-gradient(to_right,transparent,rgb(0_0_0/0.35)_8%,rgb(0_0_0/0.75)_18%,black_30%)] lg:w-[38%]"
         />
       ),
       action:
