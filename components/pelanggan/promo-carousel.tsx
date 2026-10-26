@@ -1,19 +1,24 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentType } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { ArrowRight, ChevronLeft, ChevronRight, Plus, Star } from "lucide-react";
+import { MenuPhoto } from "@/components/pelanggan/menu-photo";
 import { DosArt, PayArt, PhoneArt, WhatsAppGlyph } from "@/components/pelanggan/promo-art";
 import { formatRupiah } from "@/lib/format";
 import { useMediaQuery } from "@/lib/hooks/use-media-query";
-import type { StoreSettings } from "@/lib/menu";
+import type { MenuItem, StoreSettings } from "@/lib/menu";
 
 type Slide = {
   id: string;
   eyebrow: string;
   title: string;
   body: string;
-  Art: ComponentType<{ className?: string }>;
+  /** Ilustrasi info, atau foto menu untuk slide menu unggulan. */
+  Art?: ComponentType<{ className?: string }>;
+  media?: ReactNode;
   cta?: { label: string; href: string; external?: boolean };
+  /** Tombol aksi menu unggulan (Tambah / Pilih) — tombol, bukan link. */
+  action?: { label: string; onClick: () => void };
   tone: string;
   ctaTone: string;
   /** Warna titik pola latar & pill eyebrow (terang di slide gelap, gelap di slide krem). */
@@ -24,16 +29,56 @@ type Slide = {
 const AUTOPLAY_MS = 4500;
 
 /**
- * Banner geser di atas menu (design-system §6.8). Hanya info yang sudah ada di v1,
- * bukan promo/diskon (PRD §4.3). Paket Dos tetap dipesan via WhatsApp (P9, US-07).
+ * Banner geser di atas menu (design-system §6.8): menu unggulan pilihan pemilik (Issue #63)
+ * lalu info yang sudah ada di v1, bukan promo/diskon (PRD §4.3). Paket Dos via WhatsApp (P9, US-07).
  * Bergeser otomatis; berhenti sementara saat di-hover, berhenti permanen begitu disentuh,
  * digeser, atau difokus, dan tidak otomatis sama sekali bila prefers-reduced-motion.
  * shortcut: tanpa tombol jeda atas permintaan pemilik (WCAG 2.2.2 menyarankan tombol), tambahkan bila ada keluhan.
  */
-export function PromoCarousel({ settings }: { settings: StoreSettings }) {
+export function PromoCarousel({
+  settings,
+  featured = [],
+  canOrder = false,
+  onPick,
+}: {
+  settings: StoreSettings;
+  /** Menu unggulan yang tersedia (bukan Habis), urut seperti daftar menu. */
+  featured?: { item: MenuItem; category: string }[];
+  canOrder?: boolean;
+  /** Dipanggil tombol Tambah/Pilih: tambah langsung atau buka pilihan (logika sama dengan kartu menu). */
+  onPick?: (item: MenuItem, category: string) => void;
+}) {
   const price = formatRupiah(settings.dos_price);
+  const featuredSlides: Slide[] = featured.map(({ item, category }) => {
+    const hasOptions = item.option_groups.length > 0;
+    return {
+      id: `menu-${item.id}`,
+      eyebrow: "Menu unggulan",
+      title: item.name,
+      body: `${formatRupiah(item.price)}${item.description ? ` · ${item.description}` : ""}`,
+      // Foto penuh setinggi banner di sisi kanan; tepi kirinya di-mask transparan sehingga latar
+      // banner tembus dan foto apa pun (latar putih, gelap, potret) menyatu tanpa garis batas.
+      media: (
+        <MenuPhoto
+          name={item.name}
+          imageUrl={item.image_url}
+          category={category}
+          sizes="(min-width: 640px) 40vw, 55vw"
+          className="absolute inset-y-0 right-0 aspect-auto h-full w-[55%] rounded-none [mask-image:linear-gradient(to_right,transparent,black_45%)] sm:w-2/5"
+        />
+      ),
+      action:
+        canOrder && onPick
+          ? { label: hasOptions ? "Pilih" : "Tambah", onClick: () => onPick(item, category) }
+          : undefined,
+      tone: "bg-green-900 text-cream-50",
+      ctaTone: "bg-cream-50 text-green-900",
+      dark: true,
+    };
+  });
   const waText = `Halo ${settings.store_name}, saya mau pesan Paket Dos (${price}/dos). Jumlah: … Tanggal: …`;
   const slides: Slide[] = [
+    ...featuredSlides,
     {
       id: "dos",
       eyebrow: "Pesanan banyak",
@@ -140,19 +185,29 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
               }`}
             />
             <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 size-48 rounded-full bg-white/15 blur-2xl" />
+            {s.media}
+            {/* Ilustrasi besar di sisi kanan di atas lingkaran sorot, sejajar dengan foto menu unggulan. */}
+            {s.Art && (
+              <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 flex w-[44%] items-center justify-center sm:w-2/5">
+                <div className={`absolute aspect-square w-[88%] max-w-60 rounded-full ${s.dark ? "bg-white/10" : "bg-green-700/10"}`} />
+                <s.Art className="relative w-full max-w-56 drop-shadow-xl" />
+              </div>
+            )}
             <div className="relative flex items-start gap-2">
-              <div className="min-w-0 flex-1">
+              <div className={`min-w-0 flex-1 ${s.media ? "max-w-[55%] sm:max-w-[58%]" : "max-w-[58%]"}`}>
                 <p
                   className={`inline-block rounded-full px-2.5 py-1 text-[11px] leading-none font-bold tracking-wider uppercase ${
                     s.dark ? "bg-white/15" : "bg-green-700 text-cream-50"
                   }`}
                 >
+                  {s.id.startsWith("menu-") ? (
+                    <Star className="mr-1 inline size-3 -translate-y-px fill-current" aria-hidden />
+                  ) : null}
                   {s.eyebrow}
                 </p>
                 <h2 className="mt-2 font-display text-xl leading-tight font-bold sm:text-2xl">{s.title}</h2>
                 <p className="mt-1.5 text-sm">{s.body}</p>
               </div>
-              <s.Art className="-mt-1 -mr-2 w-24 shrink-0 drop-shadow-md sm:w-36 lg:w-44" />
             </div>
             {s.cta && (
               <a
@@ -172,6 +227,19 @@ export function PromoCarousel({ settings }: { settings: StoreSettings }) {
                 )}
                 {s.cta.label}
               </a>
+            )}
+            {s.action && (
+              <button
+                type="button"
+                onClick={s.action.onClick}
+                aria-label={`${s.action.label} ${s.title}`}
+                className={`relative mt-auto inline-flex h-11 w-fit items-center gap-2 self-start rounded-full pr-4 pl-1.5 text-sm font-bold shadow-sm transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-cream-50 focus-visible:ring-offset-2 focus-visible:ring-offset-green-900 focus-visible:outline-none ${s.ctaTone}`}
+              >
+                <span className="inline-flex size-8 items-center justify-center rounded-full bg-green-700 text-cream-50">
+                  <Plus className="size-4" aria-hidden />
+                </span>
+                {s.action.label}
+              </button>
             )}
           </li>
         ))}

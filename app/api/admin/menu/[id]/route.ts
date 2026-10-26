@@ -8,6 +8,7 @@ import {
   optionGroupSchema,
   type OptionGroupInput,
   quickToggleAvailabilitySchema,
+  quickToggleFeaturedSchema,
 } from "@/lib/admin-menu-schemas";
 import { MENU_PHOTOS_BUCKET } from "@/lib/storage";
 import { UUID_REGEX } from "@/lib/schemas";
@@ -140,6 +141,12 @@ export async function PATCH(
       return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
     updateData = { is_available: parseResult.data.is_available };
+  } else if (keys.length === 1 && "is_featured" in rawBody) {
+    const parseResult = quickToggleFeaturedSchema.safeParse(rawBody);
+    if (!parseResult.success) {
+      return NextResponse.json({ error: "Data menu unggulan tidak valid." }, { status: 400 });
+    }
+    updateData = { is_featured: parseResult.data.is_featured };
   } else {
     const allowedKeys = [
       "category_id",

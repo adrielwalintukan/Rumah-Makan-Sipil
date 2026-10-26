@@ -87,7 +87,7 @@ stateDiagram-v2
 
 | Rute | Layar | Isi utama |
 |---|---|---|
-| `/` | Menu | Header (logo, tagline, status buka/tutup), banner geser (Paket Dos, cara pesan, cara bayar), tab kategori, kartu menu, bar keranjang |
+| `/` | Menu | Header (logo, tagline, status buka/tutup), banner geser (menu unggulan, Paket Dos, cara pesan, cara bayar), tab kategori, kartu menu, bar keranjang |
 | (sheet) | Detail/pilihan menu | Opsi, catatan, jumlah, tombol Tambah |
 | `/keranjang` | Keranjang | Daftar item, ubah jumlah, total, tombol Lanjut |
 | `/checkout` | Checkout | Jenis pesanan, nama, no. HP, metode bayar, ringkasan, tombol Pesan Sekarang |
@@ -99,7 +99,7 @@ stateDiagram-v2
 |---|---|---|
 | `/admin/login` | Login | Email, password |
 | `/admin` | Pesanan live | Toggle buka/tutup, tombol suara, filter/kanban Baru · Dimasak · Siap, kartu pesanan |
-| `/admin/menu` | Kelola menu | Daftar per kategori, toggle Habis, urutkan, tambah menu |
+| `/admin/menu` | Kelola menu | Daftar per kategori, toggle Habis, toggle ⭐ Banner (menu unggulan), urutkan, tambah menu |
 | `/admin/menu/[id]` | Form menu | Nama, kategori, harga, deskripsi, foto, grup pilihan & opsi |
 | `/admin/riwayat` | Riwayat | Filter tanggal, daftar pesanan, detail |
 | `/admin/laporan` | Laporan | Kartu statistik hari ini/bulan ini, menu terlaris, Cash vs QRIS |
