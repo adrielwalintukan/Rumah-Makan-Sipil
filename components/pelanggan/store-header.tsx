@@ -1,5 +1,6 @@
 import { ShoppingBag, Smartphone, UtensilsCrossed } from "lucide-react";
 import { NasiArt } from "@/components/pelanggan/promo-art";
+import { STORE_HERO_ID, StickyStoreBar } from "@/components/pelanggan/sticky-store-bar";
 import type { StoreSettings } from "@/lib/menu";
 
 /** Hero toko gaya aplikasi franchise: status, judul, ilustrasi beranimasi, chip info (P10, design-system §6.8). */
@@ -11,7 +12,8 @@ export function StoreHeader({ settings }: { settings: StoreSettings }) {
   ];
   return (
     <header className="mb-2 lg:mb-4">
-      <div className="relative -mx-4 overflow-hidden rounded-b-[2rem] bg-green-900 px-5 pt-7 pb-6 lg:mx-0 lg:mt-4 lg:rounded-2xl lg:px-10 lg:pt-6 lg:pb-8">
+      <StickyStoreBar isOpen={settings.is_open} />
+      <div id={STORE_HERO_ID} className="relative -mx-4 overflow-hidden rounded-b-[2rem] bg-green-900 px-5 pt-7 pb-6 lg:mx-0 lg:mt-4 lg:rounded-2xl lg:px-10 lg:pt-6 lg:pb-8">
         {/* Hiasan: cahaya, pola titik, dan lingkaran "piring" di belakang ilustrasi. */}
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(rgb(255_255_255/0.07)_1.5px,transparent_1.5px)] [background-size:18px_18px]" />
         <div aria-hidden className="pointer-events-none absolute -top-28 -left-20 size-72 rounded-full bg-green-600/40 blur-3xl" />
