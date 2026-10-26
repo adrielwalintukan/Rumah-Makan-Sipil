@@ -15,6 +15,7 @@ import {
   Utensils,
 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { Sheet, SheetClose, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 interface AdminNavProps {
   userEmail?: string;
@@ -24,6 +25,7 @@ export function AdminNav({ userEmail }: AdminNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const [moreOpen, setMoreOpen] = React.useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -57,16 +59,6 @@ export function AdminNav({ userEmail }: AdminNavProps) {
       icon: DollarSign,
       isActive: pathname.startsWith("/admin/keuangan"),
     },
-    {
-      label: "Lainnya",
-      href: "/admin/pengaturan",
-      icon: MoreHorizontal,
-      isActive:
-        pathname.startsWith("/admin/pengaturan") ||
-        pathname.startsWith("/admin/laporan") ||
-        pathname.startsWith("/admin/riwayat") ||
-        pathname.startsWith("/admin/qr"),
-    },
   ];
 
   // Navigasi sidebar untuk desktop (≥ 768 px)
@@ -79,6 +71,9 @@ export function AdminNav({ userEmail }: AdminNavProps) {
     { label: "Poster QR", href: "/admin/qr", icon: QrCode },
     { label: "Pengaturan Toko", href: "/admin/pengaturan", icon: Settings },
   ];
+  // Halaman yang tidak punya tab sendiri di HP: dibuka lewat panel "Lainnya".
+  const moreLinks = desktopLinks.filter((l) => !mobileTabs.some((t) => t.href === l.href));
+  const moreActive = moreLinks.some((l) => pathname.startsWith(l.href));
 
   return (
     <>
@@ -188,6 +183,50 @@ export function AdminNav({ userEmail }: AdminNavProps) {
               </Link>
             );
           })}
+          <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+            <button
+              type="button"
+              onClick={() => setMoreOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={moreOpen}
+              className={`flex flex-col items-center justify-center min-w-[64px] h-full gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 rounded-md ${
+                moreActive ? "text-green-800 font-bold" : "text-ink-600 hover:text-ink-900 font-medium"
+              }`}
+            >
+              <MoreHorizontal className="size-5" aria-hidden />
+              <span className="text-[11px] leading-none tracking-tight">Lainnya</span>
+            </button>
+            <SheetContent
+              side="bottom"
+              aria-describedby={undefined}
+              className="gap-0 rounded-t-xl px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-sheet"
+            >
+              <div aria-hidden className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-line" />
+              <SheetTitle className="mb-2 px-1 font-display text-lg text-green-900">Menu lainnya</SheetTitle>
+              <ul className="flex flex-col gap-1">
+                {moreLinks.map((item) => {
+                  const Icon = item.icon;
+                  const active = pathname.startsWith(item.href);
+                  return (
+                    <li key={item.href}>
+                      <SheetClose asChild>
+                        <Link
+                          href={item.href}
+                          aria-current={active ? "page" : undefined}
+                          className={`flex min-h-12 items-center gap-3 rounded-lg px-3.5 text-sm font-semibold transition-colors ${
+                            active ? "bg-green-700 text-white" : "text-ink-900 hover:bg-cream-100"
+                          }`}
+                        >
+                          <Icon className="size-5 shrink-0" aria-hidden />
+                          {item.label}
+                        </Link>
+                      </SheetClose>
+                    </li>
+                  );
+                })}
+              </ul>
+            </SheetContent>
+          </Sheet>
         </div>
       </nav>
     </>

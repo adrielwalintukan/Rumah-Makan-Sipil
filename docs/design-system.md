@@ -192,7 +192,7 @@ Bentuk *pill* (radius full), ikon kecil + teks `caption`, dengan warna sesuai §
 
 | Breakpoint | Lebar | Pelanggan | Dashboard |
 |---|---|---|---|
-| Mobile | < 640 px | 1 kolom, keranjang sticky bawah | Navigasi **bottom tab** (Pesanan, Menu, Keuangan, Lainnya), pesanan 1 kolom dengan filter status |
+| Mobile | < 640 px | 1 kolom, keranjang sticky bawah | Navigasi **bottom tab** (Pesanan, Menu, Keuangan, Lainnya; **Lainnya** membuka *bottom sheet* berisi Riwayat, Laporan, Poster QR, Pengaturan), pesanan 1 kolom dengan filter status |
 | Tablet | 640–1023 px | Grid menu 2 kolom | Pesanan **kanban 2–3 kolom** (Baru / Dimasak / Siap) |
 | Desktop | ≥ 1024 px | Konten maks. 720 px di tengah, keranjang sebagai panel kanan | Sidebar kiri + kanban 3 kolom + panel detail |
 
