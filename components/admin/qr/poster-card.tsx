@@ -23,14 +23,16 @@ export function PosterCard({
   const isA5 = size === "a5";
 
   return (
+    // Tanpa overflow-hidden: aspect-ratio A4 dipertahankan bila isi muat, dan poster memanjang (bukan
+    // memotong link) di layar yang terlalu sempit. Ukuran cetak dikunci mm oleh CSS cetak.
     <div
       id="poster-print-target"
-      className={`relative mx-auto flex flex-col justify-between overflow-hidden bg-[#FBF8F2] text-[#1C1B18] shadow-card aspect-[210/297] select-none ${
+      className={`relative mx-auto flex flex-col justify-between bg-[#FBF8F2] text-[#1C1B18] shadow-card aspect-[210/297] select-none ${
         isA6
           ? "rounded-xl border-2 border-[#1F3D2B] p-2 sm:p-2.5"
           : isA5
           ? "rounded-2xl border-[3px] border-[#1F3D2B] p-3 sm:p-4 md:p-5"
-          : "rounded-2xl border-[3px] border-[#1F3D2B] p-4 sm:p-6 md:p-7"
+          : "rounded-2xl border-[3px] border-[#1F3D2B] p-3 sm:p-6 md:p-7"
       } ${className}`}
       style={{
         WebkitPrintColorAdjust: "exact",
@@ -58,7 +60,7 @@ export function PosterCard({
               ? "size-6 sm:size-7 rounded-md bg-[#2E5A3F] text-[9px] sm:text-[10px] text-white"
               : isA5
               ? "size-8 sm:size-9 rounded-lg bg-[#2E5A3F] text-xs text-white"
-              : "size-10 sm:size-12 md:size-14 rounded-xl bg-[#2E5A3F] text-xs sm:text-sm md:text-base text-white"
+              : "size-8 sm:size-12 md:size-14 rounded-xl bg-[#2E5A3F] text-xs sm:text-sm md:text-base text-white"
           }`}
         >
           RMS
@@ -71,7 +73,7 @@ export function PosterCard({
               ? "mt-0.5 text-xs sm:text-sm md:text-base"
               : isA5
               ? "mt-1 text-base sm:text-lg md:text-xl"
-              : "mt-1.5 sm:mt-2 text-xl sm:text-2xl md:text-3xl"
+              : "mt-1 sm:mt-2 text-lg sm:text-2xl md:text-3xl"
           }`}
         >
           {storeName || "Rumah Makan Sipil"}
@@ -115,12 +117,13 @@ export function PosterCard({
 
           {/* Gambar QR Code */}
           <div
+            data-poster-qr
             className={`relative aspect-square overflow-hidden rounded-xl bg-white p-1 ${
               isA6
                 ? "w-32 sm:w-36 md:w-40"
                 : isA5
-                ? "w-44 sm:w-50 md:w-56"
-                : "w-52 sm:w-64 md:w-72"
+                ? "w-32 sm:w-50 md:w-56"
+                : "w-32 sm:w-64 md:w-72"
             }`}
           >
             {qrDataUrl ? (
@@ -154,7 +157,7 @@ export function PosterCard({
       {/* Bagian Bawah: 3 Langkah Pemesanan & Footer URL */}
       <footer
         className={`relative z-10 flex flex-col items-center ${
-          isA6 ? "mb-0 gap-1" : "mb-0.5 sm:mb-1.5 gap-2 sm:gap-2.5"
+          isA6 ? "mb-0 gap-1" : "mb-0.5 sm:mb-1.5 gap-1.5 sm:gap-2.5"
         }`}
       >
         {/* 3 Langkah Mudah */}
