@@ -24,16 +24,23 @@ import { StoreStatusToggle } from "./store-status-toggle";
 
 type OrdersSetter = React.Dispatch<React.SetStateAction<AdminOrder[]>>;
 
+/** Pesanan batal atau selesai+lunas tidak lagi tampil di board (sama dengan filter getLiveOrders). */
+export function isClosedOrder(order: Pick<AdminOrder, "status" | "payment_status">): boolean {
+  return order.status === "batal" || (order.status === "selesai" && order.payment_status === "lunas");
+}
+
 /**
- * Terapkan perubahan pesanan ke daftar live: keluarkan pesanan selesai+lunas atau batal,
- * selain itu gabungkan field terbaru dengan mempertahankan order_items yang sudah dimuat.
+ * Terapkan perubahan pesanan ke daftar live: keluarkan pesanan yang sudah tutup, selain itu
+ * gabungkan field terbaru dengan mempertahankan order_items yang sudah dimuat. UPDATE untuk
+ * pesanan yang belum ada di board (tiba sebelum INSERT-nya) ditambahkan dulu; item-nya diisi
+ * oleh handler INSERT yang menyusul.
  */
 export function applyOrderUpdate(prev: AdminOrder[], updated: AdminOrder): AdminOrder[] {
-  if (
-    updated.status === "batal" ||
-    (updated.status === "selesai" && updated.payment_status === "lunas")
-  ) {
+  if (isClosedOrder(updated)) {
     return prev.filter((o) => o.id !== updated.id);
+  }
+  if (!prev.some((o) => o.id === updated.id)) {
+    return [...prev, { ...updated, order_items: [] }];
   }
   return prev.map((o) =>
     o.id === updated.id ? { ...o, ...updated, order_items: o.order_items } : o
@@ -43,12 +50,15 @@ export function applyOrderUpdate(prev: AdminOrder[], updated: AdminOrder): Admin
 /**
  * Masukkan pesanan baru ke state SEBELUM memuat item-nya, supaya event UPDATE yang tiba
  * selama item dimuat (mis. klaim bayar pelanggan) menemukan pesanan dan tidak hilang.
+ * Pesanan yang sudah diketahui tutup (UPDATE batal/lunas tiba lebih dulu) tidak ditambahkan.
  */
 export async function insertOrderThenLoadItems(
   rawOrder: AdminOrder,
   setOrders: OrdersSetter,
-  loadItems: (orderId: string) => Promise<AdminOrder["order_items"]>
+  loadItems: (orderId: string) => Promise<AdminOrder["order_items"]>,
+  closedIds: ReadonlySet<string> = new Set()
 ) {
+  if (closedIds.has(rawOrder.id)) return;
   setOrders((prev) =>
     prev.some((o) => o.id === rawOrder.id) ? prev : [...prev, { ...rawOrder, order_items: [] }]
   );
@@ -69,6 +79,8 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
   const [newOrderIds, setNewOrderIds] = React.useState<Set<string>>(new Set());
   const [mobileTab, setMobileTab] = React.useState<"semua" | OrderStatus>("semua");
   const isDesktop = useIsDesktop();
+  // Id pesanan yang sudah tutup lewat realtime, agar INSERT yang tiba belakangan tidak menghidupkannya lagi.
+  const closedIds = React.useRef(new Set<string>());
 
   // Screen Wake Lock API (Issue #12 & PRD US-10)
   const { isSupported: isWakeLockSupported, isActive: isWakeLockActive, request: requestWakeLock } = useWakeLock();
@@ -148,7 +160,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
             });
           }, 5000);
 
-          await insertOrderThenLoadItems(rawOrder, setOrders, (id) => getOrderItems(supabase, id));
+          await insertOrderThenLoadItems(rawOrder, setOrders, (id) => getOrderItems(supabase, id), closedIds.current);
         }
       )
       .on(
@@ -160,6 +172,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
         },
         async (payload) => {
           const updated = payload.new as AdminOrder;
+          if (isClosedOrder(updated)) closedIds.current.add(updated.id);
           setOrders((prev) => applyOrderUpdate(prev, updated));
         }
       )

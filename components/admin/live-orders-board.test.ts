@@ -88,6 +88,31 @@ describe("realtime Pesanan Live", () => {
     expect(state.orders[0].payment_status).toBe("menunggu_verifikasi");
   });
 
+  it("UPDATE terminal yang tiba sebelum INSERT tidak menghidupkan snapshot INSERT yang basi", async () => {
+    const { state, setOrders } = createState();
+    const closedIds = new Set<string>();
+    const batal = { ...rawOrder, status: "batal" as const };
+
+    // Urutan UPDATE dulu, lalu INSERT (seperti handler di LiveOrdersBoard)
+    closedIds.add(batal.id);
+    setOrders((prev) => applyOrderUpdate(prev, batal));
+    await insertOrderThenLoadItems(rawOrder, setOrders, async () => items, closedIds);
+
+    expect(state.orders).toHaveLength(0);
+  });
+
+  it("UPDATE non-terminal yang tiba sebelum INSERT dipertahankan, lalu item diisi oleh INSERT", async () => {
+    const { state, setOrders } = createState();
+    const klaim = { ...rawOrder, payment_status: "menunggu_verifikasi" as const };
+
+    setOrders((prev) => applyOrderUpdate(prev, klaim));
+    await insertOrderThenLoadItems(rawOrder, setOrders, async () => items);
+
+    expect(state.orders).toHaveLength(1);
+    expect(state.orders[0].payment_status).toBe("menunggu_verifikasi");
+    expect(state.orders[0].order_items).toEqual(items);
+  });
+
   it("pesanan selesai + lunas dikeluarkan dari board", () => {
     const next = applyOrderUpdate([{ ...rawOrder, order_items: items }], {
       ...rawOrder,
