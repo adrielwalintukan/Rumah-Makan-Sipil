@@ -22,6 +22,50 @@ import { Button } from "@/components/ui/button";
 import { OrderCard } from "./order-card";
 import { StoreStatusToggle } from "./store-status-toggle";
 
+type OrdersSetter = React.Dispatch<React.SetStateAction<AdminOrder[]>>;
+
+/** Pesanan batal atau selesai+lunas tidak lagi tampil di board (sama dengan filter getLiveOrders). */
+export function isClosedOrder(order: Pick<AdminOrder, "status" | "payment_status">): boolean {
+  return order.status === "batal" || (order.status === "selesai" && order.payment_status === "lunas");
+}
+
+/**
+ * Terapkan perubahan pesanan ke daftar live: keluarkan pesanan yang sudah tutup, selain itu
+ * gabungkan field terbaru dengan mempertahankan order_items yang sudah dimuat. UPDATE untuk
+ * pesanan yang belum ada di board (tiba sebelum INSERT-nya) ditambahkan dulu; item-nya diisi
+ * oleh handler INSERT yang menyusul.
+ */
+export function applyOrderUpdate(prev: AdminOrder[], updated: AdminOrder): AdminOrder[] {
+  if (isClosedOrder(updated)) {
+    return prev.filter((o) => o.id !== updated.id);
+  }
+  if (!prev.some((o) => o.id === updated.id)) {
+    return [...prev, { ...updated, order_items: [] }];
+  }
+  return prev.map((o) =>
+    o.id === updated.id ? { ...o, ...updated, order_items: o.order_items } : o
+  );
+}
+
+/**
+ * Masukkan pesanan baru ke state SEBELUM memuat item-nya, supaya event UPDATE yang tiba
+ * selama item dimuat (mis. klaim bayar pelanggan) menemukan pesanan dan tidak hilang.
+ * Pesanan yang sudah diketahui tutup (UPDATE batal/lunas tiba lebih dulu) tidak ditambahkan.
+ */
+export async function insertOrderThenLoadItems(
+  rawOrder: AdminOrder,
+  setOrders: OrdersSetter,
+  loadItems: (orderId: string) => Promise<AdminOrder["order_items"]>,
+  closedIds: ReadonlySet<string> = new Set()
+) {
+  if (closedIds.has(rawOrder.id)) return;
+  setOrders((prev) =>
+    prev.some((o) => o.id === rawOrder.id) ? prev : [...prev, { ...rawOrder, order_items: [] }]
+  );
+  const items = await loadItems(rawOrder.id);
+  setOrders((prev) => prev.map((o) => (o.id === rawOrder.id ? { ...o, order_items: items } : o)));
+}
+
 interface LiveOrdersBoardProps {
   initialOrders: AdminOrder[];
   initialIsOpen?: boolean;
@@ -35,6 +79,8 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
   const [newOrderIds, setNewOrderIds] = React.useState<Set<string>>(new Set());
   const [mobileTab, setMobileTab] = React.useState<"semua" | OrderStatus>("semua");
   const isDesktop = useIsDesktop();
+  // Id pesanan yang sudah tutup lewat realtime, agar INSERT yang tiba belakangan tidak menghidupkannya lagi.
+  const closedIds = React.useRef(new Set<string>());
 
   // Screen Wake Lock API (Issue #12 & PRD US-10)
   const { isSupported: isWakeLockSupported, isActive: isWakeLockActive, request: requestWakeLock } = useWakeLock();
@@ -83,6 +129,13 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
     }
   }, []);
 
+  // Satu jalur untuk UPDATE realtime dan respons sukses dari kartu pesanan (OrderCard hanya memanggil
+  // onOrderUpdated setelah server mengonfirmasi), supaya id pesanan tutup selalu tercatat di closedIds.
+  const handleOrderUpdated = React.useCallback((updated: AdminOrder) => {
+    if (isClosedOrder(updated)) closedIds.current.add(updated.id);
+    setOrders((prev) => applyOrderUpdate(prev, updated));
+  }, []);
+
   // Subscribe Supabase Realtime postgres_changes
   React.useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -104,27 +157,17 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
             soundNotifier.playOrderNotification();
           }
 
-          // Muat item pesanan untuk pesanan baru
-          const items = await getOrderItems(supabase, rawOrder.id);
-          const fullOrder: AdminOrder = {
-            ...rawOrder,
-            order_items: items,
-          };
-
           // Tandai kartu pesanan baru agar berkedip
-          setNewOrderIds((prev) => new Set(prev).add(fullOrder.id));
+          setNewOrderIds((prev) => new Set(prev).add(rawOrder.id));
           setTimeout(() => {
             setNewOrderIds((prev) => {
               const next = new Set(prev);
-              next.delete(fullOrder.id);
+              next.delete(rawOrder.id);
               return next;
             });
           }, 5000);
 
-          setOrders((prev) => {
-            if (prev.some((o) => o.id === fullOrder.id)) return prev;
-            return [...prev, fullOrder];
-          });
+          await insertOrderThenLoadItems(rawOrder, setOrders, (id) => getOrderItems(supabase, id), closedIds.current);
         }
       )
       .on(
@@ -134,31 +177,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
           schema: "public",
           table: "orders",
         },
-        async (payload) => {
-          const updated = payload.new as AdminOrder;
-
-          setOrders((prev) => {
-            // Jika pesanan telah selesai DAN lunas, atau dibatalkan, keluarkan dari board live
-            if (
-              updated.status === "batal" ||
-              (updated.status === "selesai" && updated.payment_status === "lunas")
-            ) {
-              return prev.filter((o) => o.id !== updated.id);
-            }
-
-            return prev.map((o) => {
-              if (o.id === updated.id) {
-                return {
-                  ...o,
-                  ...updated,
-                  // Pertahankan order_items yang sudah dimuat sebelumnya
-                  order_items: o.order_items,
-                };
-              }
-              return o;
-            });
-          });
-        }
+        (payload) => handleOrderUpdated(payload.new as AdminOrder)
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
@@ -172,27 +191,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isSoundEnabled, refreshOrders]);
-
-  const handleOrderUpdated = React.useCallback((updated: AdminOrder) => {
-    setOrders((prev) => {
-      if (
-        updated.status === "batal" ||
-        (updated.status === "selesai" && updated.payment_status === "lunas")
-      ) {
-        return prev.filter((o) => o.id !== updated.id);
-      }
-      return prev.map((o) =>
-        o.id === updated.id
-          ? {
-              ...o,
-              ...updated,
-              order_items: o.order_items,
-            }
-          : o
-      );
-    });
-  }, []);
+  }, [isSoundEnabled, refreshOrders, handleOrderUpdated]);
 
   // Kelompokkan pesanan berdasarkan status kanban
   const ordersBaru = orders.filter((o) => o.status === "baru");
