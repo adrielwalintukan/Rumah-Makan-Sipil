@@ -56,15 +56,15 @@ export function PromoCarousel({
       eyebrow: "Menu unggulan",
       title: item.name,
       body: `${formatRupiah(item.price)}${item.description ? ` · ${item.description}` : ""}`,
-      // Foto penuh setinggi banner di sisi kanan; tepi kirinya di-mask transparan bertahap (ease-in) sehingga latar
+      // Foto penuh setinggi banner di sisi kanan; tepi kirinya di-mask transparan sehingga latar
       // banner tembus dan foto apa pun (latar putih, gelap, potret) menyatu tanpa garis batas.
       media: (
         <MenuPhoto
           name={item.name}
           imageUrl={item.image_url}
           category={category}
-          sizes="(min-width: 1024px) 38vw, 50vw"
-          className="absolute inset-y-0 right-0 aspect-auto h-full w-1/2 rounded-none [mask-image:linear-gradient(to_right,transparent,rgb(0_0_0/0.35)_8%,rgb(0_0_0/0.75)_18%,black_30%)] lg:w-[38%]"
+          sizes="(min-width: 640px) 40vw, 55vw"
+          className="absolute inset-y-0 right-0 aspect-auto h-full w-[55%] rounded-none [mask-image:linear-gradient(to_right,transparent,black_45%)] sm:w-2/5"
         />
       ),
       action:
@@ -194,7 +194,7 @@ export function PromoCarousel({
               </div>
             )}
             <div className="relative flex items-start gap-2">
-              <div className="min-w-0 max-w-[58%] flex-1">
+              <div className={`min-w-0 flex-1 ${s.media ? "max-w-[55%] sm:max-w-[58%]" : "max-w-[58%]"}`}>
                 <p
                   className={`inline-block rounded-full px-2.5 py-1 text-[11px] leading-none font-bold tracking-wider uppercase ${
                     s.dark ? "bg-white/15" : "bg-green-700 text-cream-50"
