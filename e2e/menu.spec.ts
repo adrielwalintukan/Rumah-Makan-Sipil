@@ -36,7 +36,8 @@ test.afterAll(async () => {
 test("menu tampil per kategori, Habis nonaktif, kartu foto & tanpa foto sama ukuran", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "SIPIL" })).toBeVisible();
-  await expect(page.getByText("Buka", { exact: true })).toBeVisible();
+  // Dibatasi ke hero: bar ringkas (aria-hidden) juga memuat teks "Buka".
+  await expect(page.locator("#toko-hero").getByText("Buka", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Makanan" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Minuman" })).toBeVisible();
   await expect(page.getByTestId("menu-card")).toHaveCount(11);
@@ -46,7 +47,7 @@ test("menu tampil per kategori, Habis nonaktif, kartu foto & tanpa foto sama uku
   await expect(susu.getByRole("button", { name: "Tambah Susu" })).toHaveCount(0);
 
   const photoBox = async (name: string) =>
-    page.getByTestId("menu-card").filter({ hasText: name }).locator(":scope > div").first().boundingBox();
+    page.getByTestId("menu-card").filter({ hasText: name }).locator(":scope > *").first().boundingBox(); // foto (tombol) atau placeholder (div)
   const withPhoto = await photoBox("Nasi Campur");
   const withoutPhoto = await photoBox("Nasi Telur");
   expect(withPhoto?.width).toBe(withoutPhoto?.width);
@@ -145,6 +146,27 @@ test("Paket Dos membuka WhatsApp dengan pesan terisi (US-07)", async ({ page }) 
   const href = await link.getAttribute("href");
   expect(href).toMatch(/^https:\/\/wa\.me\/62895806567230\?text=/);
   expect(decodeURIComponent(href!.split("text=")[1])).toContain("saya mau pesan Paket Dos (Rp25.000/dos)");
+});
+
+test("bar ringkas toko turun saat hero tergulir, tab kategori menempel di bawahnya", async ({ page }) => {
+  await page.goto("/");
+  const bar = page.locator("[data-shown]");
+  await expect(bar).toHaveAttribute("data-shown", "false");
+
+  await page.getByRole("link", { name: "Minuman" }).click();
+  await expect(bar).toHaveAttribute("data-shown", "true");
+  // Tunggu animasi geser (300 ms) selesai: bar sudah menempel di atas layar sebelum geometri dibaca.
+  const barInner = bar.locator(":scope > div");
+  await expect.poll(async () => Math.round((await barInner.boundingBox())!.y)).toBe(0);
+  const barBox = await barInner.boundingBox();
+  const navBox = await page.getByRole("navigation", { name: "Kategori menu" }).boundingBox();
+  expect(Math.round(navBox!.y)).toBe(Math.round(barBox!.y + barBox!.height));
+  // Judul kategori tujuan tidak tertutup bar maupun tab
+  const heading = await page.getByRole("heading", { level: 2, name: "Minuman" }).boundingBox();
+  expect(heading!.y).toBeGreaterThanOrEqual(navBox!.y + navBox!.height);
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(bar).toHaveAttribute("data-shown", "false");
 });
 
 test("tablet & desktop: grid 2 kolom tanpa scroll horizontal", async ({ page }) => {

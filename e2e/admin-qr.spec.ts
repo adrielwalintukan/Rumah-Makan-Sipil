@@ -101,6 +101,16 @@ test.describe("Admin QR Poster (E2E)", () => {
     await expect(btnA5).toHaveAttribute("aria-pressed", "true");
     await expect(btnA6).toHaveAttribute("aria-pressed", "false");
 
+    // 6b. Di layar HP (360 px), link web di kaki poster tidak terpotong untuk semua ukuran (Issue #68)
+    const posterLink = posterTarget.locator("footer p").last();
+    for (const btn of [btnA4, btnA5, btnA6]) {
+      await btn.click();
+      const pb = (await posterTarget.boundingBox())!;
+      const lb = (await posterLink.boundingBox())!;
+      expect(lb.y + lb.height).toBeLessThanOrEqual(pb.y + pb.height);
+    }
+    await btnA5.click();
+
     // 7. Verifikasi tombol aksi dan proteksi status produksi
     const btnPrint = page.getByRole("button", { name: "Cetak Poster" });
     const btnDownloadWord = page.getByRole("button", { name: /Unduh Dokumen Word/i });
@@ -194,6 +204,13 @@ test.describe("Admin QR Poster (E2E)", () => {
     await btnA4.click();
     await expect(btnA4).toHaveAttribute("aria-pressed", "true");
     await page.emulateMedia({ media: "print" });
+    // Poster cetak berada di tengah kertas (tidak tergeser max-w pratinjau) dan lebih kecil dari kertas
+    const viewport = page.viewportSize()!;
+    await page.setViewportSize({ width: 794, height: 1123 });
+    const printBox = (await posterTarget.boundingBox())!;
+    expect(Math.abs(printBox.x - (794 - printBox.width) / 2)).toBeLessThanOrEqual(2);
+    expect(printBox.width).toBeLessThan(794);
+    await page.setViewportSize(viewport);
     const pdfA4 = await page.pdf({ preferCSSPageSize: true });
     verifySinglePagePdf(pdfA4, "a4");
 
