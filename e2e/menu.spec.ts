@@ -155,7 +155,10 @@ test("bar ringkas toko turun saat hero tergulir, tab kategori menempel di bawahn
 
   await page.getByRole("link", { name: "Minuman" }).click();
   await expect(bar).toHaveAttribute("data-shown", "true");
-  const barBox = await bar.locator(":scope > div").boundingBox();
+  // Tunggu animasi geser (300 ms) selesai: bar sudah menempel di atas layar sebelum geometri dibaca.
+  const barInner = bar.locator(":scope > div");
+  await expect.poll(async () => Math.round((await barInner.boundingBox())!.y)).toBe(0);
+  const barBox = await barInner.boundingBox();
   const navBox = await page.getByRole("navigation", { name: "Kategori menu" }).boundingBox();
   expect(Math.round(navBox!.y)).toBe(Math.round(barBox!.y + barBox!.height));
   // Judul kategori tujuan tidak tertutup bar maupun tab
