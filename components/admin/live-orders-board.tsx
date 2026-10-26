@@ -129,6 +129,13 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
     }
   }, []);
 
+  // Satu jalur untuk UPDATE realtime dan respons sukses dari kartu pesanan (OrderCard hanya memanggil
+  // onOrderUpdated setelah server mengonfirmasi), supaya id pesanan tutup selalu tercatat di closedIds.
+  const handleOrderUpdated = React.useCallback((updated: AdminOrder) => {
+    if (isClosedOrder(updated)) closedIds.current.add(updated.id);
+    setOrders((prev) => applyOrderUpdate(prev, updated));
+  }, []);
+
   // Subscribe Supabase Realtime postgres_changes
   React.useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -170,11 +177,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
           schema: "public",
           table: "orders",
         },
-        async (payload) => {
-          const updated = payload.new as AdminOrder;
-          if (isClosedOrder(updated)) closedIds.current.add(updated.id);
-          setOrders((prev) => applyOrderUpdate(prev, updated));
-        }
+        (payload) => handleOrderUpdated(payload.new as AdminOrder)
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
@@ -188,11 +191,7 @@ export function LiveOrdersBoard({ initialOrders, initialIsOpen = false }: LiveOr
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isSoundEnabled, refreshOrders]);
-
-  const handleOrderUpdated = React.useCallback((updated: AdminOrder) => {
-    setOrders((prev) => applyOrderUpdate(prev, updated));
-  }, []);
+  }, [isSoundEnabled, refreshOrders, handleOrderUpdated]);
 
   // Kelompokkan pesanan berdasarkan status kanban
   const ordersBaru = orders.filter((o) => o.status === "baru");

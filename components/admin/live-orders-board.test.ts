@@ -113,6 +113,19 @@ describe("realtime Pesanan Live", () => {
     expect(state.orders[0].order_items).toEqual(items);
   });
 
+  it("pesanan yang ditutup dari kartu (sudah ada lewat refresh) tidak dihidupkan INSERT yang terlambat", async () => {
+    const { state, setOrders } = createState([{ ...rawOrder, order_items: items }]);
+    const closedIds = new Set<string>();
+    const batal = { ...rawOrder, status: "batal" as const };
+
+    // Jalur handleOrderUpdated: respons sukses server dari OrderCard
+    closedIds.add(batal.id);
+    setOrders((prev) => applyOrderUpdate(prev, batal));
+    await insertOrderThenLoadItems(rawOrder, setOrders, async () => items, closedIds);
+
+    expect(state.orders).toHaveLength(0);
+  });
+
   it("pesanan selesai + lunas dikeluarkan dari board", () => {
     const next = applyOrderUpdate([{ ...rawOrder, order_items: items }], {
       ...rawOrder,
