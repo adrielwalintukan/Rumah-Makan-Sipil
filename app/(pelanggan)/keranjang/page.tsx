@@ -15,7 +15,7 @@ export function CartSkeleton() {
       className="flex flex-col gap-4 animate-pulse"
     >
       {/* 3 baris item keranjang */}
-      <div className="divide-y divide-line rounded-lg border border-line bg-card">
+      <div className="divide-y divide-line glass rounded-lg">
         {Array.from({ length: 3 }, (_, i) => (
           <div key={i} className="flex flex-col gap-3 p-4">
             <div className="flex items-start justify-between gap-3">
@@ -34,7 +34,7 @@ export function CartSkeleton() {
       </div>
 
       {/* Kartu total */}
-      <div className="flex items-center justify-between rounded-lg border border-line bg-card p-4">
+      <div className="flex items-center justify-between glass rounded-lg p-4">
         <div className="h-5 w-16 rounded bg-cream-100" />
         <div className="h-6 w-24 rounded bg-cream-100" />
       </div>

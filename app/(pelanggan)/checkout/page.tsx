@@ -47,7 +47,7 @@ export function CheckoutSkeleton() {
       </div>
 
       {/* 4. Rincian ringkasan */}
-      <div className="flex flex-col gap-3 rounded-lg border border-line bg-card p-4">
+      <div className="flex flex-col gap-3 glass rounded-lg p-4">
         <div className="flex items-center justify-between border-b border-line pb-2.5">
           <div className="h-4 w-36 rounded bg-cream-100" />
           <div className="h-4 w-12 rounded bg-cream-100" />

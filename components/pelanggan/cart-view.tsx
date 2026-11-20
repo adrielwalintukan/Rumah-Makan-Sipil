@@ -28,7 +28,7 @@ export function CartView({ categories, isOpen }: { categories: Category[]; isOpe
 
   return (
     <>
-      <ul className="divide-y divide-line rounded-lg border bg-card">
+      <ul className="divide-y divide-line glass rounded-lg">
         {lines.map(({ key, line, item, options, subtotal, available }) => {
           const name = item?.name ?? "Menu tidak tersedia";
           return (
@@ -73,7 +73,7 @@ export function CartView({ categories, isOpen }: { categories: Category[]; isOpe
         })}
       </ul>
 
-      <div className="mt-4 flex items-center justify-between rounded-lg border bg-card p-4">
+      <div className="mt-4 flex items-center justify-between glass rounded-lg p-4">
         <span className="font-semibold text-ink-900">Total</span>
         <span data-testid="cart-total" className="text-xl font-bold text-green-900 tabular-nums">
           {formatRupiah(total)}

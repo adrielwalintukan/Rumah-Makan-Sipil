@@ -322,7 +322,7 @@ export function CheckoutForm({ categories, isOpen }: CheckoutFormProps) {
       </fieldset>
 
       {/* 4. Ringkasan Pesanan */}
-      <div className="flex flex-col gap-3 rounded-lg border border-line bg-card p-4">
+      <div className="flex flex-col gap-3 glass rounded-lg p-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold tracking-wide text-ink-900">RINGKASAN PESANAN</h3>
           <Link

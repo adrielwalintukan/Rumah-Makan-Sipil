@@ -31,7 +31,7 @@ export function StickyStoreBar({ isOpen }: { isOpen: boolean }) {
         shown ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-full opacity-0"
       }`}
     >
-      <div className="relative mx-auto flex h-14 w-full max-w-3xl items-center justify-between overflow-hidden rounded-b-2xl bg-green-900 px-5 shadow-lg lg:max-w-6xl">
+      <div className="relative mx-auto flex h-14 w-full max-w-3xl items-center justify-between overflow-hidden rounded-b-2xl bg-green-900/80 px-5 shadow-lg ring-1 ring-white/10 backdrop-blur-xl lg:max-w-6xl">
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(rgb(255_255_255/0.07)_1.5px,transparent_1.5px)] [background-size:18px_18px]" />
         <div aria-hidden className="pointer-events-none absolute -top-10 -left-10 size-32 rounded-full bg-green-600/40 blur-2xl" />
         <p className="relative flex items-baseline gap-2">

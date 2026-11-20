@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CartBar } from "@/components/pelanggan/cart-bar";
 import { DesktopCartPanel } from "@/components/pelanggan/desktop-cart-panel";
 import { MenuCard } from "@/components/pelanggan/menu-card";
@@ -24,6 +24,19 @@ export function MenuView({
   const { count, total } = resolveCart(cart, categories);
   const [selected, setSelected] = useState<{ item: MenuItem; category: string } | null>(null);
   const [active, setActive] = useState(categories[0]?.id);
+
+  // Indikator tab geser mengikuti tab aktif, dan tab aktif digulirkan ke tengah bar.
+  const navRef = useRef<HTMLElement>(null);
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const el = nav?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!nav || !el) return;
+    setPill({ left: el.offsetLeft, width: el.offsetWidth });
+    // Hanya geser bar tab secara horizontal (bukan scrollIntoView, agar halaman tidak ikut bergulir).
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    nav.scrollTo({ left: el.offsetLeft - (nav.clientWidth - el.offsetWidth) / 2, behavior: reduce ? "auto" : "smooth" });
+  }, [active]);
 
   // Chip kategori aktif mengikuti section yang sedang terlihat.
   useEffect(() => {
@@ -59,18 +72,24 @@ export function MenuView({
       <div id="menu" className="scroll-mt-14 lg:flex lg:items-start lg:gap-8">
         <div className="flex-1 min-w-0 max-w-3xl">
           <nav
+            ref={navRef}
             aria-label="Kategori menu"
-            className="sticky top-14 z-30 -mx-4 flex gap-2 overflow-x-auto bg-background/95 px-4 py-3 backdrop-blur"
+            className="glass sticky top-14 z-30 -mx-4 flex gap-1 overflow-x-auto rounded-none px-4 py-2 sm:mx-0 sm:rounded-full sm:px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
+            {pill && (
+              <span
+                aria-hidden
+                style={{ left: pill.left, width: pill.width }}
+                className="absolute inset-y-2 rounded-full bg-gradient-to-b from-green-600 to-green-800 shadow-md shadow-green-900/25 transition-[left,width] duration-300 ease-out"
+              />
+            )}
             {categories.map((c) => (
               <a
                 key={c.id}
                 href={`#kategori-${c.id}`}
                 aria-current={active === c.id ? "true" : undefined}
-                className={`inline-flex h-11 shrink-0 items-center rounded-full border px-5 text-sm font-semibold transition-colors ${
-                  active === c.id
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-line bg-card text-ink-900 hover:bg-accent"
+                className={`relative inline-flex h-11 shrink-0 items-center rounded-full px-5 text-sm font-semibold transition-colors ${
+                  active === c.id ? "text-primary-foreground" : "text-ink-900 hover:bg-white/60"
                 }`}
               >
                 {c.name}

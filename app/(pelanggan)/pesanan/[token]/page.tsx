@@ -21,7 +21,7 @@ export function OrderTrackSkeleton() {
       </div>
 
       {/* Header Nomor Antrean Besar & Badge Status */}
-      <div className="flex flex-col items-center gap-3 rounded-lg border border-line bg-card p-6 text-center">
+      <div className="flex flex-col items-center gap-3 glass rounded-lg p-6 text-center">
         <div className="h-6 w-36 rounded-full bg-cream-100" />
         <div className="h-6 w-28 rounded-full bg-cream-100" />
         <div className="mt-1 h-3 w-24 rounded bg-cream-100" />
@@ -32,7 +32,7 @@ export function OrderTrackSkeleton() {
       </div>
 
       {/* Area Instruksi Pembayaran (PaymentCard) */}
-      <div className="flex flex-col gap-3 rounded-lg border border-line bg-card p-4">
+      <div className="flex flex-col gap-3 glass rounded-lg p-4">
         <div className="flex items-center justify-between border-b border-line pb-2.5">
           <div className="h-4 w-28 rounded bg-cream-100" />
           <div className="h-6 w-24 rounded-full bg-cream-100" />
@@ -41,7 +41,7 @@ export function OrderTrackSkeleton() {
       </div>
 
       {/* Daftar Item Pesanan */}
-      <div className="flex flex-col gap-3 rounded-lg border border-line bg-card p-4">
+      <div className="flex flex-col gap-3 glass rounded-lg p-4">
         <div className="h-4 w-32 rounded bg-cream-100 border-b border-line pb-2.5" />
         <div className="flex flex-col gap-3 py-1">
           {Array.from({ length: 2 }, (_, i) => (
