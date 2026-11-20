@@ -20,7 +20,7 @@ export function DesktopCartPanel({
   const { lines, count, total, hasUnavailable } = resolveCart(cart, categories);
 
   return (
-    <div className="rounded-xl border border-line bg-card p-5 shadow-card">
+    <div className="glass rounded-xl p-5">
       <div className="flex items-center justify-between border-b border-line pb-3.5">
         <div className="flex items-center gap-2.5">
           <ShoppingBag className="size-5 text-green-900" aria-hidden />

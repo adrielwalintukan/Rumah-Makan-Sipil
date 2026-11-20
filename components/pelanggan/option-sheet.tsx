@@ -47,7 +47,7 @@ export function OptionSheet({
     <Sheet open onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         side="bottom"
-        className="mx-auto max-h-[90dvh] w-full max-w-lg gap-0 rounded-t-xl shadow-sheet"
+        className="mx-auto max-h-[90dvh] w-full max-w-lg gap-0 rounded-t-2xl border-white/60 bg-cream-50/85 shadow-sheet backdrop-blur-xl"
       >
         <div className="overflow-y-auto px-4 pt-3 pb-4">
           <div aria-hidden className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-line" />
@@ -124,7 +124,7 @@ export function OptionSheet({
           </div>
         </div>
 
-        <div className="border-t bg-card px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="border-t border-white/60 bg-white/50 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button className="w-full" disabled={!valid || !canOrder || !item.is_available} onClick={add}>
             {!canOrder ? "Toko sedang tutup" : `Tambah · ${formatRupiah(price)}`}
           </Button>

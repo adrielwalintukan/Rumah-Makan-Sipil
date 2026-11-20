@@ -71,7 +71,7 @@ export function PaymentCard({ order, qrisImageUrl, onPaymentStatusChange }: Paym
   };
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-line bg-card p-5">
+    <div className="flex flex-col gap-4 glass rounded-lg p-5">
       {/* Header status bayar */}
       <div className="flex items-center justify-between border-b border-line pb-3">
         <div className="flex items-center gap-2">

@@ -28,8 +28,8 @@ describe("Pelanggan Skeletons (Loading States)", () => {
 
       // Kartu container dan pembatas line
       expect(html).toContain("divide-line");
-      expect(html).toContain("border-line");
-      expect(html).toContain("bg-card");
+      expect(html).toContain("glass");
+      expect(html).toContain("glass");
 
       // Memiliki minimal 3 baris item placeholder dengan bg-cream-100
       const creamCount = (html.match(/bg-cream-100/g) || []).length;
@@ -57,7 +57,7 @@ describe("Pelanggan Skeletons (Loading States)", () => {
       expect(html).toContain("grid-cols-2");
 
       // Ringkasan pesanan container
-      expect(html).toContain("bg-card");
+      expect(html).toContain("glass");
       expect(html).toContain("border-line");
 
       // Memiliki sejumlah elemen skeleton bg-cream-100
@@ -83,7 +83,7 @@ describe("Pelanggan Skeletons (Loading States)", () => {
       const html = renderToString(<OrderTrackSkeleton />);
 
       // Area nomor antrean besar & kartu
-      expect(html).toContain("bg-card");
+      expect(html).toContain("glass");
       expect(html).toContain("rounded-full");
 
       // Memiliki sejumlah elemen skeleton bg-cream-100

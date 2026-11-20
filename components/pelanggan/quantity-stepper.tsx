@@ -16,7 +16,7 @@ export function QuantityStepper({
   min?: number;
 }) {
   const btn =
-    "inline-flex size-10 items-center justify-center rounded-full border border-primary text-primary transition-colors hover:bg-accent disabled:opacity-40";
+    "inline-flex size-10 items-center justify-center rounded-full border border-primary/70 bg-white/60 text-primary backdrop-blur transition-[transform,background-color] hover:bg-accent active:scale-90 disabled:opacity-40";
   return (
     <div className="flex items-center gap-1" role="group" aria-label={`Jumlah ${label}`}>
       <button
@@ -28,7 +28,7 @@ export function QuantityStepper({
       >
         <Minus className="size-4" />
       </button>
-      <span className="w-8 text-center font-semibold tabular-nums" aria-live="polite">
+      <span key={value} className="bump w-8 text-center font-semibold tabular-nums" aria-live="polite">
         {value}
       </span>
       <button

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { ActiveOrderBanner } from "@/components/pelanggan/active-order-banner";
+import { HowToOrder } from "@/components/pelanggan/how-to-order";
 import { MenuView } from "@/components/pelanggan/menu-view";
 import { StoreHeader } from "@/components/pelanggan/store-header";
 import { getMenu } from "@/lib/menu";
@@ -21,6 +22,7 @@ async function Menu() {
       <StoreHeader settings={settings} />
       <ActiveOrderBanner />
       <MenuView categories={categories} settings={settings} featuredIds={featuredIds} />
+      <HowToOrder />
     </>
   );
 }

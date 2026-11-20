@@ -232,3 +232,74 @@
     visibility: visible !important;
   }
 }
+
+/* Kaca hangat (glassmorphism): permukaan semi-transparan di atas latar atmosfer krem-hijau-karamel. */
+@utility glass {
+  background-color: rgb(255 255 255 / 0.72);
+  border: 1px solid rgb(255 255 255 / 0.75);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.8) inset, 0 8px 24px -8px rgb(31 61 43 / 0.18);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background-color: rgb(255 255 255 / 0.95); }
+}
+
+/* Latar atmosfer halaman pelanggan: glow lembut tetap di belakang kaca. */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 8% -5%, rgb(58 110 78 / 0.22), transparent 60%),
+    radial-gradient(50rem 36rem at 105% 30%, rgb(168 106 50 / 0.16), transparent 60%),
+    radial-gradient(48rem 36rem at 20% 110%, rgb(199 222 208 / 0.55), transparent 60%),
+    var(--color-cream-50);
+}
+
+/* Transisi masuk halaman (template.tsx). Hanya fade (opacity): tanpa transform agar posisi elemen stabil bagi pengukuran layout dan elemen fixed. */
+@keyframes page-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.page-in { animation: page-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+
+@keyframes bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.bump { animation: bump 0.28s ease-out; }
+
+/* Gaya editorial (modern-web-ui): reveal bertopeng, marquee, dan scroll-reveal CSS murni. */
+@keyframes line-up {
+  from { transform: translateY(105%); }
+  to { transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+/* Baris bertopeng: induk memotong, anak naik. Dipakai hero (saat load) dan judul bagian (saat tergulir). */
+.mask { display: block; overflow: hidden; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+.mask > span { display: block; animation: line-up 0.95s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: var(--d, 0s); }
+.marquee-track { display: flex; width: max-content; animation: marquee 32s linear infinite; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+.marquee-text::before { content: attr(data-text); }
+.outline-text { color: transparent; -webkit-text-stroke: 1px var(--stroke, var(--color-green-900)); }
+
+/* Scroll-reveal tanpa JS & tanpa hydration flash; browser tanpa dukungan langsung menampilkan konten. */
+@supports (animation-timeline: view()) {
+  .reveal-mask { view-timeline-name: --rv; }
+  .reveal-mask > span { animation: line-up linear both; animation-timeline: --rv; animation-delay: 0s; animation-range: entry 5% entry 75%; }
+  .reveal-fade { animation: fade-in linear both; animation-timeline: view(); animation-range: entry 0% entry 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mask > span, .reveal-fade { animation: none !important; transform: none !important; opacity: 1 !important; }
+  .marquee-track { animation: none; }
+}

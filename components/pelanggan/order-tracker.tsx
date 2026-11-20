@@ -220,7 +220,7 @@ export function OrderTracker({ initialOrder, qrisImageUrl }: OrderTrackerProps) 
         )}
 
         {/* Header Nomor Antrean Besar (Fraunces) */}
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-line bg-card p-6 text-center">
+        <div className="flex flex-col items-center gap-2 glass rounded-lg p-6 text-center">
           <span className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-800">
             Pesanan Berhasil Dibuat!
           </span>
@@ -262,7 +262,7 @@ export function OrderTracker({ initialOrder, qrisImageUrl }: OrderTrackerProps) 
       />
 
       {/* Rincian Item Pesanan */}
-      <div className="flex flex-col gap-3 rounded-lg border border-line bg-card p-4">
+      <div className="flex flex-col gap-3 glass rounded-lg p-4">
         <h2 className="text-sm font-bold tracking-wide text-ink-900 border-b border-line pb-2.5">
           RINCIAN PESANAN
         </h2>

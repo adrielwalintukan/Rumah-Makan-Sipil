@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CartBar } from "@/components/pelanggan/cart-bar";
 import { DesktopCartPanel } from "@/components/pelanggan/desktop-cart-panel";
 import { MenuCard } from "@/components/pelanggan/menu-card";
 import { OptionSheet } from "@/components/pelanggan/option-sheet";
+import { Marquee } from "@/components/pelanggan/marquee";
 import { PromoCarousel } from "@/components/pelanggan/promo-carousel";
 import { addLine, resolveCart } from "@/lib/cart";
 import type { Category, MenuItem, StoreSettings } from "@/lib/menu";
@@ -24,6 +25,19 @@ export function MenuView({
   const { count, total } = resolveCart(cart, categories);
   const [selected, setSelected] = useState<{ item: MenuItem; category: string } | null>(null);
   const [active, setActive] = useState(categories[0]?.id);
+
+  // Indikator tab geser mengikuti tab aktif, dan tab aktif digulirkan ke tengah bar.
+  const navRef = useRef<HTMLElement>(null);
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const el = nav?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!nav || !el) return;
+    setPill({ left: el.offsetLeft, width: el.offsetWidth });
+    // Hanya geser bar tab secara horizontal (bukan scrollIntoView, agar halaman tidak ikut bergulir).
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    nav.scrollTo({ left: el.offsetLeft - (nav.clientWidth - el.offsetWidth) / 2, behavior: reduce ? "auto" : "smooth" });
+  }, [active]);
 
   // Chip kategori aktif mengikuti section yang sedang terlihat.
   useEffect(() => {
@@ -55,22 +69,29 @@ export function MenuView({
 
   return (
     <>
+      <Marquee text={settings.tagline || "Makan Enak, Setiap Hari"} />
       <PromoCarousel settings={settings} featured={featured} canOrder={isOpen} onPick={pick} />
       <div id="menu" className="scroll-mt-14 lg:flex lg:items-start lg:gap-8">
         <div className="flex-1 min-w-0 max-w-3xl">
           <nav
+            ref={navRef}
             aria-label="Kategori menu"
-            className="sticky top-14 z-30 -mx-4 flex gap-2 overflow-x-auto bg-background/95 px-4 py-3 backdrop-blur"
+            className="glass sticky top-14 z-30 -mx-4 flex gap-1 overflow-x-auto rounded-none px-4 py-2 sm:mx-0 sm:rounded-full sm:px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
+            {pill && (
+              <span
+                aria-hidden
+                style={{ left: pill.left, width: pill.width }}
+                className="absolute inset-y-2 rounded-full bg-gradient-to-b from-green-600 to-green-800 shadow-md shadow-green-900/25 transition-[left,width] duration-300 ease-out"
+              />
+            )}
             {categories.map((c) => (
               <a
                 key={c.id}
                 href={`#kategori-${c.id}`}
                 aria-current={active === c.id ? "true" : undefined}
-                className={`inline-flex h-11 shrink-0 items-center rounded-full border px-5 text-sm font-semibold transition-colors ${
-                  active === c.id
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-line bg-card text-ink-900 hover:bg-accent"
+                className={`relative inline-flex h-11 shrink-0 items-center rounded-full px-5 text-sm font-semibold transition-colors ${
+                  active === c.id ? "text-primary-foreground" : "text-ink-900 hover:bg-white/60"
                 }`}
               >
                 {c.name}
@@ -78,21 +99,28 @@ export function MenuView({
             ))}
           </nav>
 
-          {categories.map((c) => (
-            <section key={c.id} id={`kategori-${c.id}`} aria-labelledby={`judul-${c.id}`} className="scroll-mt-32 pt-4">
-              <h2 id={`judul-${c.id}`} className="mb-3 font-display text-2xl font-bold text-green-900">
-                {c.name}
-              </h2>
+          {categories.map((c, i) => (
+            <section key={c.id} id={`kategori-${c.id}`} aria-labelledby={`judul-${c.id}`} className="scroll-mt-32 pt-10">
+              <div className="mb-5 flex items-end justify-between gap-3 border-b border-green-900/15 pb-3">
+                <div>
+                  <span aria-hidden className="text-xs font-semibold tracking-widest text-brown-500 tabular-nums">({String(i + 1).padStart(2, "0")})</span>
+                  <h2 id={`judul-${c.id}`} className="reveal-mask font-display text-4xl leading-none font-extrabold tracking-tight text-green-900 lg:text-5xl">
+                    <span>{c.name}</span>
+                  </h2>
+                </div>
+                <span className="text-sm text-ink-600 tabular-nums">{c.items.length} menu</span>
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {c.items.map((item) => (
-                  <MenuCard
-                    key={item.id}
-                    item={item}
-                    category={c.name}
-                    cart={cart}
-                    canOrder={isOpen}
-                    onOpen={() => setSelected({ item, category: c.name })}
-                  />
+                  <div key={item.id} className="reveal-fade [&>article]:h-full">
+                    <MenuCard
+                      item={item}
+                      category={c.name}
+                      cart={cart}
+                      canOrder={isOpen}
+                      onOpen={() => setSelected({ item, category: c.name })}
+                    />
+                  </div>
                 ))}
               </div>
             </section>

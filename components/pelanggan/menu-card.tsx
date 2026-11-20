@@ -50,7 +50,7 @@ export function MenuCard({
   return (
     <article
       data-testid="menu-card"
-      className={`flex overflow-hidden rounded-xl border bg-card shadow-card transition-shadow hover:shadow-md ${soldOut ? "opacity-50" : ""}`}
+      className={`flex overflow-hidden rounded-2xl border border-green-900/10 bg-white shadow-card transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-0.5 hover:border-green-900/25 hover:shadow-lg motion-reduce:hover:translate-y-0 ${soldOut ? "opacity-50" : ""}`}
     >
       {item.image_url ? (
         <>
@@ -118,7 +118,7 @@ export function MenuCard({
               }
               disabled={!canOrder}
               aria-label={`Tambah ${item.name}`}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95 disabled:opacity-40"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-green-600 to-green-800 text-primary-foreground shadow-md shadow-green-900/30 transition-transform hover:scale-105 active:scale-90 disabled:opacity-40"
             >
               <Plus className="size-5" />
             </button>
