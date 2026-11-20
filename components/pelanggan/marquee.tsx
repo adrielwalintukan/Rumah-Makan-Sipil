@@ -2,7 +2,8 @@
 export function Marquee({ text }: { text: string }) {
   const unit = Array.from({ length: 4 }, (_, i) => (
     <span key={i} className="flex items-center gap-6 pr-6">
-      <span className="outline-text font-display text-4xl font-bold tracking-tight uppercase lg:text-6xl">{text}</span>
+      {/* Teks lewat ::before (attr) agar tidak menggandakan tagline di DOM/pencarian teks. */}
+      <span data-text={text} className="marquee-text outline-text font-display text-4xl font-bold tracking-tight uppercase lg:text-6xl" />
       <span className="size-3 shrink-0 rounded-full bg-brown-500 lg:size-4" />
     </span>
   ));

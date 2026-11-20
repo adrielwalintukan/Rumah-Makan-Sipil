@@ -289,6 +289,7 @@
 .mask > span { display: block; animation: line-up 0.95s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: var(--d, 0s); }
 .marquee-track { display: flex; width: max-content; animation: marquee 32s linear infinite; }
 .marquee:hover .marquee-track { animation-play-state: paused; }
+.marquee-text::before { content: attr(data-text); }
 .outline-text { color: transparent; -webkit-text-stroke: 1px var(--stroke, var(--color-green-900)); }
 
 /* Scroll-reveal tanpa JS & tanpa hydration flash; browser tanpa dukungan langsung menampilkan konten. */
