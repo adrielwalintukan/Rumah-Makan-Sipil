@@ -271,3 +271,34 @@
   100% { transform: scale(1); }
 }
 .bump { animation: bump 0.28s ease-out; }
+
+/* Gaya editorial (modern-web-ui): reveal bertopeng, marquee, dan scroll-reveal CSS murni. */
+@keyframes line-up {
+  from { transform: translateY(105%); }
+  to { transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+/* Baris bertopeng: induk memotong, anak naik. Dipakai hero (saat load) dan judul bagian (saat tergulir). */
+.mask { display: block; overflow: hidden; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+.mask > span { display: block; animation: line-up 0.95s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: var(--d, 0s); }
+.marquee-track { display: flex; width: max-content; animation: marquee 32s linear infinite; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+.outline-text { color: transparent; -webkit-text-stroke: 1px var(--stroke, var(--color-green-900)); }
+
+/* Scroll-reveal tanpa JS & tanpa hydration flash; browser tanpa dukungan langsung menampilkan konten. */
+@supports (animation-timeline: view()) {
+  .reveal-mask { view-timeline-name: --rv; }
+  .reveal-mask > span { animation: line-up linear both; animation-timeline: --rv; animation-delay: 0s; animation-range: entry 5% entry 75%; }
+  .reveal-fade { animation: fade-in linear both; animation-timeline: view(); animation-range: entry 0% entry 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mask > span, .reveal-fade { animation: none !important; transform: none !important; opacity: 1 !important; }
+  .marquee-track { animation: none; }
+}

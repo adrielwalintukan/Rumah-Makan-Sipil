@@ -50,7 +50,7 @@ export function MenuCard({
   return (
     <article
       data-testid="menu-card"
-      className={`flex overflow-hidden glass rounded-xl transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:hover:translate-y-0 ${soldOut ? "opacity-50" : ""}`}
+      className={`flex overflow-hidden rounded-2xl border border-green-900/10 bg-white shadow-card transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-0.5 hover:border-green-900/25 hover:shadow-lg motion-reduce:hover:translate-y-0 ${soldOut ? "opacity-50" : ""}`}
     >
       {item.image_url ? (
         <>

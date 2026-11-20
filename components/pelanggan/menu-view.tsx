@@ -5,6 +5,7 @@ import { CartBar } from "@/components/pelanggan/cart-bar";
 import { DesktopCartPanel } from "@/components/pelanggan/desktop-cart-panel";
 import { MenuCard } from "@/components/pelanggan/menu-card";
 import { OptionSheet } from "@/components/pelanggan/option-sheet";
+import { Marquee } from "@/components/pelanggan/marquee";
 import { PromoCarousel } from "@/components/pelanggan/promo-carousel";
 import { addLine, resolveCart } from "@/lib/cart";
 import type { Category, MenuItem, StoreSettings } from "@/lib/menu";
@@ -68,6 +69,7 @@ export function MenuView({
 
   return (
     <>
+      <Marquee text={settings.tagline || "Makan Enak, Setiap Hari"} />
       <PromoCarousel settings={settings} featured={featured} canOrder={isOpen} onPick={pick} />
       <div id="menu" className="scroll-mt-14 lg:flex lg:items-start lg:gap-8">
         <div className="flex-1 min-w-0 max-w-3xl">
@@ -97,21 +99,28 @@ export function MenuView({
             ))}
           </nav>
 
-          {categories.map((c) => (
-            <section key={c.id} id={`kategori-${c.id}`} aria-labelledby={`judul-${c.id}`} className="scroll-mt-32 pt-4">
-              <h2 id={`judul-${c.id}`} className="mb-3 font-display text-2xl font-bold text-green-900">
-                {c.name}
-              </h2>
+          {categories.map((c, i) => (
+            <section key={c.id} id={`kategori-${c.id}`} aria-labelledby={`judul-${c.id}`} className="scroll-mt-32 pt-10">
+              <div className="mb-5 flex items-end justify-between gap-3 border-b border-green-900/15 pb-3">
+                <div>
+                  <span aria-hidden className="text-xs font-semibold tracking-widest text-brown-500 tabular-nums">({String(i + 1).padStart(2, "0")})</span>
+                  <h2 id={`judul-${c.id}`} className="reveal-mask font-display text-4xl leading-none font-extrabold tracking-tight text-green-900 lg:text-5xl">
+                    <span>{c.name}</span>
+                  </h2>
+                </div>
+                <span className="text-sm text-ink-600 tabular-nums">{c.items.length} menu</span>
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {c.items.map((item) => (
-                  <MenuCard
-                    key={item.id}
-                    item={item}
-                    category={c.name}
-                    cart={cart}
-                    canOrder={isOpen}
-                    onOpen={() => setSelected({ item, category: c.name })}
-                  />
+                  <div key={item.id} className="reveal-fade [&>article]:h-full">
+                    <MenuCard
+                      item={item}
+                      category={c.name}
+                      cart={cart}
+                      canOrder={isOpen}
+                      onOpen={() => setSelected({ item, category: c.name })}
+                    />
+                  </div>
                 ))}
               </div>
             </section>
